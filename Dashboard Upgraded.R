@@ -19,6 +19,7 @@ library(purrr)
 library(RColorBrewer)
 library(Rtsne)
 library(shinyjs)
+library(here)
 
 # SHOULD NOT BE NEEDED
 #library(depmixS4) 
@@ -554,8 +555,8 @@ server <- function(input, output, session) {
     #-------------------------------------------------------------------------------
     
     # CONSUMER SENTIMENT PLOT, PAGE 1
-    scaled_data = readRDS("scaled_dataset.rds")
-    full_dataset = readRDS("full_dataset.rds")
+    scaled_data = readRDS(here("scaled_dataset.rds"))
+    full_dataset = readRDS(here("full_dataset.rds"))
     
     print("1")
     output$consumer_sentiment_plot <- renderHighchart({
@@ -1176,7 +1177,6 @@ server <- function(input, output, session) {
                lbl)
     }
     
-    library(visNetwork)
     
     # Define states (nodes)
     nodes <- data.frame(
