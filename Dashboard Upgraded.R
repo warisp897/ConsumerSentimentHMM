@@ -104,10 +104,18 @@ intro_hmm_text <- HTML(
 </div>"
 )
 
-no_state_selected <- HTML(
+initial_state_selected <- HTML(
     "<div style='font-size:15px; line-height:1.6;'>
   <p>
     The initial state in an HMM represents the model's starting point. It is not meant to capture long-term dynamics but rather serves to anchor the beginning of the observed sequence. Transition probabilities from the initial state indicate how likely the system is to enter each of the main hidden states. While it does not persist beyond the first step, its configuration can affect the model’s interpretation of early data points.
+  </p>
+</div>"
+)
+
+no_state_selected <- HTML(
+    "<div style='font-size:15px; line-height:1.6;'>
+  <p>
+    Select a State Bubble on the diagram to learn more about what each state represents.
   </p>
 </div>"
 )
@@ -327,7 +335,6 @@ ui <- bs4DashPage(
                     )
                 ),
                 
-                # Fix: Wrap all three side-by-side elements in ONE flex container
                 fluidRow(
                     column(
                         width = 12,
@@ -344,7 +351,7 @@ ui <- bs4DashPage(
                                     width = 12,
                                     status = "success",
                                     solidHeader = TRUE,
-                                    no_state_selected
+                                    uiOutput("card_content")
                                 )
                             ),
                             
@@ -404,7 +411,7 @@ ui <- bs4DashPage(
                         solidHeader = TRUE,
                         div(
                             style = "flex: 2; display: flex; justify-content: center;",
-                            intro_hmm_text 
+                            "" 
                             # REPLACE WITH ACTUAL TEXT LATER
                         )
                     ),
@@ -1260,7 +1267,7 @@ server <- function(input, output, session) {
             visNodes(fixed = TRUE) %>%
             visOptions(
                 highlightNearest = TRUE,
-                nodesIdSelection = list(enabled = TRUE, selected = "Initial")
+                nodesIdSelection = list(enabled = TRUE)
             ) %>%
             visInteraction(dragNodes = FALSE, dragView = FALSE, zoomView = FALSE) %>%
             visLayout(randomSeed = 42)  # fix layout for reproducibility
@@ -1496,6 +1503,26 @@ server <- function(input, output, session) {
                 )
             )
         )
+    })
+    
+    output$card_content <- renderUI({
+        selected_node <- input$hmm_vis_selected
+        
+        #node selection text
+        if (!is.null(selected_node) && selected_node %in% c("S1", "S2", "S3", "Initial")) {
+            if (selected_node == "S1") {
+                return(p("This is the text for state S1."))
+            } else if (selected_node == "S2") {
+                return(p("This is the text for state S2."))
+            } else if (selected_node == "S3") {
+                return(p("This is the text for state S3."))
+            } else if (selected_node == "Initial") {
+                return(initial_state_selected)
+            }
+        }
+        
+        #Default text
+        p(no_state_selected)
     })
     
     
