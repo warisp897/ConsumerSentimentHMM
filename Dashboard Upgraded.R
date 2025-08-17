@@ -120,6 +120,50 @@ no_state_selected <- HTML(
 </div>"
 )
 
+state_selected <- HTML(
+    "<div style='font-size:15px; line-height:1.6;'>
+  <p>
+    The number of states and the identity of the states is determined in the model's parameters and design prior to training, and as the model trains, it learns to correlate the response values to the states. 
+  </p>
+  
+  <p>
+  For each state, there is the element of identifying the probability that the model is currently in a specific state, known as the 
+  <b>Emission Probability</b> and the likelihood of moving into another state, known as the <b>Transition Probability</b>. 
+  Both of these values are core to the strength of the Hidden Markov Model.
+  </p>
+</div>"
+)
+
+emission_prob <- HTML(
+    "<div style='font-size:15px; line-height:1.6;'>
+  <p>
+    The state embodied in a specific time period is unknown, but what the model can identify is the observable 
+    event occurring. From there, it calculates the likelihood of being in any state based on the observed event. 
+  </p>
+  
+  <p>
+  For example, in the HMM diagram, the model does not exactly know what the weather is during any time period, 
+  but what it does know is whether they have an umbrella with them. From there, the model can determine the 
+  likelihood of the weather state outside based on that, and conclude that it is likely sunny outside. 
+  </p>
+</div>"
+)
+
+transition_prob  <- HTML(
+    "<div style='font-size:15px; line-height:1.6;'>
+  <p>
+    For every time period, the model can either move into a new state or stay in its current state. As the model 
+    learns from the data and how it correlates to the response variable, it identifies the likelihood of these 
+    transitions. The model uses an algorithm to continually guess probabilities until it finds the values that 
+    best represent the data.
+  </p>
+  
+  <p>
+  These values are shown in the transition matrix. 
+  </p>
+</div>"
+)
+
 mint_dark_theme <- create_theme(
     theme = "superhero",  # matches your preset
     bs4dash_vars(
@@ -1190,16 +1234,15 @@ server <- function(input, output, session) {
         id = c("Initial", "S1", "S2", "S3"),
         label = c(
             "Initial State",
-            "State 1",
-            "State 2",
-            "State 3"
+            "Sunny",
+            "Cloudy",
+            "Rainy"
         ),
         size = 50,
         font.size = 18,
         shape = "circle",
         x     = c(0, -200, 0, 200),
         y     = c(-200, 0, 0, 0),
-        # optional placeholders for customization:
         color = "#3EB489",
         title = "Hidden Markov Model Diagram"
     )
@@ -1360,8 +1403,6 @@ server <- function(input, output, session) {
         )
         
         hc <- highchart() %>%
-            # Configure the chart to be a 3D scatterplot.
-            # The 'options3d' list is key to enabling 3D functionality.
             hc_chart(
                 type = "scatter3d",
                 options3d = list(
@@ -1378,7 +1419,7 @@ server <- function(input, output, session) {
                     )
                 ),
                 # Add a load event to the chart that injects the JavaScript for dragging.
-                # The 'this' in the JS code refers to the Highcharts chart object itself.
+                
                 events = list(
                     load = JS("function () {
                         // Add mouse and touch events for rotation
@@ -1511,9 +1552,9 @@ server <- function(input, output, session) {
         #node selection text
         if (!is.null(selected_node) && selected_node %in% c("S1", "S2", "S3", "Initial")) {
             if (selected_node == "S1") {
-                return(p("This is the text for state S1."))
+                return(emission_prob)
             } else if (selected_node == "S2") {
-                return(p("This is the text for state S2."))
+                return(transition_prob)
             } else if (selected_node == "S3") {
                 return(p("This is the text for state S3."))
             } else if (selected_node == "Initial") {
