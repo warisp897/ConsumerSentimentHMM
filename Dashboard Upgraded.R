@@ -1279,6 +1279,14 @@ server <- function(input, output, session) {
     nodes$icon.color[mask]   <- "#3EB489"                # match your theme
     nodes$icon.weight[mask]  <- 900                      # force solid weight in FA5
     
+    nodes$icon.size[nodes$id == "S1"] <- 96   # Sunny: widest visual radius
+    nodes$icon.size[nodes$id == "S2"] <- 86   # Cloudy: a bit smaller
+    nodes$icon.size[nodes$id == "S3"] <- 100  # Rainy: drops extend the right edge
+    
+    nodes$color.background[nodes$id %in% c("S1","S2","S3")] <- "#3EB489"  # fill
+    nodes$color.border[nodes$id %in% c("S1","S2","S3")] <- "#3EB489"      # match fill
+
+    
     # Define transitions (edges)
     edges <- data.frame(
         from = c(
@@ -1306,25 +1314,42 @@ server <- function(input, output, session) {
         font.size = NA
     )
     
+    
     edges$smooth <- vector("list", nrow(edges))
     edges$dashes <- FALSE
-    
+
     edges <- edges %>%
         mutate(
-            smooth = case_when(
-                from == "Initial" ~ list(FALSE),
-                from == to        ~ list(list(enabled=TRUE, type="curvedCW", roundness=0.3)),
-                from == "S3" & to == "S1" ~ list(list(enabled=TRUE, type="curvedCW", roundness=0.3)),
-                TRUE             ~ list(list(enabled=TRUE, type="curvedCW", roundness=0.2))
-            ),
-            dashes = from == to
-        )
+             smooth = case_when(
+                 from == "Initial" ~ list(FALSE),
+                 from == to        ~ list(list(enabled=TRUE, type="curvedCW", roundness=0.3)),
+                 from == "S3" & to == "S1" ~ list(list(enabled=TRUE, type="curvedCW", roundness=0.3)),
+                 TRUE             ~ list(list(enabled=TRUE, type="curvedCW", roundness=0.2))
+             ),
+             dashes = from == to
+         )
+    
+
+    # # Self-loops: keep curved, but tighter and consistent
+    # edges$smooth[edges$from == edges$to] <- list(
+    #     list(enabled = TRUE, type = "curvedCW", roundness = 0.30)
+    # )
+
+    edge_font <- list(
+        size = 18,                              # label size
+        background = "rgba(245,247,250,0.96)",  # light canvas-colored mask
+        strokeWidth = 0,                        # no outline
+        vadjust = -4                            # nudge upward a bit
+    )
+    
+    
     
     # Build interactive HMM
     output$hmm_vis = renderVisNetwork({ visNetwork(nodes, edges) %>%
             addFontAwesome(version = "5.13.0") %>%
             visEdges(
                 arrows = "to",
+                smooth = list(enabled = TRUE),
                 arrowStrikethrough = TRUE,
                 endPointOffset = list(from = 0, to = 10),
                 selfReference = list(size = 30, angle = 0.35, renderBehindTheNode = TRUE)
