@@ -1326,7 +1326,12 @@ server <- function(input, output, session) {
     # Build interactive HMM
     output$hmm_vis = renderVisNetwork({ visNetwork(nodes, edges) %>%
             addFontAwesome(version = "5.13.0") %>%
-            visEdges(arrows = "to") %>%
+            visEdges(
+                arrows = "to",
+                arrowStrikethrough = TRUE,
+                endPointOffset = list(from = 0, to = 10),
+                selfReference = list(size = 30, angle = 0.35, renderBehindTheNode = TRUE)
+            ) %>%
             visNodes(fixed = TRUE) %>%
             visOptions(
                 highlightNearest = TRUE,
