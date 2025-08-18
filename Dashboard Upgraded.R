@@ -1385,7 +1385,7 @@ server <- function(input, output, session) {
     #-----------------------------------------------------------------------------
     
     #3D TSNE PLOT
-    library(depmixS4)
+    #library(depmixS4)
     output$state_plot <- renderHighchart({
         
         # reading in data (no need to recalculate)
@@ -1399,7 +1399,7 @@ server <- function(input, output, session) {
             x = tsne_result$Y[, 1],
             y = tsne_result$Y[, 2],
             z = tsne_result$Y[, 3],
-            group = factor(predicted_states)  # or use another grouping variable
+            group = factor(predicted_states)
         )
         
         hc <- highchart() %>%
@@ -1489,9 +1489,11 @@ server <- function(input, output, session) {
             
             # Customize the tooltip that appears on hover.
             hc_tooltip(
-                pointFormat = 'X: {point.x}<br>Y: {point.y}<br>Z: {point.z}<br>Group: {point.group}'
+                pointFormat = 'X: {point.x}<br>
+                               Y: {point.y}<br>
+                               Z: {point.z}<br>
+                               Group: {point.group}'
             )
-        
         hc
         
     })
