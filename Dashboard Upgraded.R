@@ -24,9 +24,6 @@ library(here)
 # SHOULD NOT BE NEEDED
 #library(depmixS4) 
 
-# REPLACE AFTER UPLOADING TO GIT
-setwd("C:\\Items\\Markov Chains Econ")
-
 mint_theme <- bs_theme(
     bootswatch = "flatly",  # clean base
     primary = "#98FF98",    # mint green base
