@@ -1261,7 +1261,26 @@ server <- function(input, output, session) {
     nodes$x[nodes$id == "S3"] <- 300
     nodes$y[nodes$id == "S3"] <- -50
     
-    nodes$size[nodes$id %in% c("S1", "S2", "S3")] <- 70
+    nodes$size[nodes$id %in% c("S1", "S2", "S3")] <- 110
+    
+    fa_codes <- c(S1 = "f185",  # sun
+                  S2 = "f0c2",  # cloud
+                  S3 = "f73d")  # cloud-rain
+    
+    # Switch S1..S3 nodes to icon shape and attach FA settings
+    mask <- nodes$id %in% names(fa_codes)
+    nodes$shape[mask]        <- "icon"
+    nodes$icon.face          <- NA
+    nodes$icon.code          <- NA
+    nodes$icon.size          <- NA
+    nodes$icon.color         <- NA
+    nodes$icon.weight        <- NA
+    
+    nodes$icon.face[mask]    <- "'Font Awesome 5 Free'"  # FA5 family name
+    nodes$icon.code[mask]    <- unname(fa_codes[nodes$id[mask]])
+    nodes$icon.size[mask]    <- 70                       # similar visual size as before
+    nodes$icon.color[mask]   <- "#3EB489"                # match your theme
+    nodes$icon.weight[mask]  <- 900                      # force solid weight in FA5
     
     # Define transitions (edges)
     edges <- data.frame(
@@ -1306,6 +1325,7 @@ server <- function(input, output, session) {
     
     # Build interactive HMM
     output$hmm_vis = renderVisNetwork({ visNetwork(nodes, edges) %>%
+            addFontAwesome(version = "5.13.0") %>%
             visEdges(arrows = "to") %>%
             visNodes(fixed = TRUE) %>%
             visOptions(
