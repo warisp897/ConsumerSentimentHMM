@@ -87,79 +87,180 @@ cs_interpretation <- HTML(
 </div>"
 )
 
+
 intro_hmm_text <- HTML(
     "<div style='font-size:17px; line-height:1.6;'>
-  <p>
-    A Hidden Markov Model (HMM) is a probabilistic framework used to analyze systems that evolve over time but whose underlying dynamics are not directly observable. Instead of seeing the true internal state of the system at each moment, we observe external signals or measurements that depend on these hidden states in a probabilistic manner. This structure makes HMMs especially effective for modeling time series data where the behavior is driven by latent regimes or processes.
-  </p>
-  <p>
-    At the core of an HMM is a finite set of hidden states, each of which produces observations according to a specific probability distribution. The system transitions between these states at discrete time steps, with each transition governed by a fixed probability. In addition to the state transitions and emission mechanisms, the model also includes an initial state distribution that specifies where the system is likely to begin. As time progresses, the model generates a sequence of observations, each indirectly reflecting the system's movement through these hidden states.
-  </p>
-  <p>
-    Because the true sequence of states is not observed, the model's utility lies in its ability to infer these states and estimate the parameters that govern their evolution. By linking observed data to underlying patterns that are otherwise hidden, HMMs offer a structured way to uncover shifts, transitions, and regime changes that standard time series models may not capture.
-  </p>
-</div>"
+    
+    <p>
+    <b> A Hidden Markov Model (HMM) </b> is a statistical tool used to understand systems where you can't directly 
+    observe the state of the system, but you can observe evidence or signals that are influenced by that state.
+    </p>
+    
+    <p>
+    Think of it like trying to guess the weather (a hidden state) by only knowing the temperature (an observation). You can't see if it's Sunny, 
+    Cloudy, or Rainy from inside a windowless room, but if you're told the temperature is Hot, you can make a good guess that it's probably Sunny.
+    </p>
+    
+    <p>
+    The model has two layers: the unobservable hidden states (the weather types at the top of the diagram) and the observations we can see 
+    (the temperatures at the bottom). The model assumes that the sequence of hidden states follows a specific type of random process 
+    (a Markov chain), where the next state only depends on the current state.
+    </p>
+    
+    <p>
+    The primary goal of an HMM is to infer the most likely sequence of hidden states given a sequence of observations. 
+    For example, if you observe a temperature pattern of Hot, Mild, Cold over three days, the HMM can calculate 
+    the most probable weather sequence, such as Sunny, Cloudy, Rainy.
+    </p>
+    
+    <p>
+    The model trains by analyzing a large set of historical data where both the states and observations are known. 
+    It learns the probabilities that connect these states and observations, which are the core components of the model.
+    </p>
+    
+    </div>"
 )
 
 initial_state_selected <- HTML(
-    "<div style='font-size:15px; line-height:1.6;'>
+    "<div style='font-size:17px; line-height:1.6;'>
   <p>
-    The initial state in an HMM represents the model's starting point. It is not meant to capture long-term dynamics but rather serves to anchor the beginning of the observed sequence. Transition probabilities from the initial state indicate how likely the system is to enter each of the main hidden states. While it does not persist beyond the first step, its configuration can affect the model’s interpretation of early data points.
-  </p>
-</div>"
-)
-
-no_state_selected <- HTML(
-    "<div style='font-size:15px; line-height:1.6;'>
-  <p>
-    Select a State Bubble on the diagram to learn more about what each state represents.
-  </p>
-</div>"
-)
-
-state_selected <- HTML(
-    "<div style='font-size:15px; line-height:1.6;'>
-  <p>
-    The number of states and the identity of the states is determined in the model's parameters and design prior to training, and as the model trains, it learns to correlate the response values to the states. 
+   The <b> Initial State </b> represents the starting point of the model. It defines the probability of the system being in 
+   each of the hidden states at the very beginning (at time zero), before any observations have been made.
   </p>
   
   <p>
-  For each state, there is the element of identifying the probability that the model is currently in a specific state, known as the 
-  <b>Emission Probability</b> and the likelihood of moving into another state, known as the <b>Transition Probability</b>. 
-  Both of these values are core to the strength of the Hidden Markov Model.
+  It answers the question: \"Without any other information, what is the likelihood of today's weather being Sunny, Cloudy, or Rainy?\" 
+  For example, if you live in a desert, the initial probability for Sunny would be very high.
   </p>
+  
+  <p>
+  In the diagram, the Initial State node points to each weather state. 
+  The probabilities associated with these arrows (....) represent the chances that our very first hidden state is Sunny, Cloudy, or Rainy, 
+  respectively. These probabilities must always add up to 1 (or 100%).
+  </p>
+  
 </div>"
 )
 
 emission_prob <- HTML(
-    "<div style='font-size:15px; line-height:1.6;'>
+    "<div style='font-size:17px; line-height:1.6;'>
   <p>
-    The state embodied in a specific time period is unknown, but what the model can identify is the observable 
-    event occurring. From there, it calculates the likelihood of being in any state based on the observed event. 
+    <b> Emission Probabilities </b> link the hidden states to the observations. They represent the probability of 
+    seeing a particular observation given that the system is in a specific hidden state.
   </p>
   
   <p>
-  For example, in the HMM diagram, the model does not exactly know what the weather is during any time period, 
-  but what it does know is whether they have an umbrella with them. From there, the model can determine the 
-  likelihood of the weather state outside based on that, and conclude that it is likely sunny outside. 
+  This is the crucial link that allows us to infer the hidden state. For example, given that it is a Rainy day, 
+  what is the probability that the temperature is Cold? This is an emission probability. 
+  It's unlikely that the temperature would be Hot on a Rainy day, so that probability would be very low.
+  </p>
+  
+  <p>
+  These are also learned from historical data. For all the times the state was sunny, the model 
+  calculates the proportion of times the observation were hot, mild, and cold.
+  </p>
+  
+  <p>
+  In the diagram, these are the dashed arrows pointing from the hidden weather states down to the observed temperature states. The label (...)
+  represents the probability of observing hot temperature when the hidden state is Sunny.
   </p>
 </div>"
 )
 
 transition_prob  <- HTML(
-    "<div style='font-size:15px; line-height:1.6;'>
+    "<div style='font-size:17px; line-height:1.6;'>
   <p>
-    For every time period, the model can either move into a new state or stay in its current state. As the model 
-    learns from the data and how it correlates to the response variable, it identifies the likelihood of these 
-    transitions. The model uses an algorithm to continually guess probabilities until it finds the values that 
-    best represent the data.
+    <b> Transition Probabilities </b> govern how the hidden states change over time. 
+    They are the probabilities of moving from one hidden state to another in the next time step.
   </p>
   
   <p>
-  These values are shown in the transition matrix. 
+   These probabilities model the dynamics of the system. For instance, if the weather is sunny today, 
+   what is the probability that it will be cloudy tomorrow? That's a transition probability. A system 
+   often has inertia, meaning it's more likely to stay in its current state (e.g., Sunny -> Sunny).
   </p>
+  
+  <p>
+  These are learned from historical data by counting how often each state follows another. For example, 
+  the model would count how many times a sunny day was followed by a rainy day in the dataset to calculate 
+  that specific probability.
+  </p>
+  
+  <p>
+  In the diagram, these are the curved arrows connecting the weather states. The label represents the probability 
+  of transitioning from State 1 (Sunny) to State 2 (Cloudy). The probabilities in each row of the matrix below must sum to 1.
+  </p>
+  
 </div>"
 )
+
+hmm_training  <- HTML(
+    "<div style='font-size:16px; line-height:1.6;'>
+  <p>
+  The model is trained to find the set of internal probabilities that best explains the sequence of observations provided. 
+  The goal of the training process is to maximize a value called the <b> log-likelihood.</b> This is a statistical measure of how well the 
+  model's parameters (its initial state, transition, and emission probabilities) explain the observed data. A higher log-likelihood 
+  score means the model provides a more plausible explanation for the data sequence provided. The model adjusts its internal probabilities 
+  until this score is as high as it can be.
+  </p>
+  
+  <p>
+  To achieve this, the model uses a powerful algorithm called Expectation-Maximization (EM), which for HMMs is known as the Baum-Welch algorithm. 
+  It's designed to solve a classic \"chicken-and-egg\" problem: to know the right probabilities, we need to know the sequence of hidden states, 
+  but to know the hidden states, we need the right probabilities. The EM algorithm solves this by starting with a random guess and then 
+  repeating a two-step process to gradually improve its solution.
+  </p>
+  
+  <ol>
+    <li> <b> The E-Step (Expectation): </b> First, using its current (initially random) set of probabilities, the model analyzes the data and calculates 
+    the expected probability of being in each hidden state (e.g., Sunny, Cloudy) at every point in time. It doesn't decide the state was 
+    definitely Sunny; instead, it might assign a 70% chance of it being sunny and a 30% chance of it being cloudy. This creates a complete 
+    probabilistic map of the hidden states. </li>
+    
+    <li> <b> The M-Step (Maximization): </b> Next, using this new probabilistic map of the hidden states, the model updates its transition and 
+    emission probabilities to maximize the likelihood of that map. For example, it will adjust the Sunny to Cloudy transition probability 
+    based on the weighted likelihood of all such transitions occurring in the data. This newly calculated set of probabilities is guaranteed 
+    to be a better fit for your data.</li>
+  </ol>
+  
+  <p>
+  The model repeats this E-Step and M-Step cycle over and over. With each cycle, the log-likelihood score improves, 
+  and the model's parameters get closer to the optimal solution. The process stops when the improvement between cycles becomes very small, 
+  a state known as convergence. At this point, the model has found a stable and mathematically optimized set of probabilities 
+  that best describes the underlying patterns in the data.
+  </p>
+  
+</div>"
+)
+
+emissions_mat <- '
+<div style="font-size:250%; text-align:center;">
+  $$\n\\begin{bmatrix}
+     b_{1}(hot) & b_{2}(hot) & b_{3}(hot) \\\\\n
+     b_{1}(mild) & b_{2}(mild) & b_{3}(mild) \\\\\n
+     b_{1}(cold) & b_{2}(cold) & b_{3}(cold)
+   \\end{bmatrix}
+  $$ 
+  <table class="matrix-overlay" style="position:absolute; top:50%; left:50%;
+                                        transform: translate(-50%, -50%);
+                                        border:0; border-spacing:0;">
+    <tr>
+      <td><span id="b1hot" class="matrix-cell"></span></td>
+      <td><span id="b2hot" class="matrix-cell"></span></td>
+      <td><span id="b3hot" class="matrix-cell"></span></td>
+    </tr>
+    <tr>
+      <td><span id="b1mild" class="matrix-cell"></span></td>
+      <td><span id="b2mild" class="matrix-cell"></span></td>
+      <td><span id="b3mild" class="matrix-cell"></span></td>
+    </tr>
+    <tr>
+      <td><span id="b1cold" class="matrix-cell"></span></td>
+      <td><span id="b2cold" class="matrix-cell"></span></td>
+      <td><span id="b3cold" class="matrix-cell"></span></td>
+    </tr>
+  </table>
+</div>'
 
 mint_dark_theme <- create_theme(
     theme = "superhero",  # matches your preset
@@ -252,18 +353,7 @@ ui <- bs4DashPage(
             .matrix-overlay { pointer-events: none; }
           "))
         ),
-        
-        # CURRENTLY DEAD CODE
-        #-----------------------------------------------------------------------------
-        # tags$script(type="text/x-mathjax-config", HTML("
-        #     MathJax = {
-        #       TeX: {
-        #         extensions: ['[Contrib]/class.js']  // or whatever path T e X needs
-        #       }
-        #     };
-        #   ")),
-        #------------------------------------------------------------------------------
-        
+
         tags$script(src="https://cdn.jsdelivr.net/npm/mathjax@2/MathJax.js?config=TeX-AMS-MML_HTMLorMML"),
         
         # Custom CSS/JS
@@ -300,7 +390,7 @@ ui <- bs4DashPage(
                             column(width = 6, highchartOutput("consumer_sentiment_plot")),
                             column(width = 6,
                                    bs4Dash::tabsetPanel(
-                                       id = "tabsetpanel2",
+                                       id = "consumer_sent_tabs",
                                        type = "pills",
                                        tabPanel("About",
                                                 div(style = "padding:10px; font-size:16px; line-height:1.5; height:398.5px; overflow-y:auto;",
@@ -356,14 +446,14 @@ ui <- bs4DashPage(
                 )
             ),
             
-            # Hidden Markov Model Tab
+            #Hidden Markov Model Tab
             bs4TabItem(
                 tabName = "model_intro",
-                
+
                 # Top explanatory card
                 fluidRow(
                     column(
-                        width = 12,
+                        width = 5,
                         bs4Card(
                             collapsible = FALSE,
                             closable = FALSE,
@@ -371,69 +461,43 @@ ui <- bs4DashPage(
                             width = 12,
                             status = "success",
                             solidHeader = TRUE,
-                            intro_hmm_text
-                        )
-                    )
+                            #"",
+            bs4Dash::tabsetPanel(
+                id = "hmm_info_tabs",
+                type = "pills",
+                selected = "hmm_intro",
+                tabPanel("Introduction", value = "hmm_intro", intro_hmm_text),
+                tabPanel("Model Training", value = "hmm_train_exp", hmm_training),
+                tabPanel("Initial State", value = "init_state", initial_state_selected),
+                tabPanel("Transition Probability", value = "trans_prob",
+                         div(style = "height:636px;",
+                            transition_prob,
+                            uiOutput("matrix_ui")
+                         )
                 ),
-                
-                fluidRow(
-                    column(
+                tabPanel("Emission Probability", value = "emission_prob", 
+                         div(style = "height:636px;",
+                             emission_prob,
+                             uiOutput("emissions_prob_mat"))
+                )
+            )
+            )
+            ),
+            column(
+                width = 7,
+                div(
+                    style = "flex: 2; display: flex; justify-content: center;",
+                    bs4Card(
+                        collapsible = FALSE,
+                        closable = FALSE,
+                        title = "Model Diagram",
                         width = 12,
-                        div(
-                            style = "display: flex; align-items: flex-start; justify-content: space-between; width: 100%;",
-                            
-                            # Left card (intro text)
-                            div(
-                                style = "flex: 1; margin-right: 10px;",
-                                bs4Card(
-                                    collapsible = FALSE,
-                                    closable = FALSE,
-                                    title = "Introduction",
-                                    width = 12,
-                                    status = "success",
-                                    solidHeader = TRUE,
-                                    uiOutput("card_content")
-                                )
-                            ),
-                            
-                            # Middle plot
-                            div(
-                                style = "flex: 2; display: flex; justify-content: center;",
-                                visNetworkOutput("hmm_vis", height = "400px", width = "100%")
-                            ),
-                            
-                            # Right matrix
-                            div(
-                                style = "flex: 0 0 180px; margin-left: 10px;",
-                                uiOutput("matrix_ui"),
-                                tags$script(HTML("
-                                    Shiny.addCustomMessageHandler('highlight-cells', function(message) {
-                                      console.group('🔴 highlight-cells handler invoked');
-                                      console.log('➤ Received message array:', message);
-                        
-                                      var allClasses = ['P11','P12','P13','P21','P22','P23','P31','P32','P33'];
-                                      allClasses.forEach(function(cls) {
-                                        var els = document.querySelectorAll('.' + cls);
-                                        console.log('  • Reset', cls, 'found', els.length, 'elements');
-                                        els.forEach(function(el) { el.style.color = 'black'; });
-                                      });
-                        
-                                      message.forEach(function(id) {
-                                        console.log('  → processing highlight for id:', id);
-                                        var els = document.querySelectorAll('.' + id);
-                                        console.log('      found', els.length, 'elements for class', id, els);
-                                        if (els.length === 0) {
-                                          console.warn('      ⚠️ No DOM elements found with class', id);
-                                        }
-                                        els.forEach(function(el) { el.style.color = 'red'; });
-                                      });
-                        
-                                      console.groupEnd();
-                                    });
-                                  "))
-                            )
-                        )
+                        status = "success",
+                        solidHeader = TRUE,
+                        visNetworkOutput("hmm_vis", height = "700px", width = "100%")
                     )
+                )
+            )
                 )
             ),
             
@@ -476,7 +540,6 @@ ui <- bs4DashPage(
     )
 )
 
-# ----- Server (unchanged) -----
 server <- function(input, output, session) {
     #---------------------------------------------------------------------------------------------------------
     output$category_summary <- renderUI({
@@ -1225,145 +1288,523 @@ server <- function(input, output, session) {
                lbl)
     }
     
-    
-    # Define states (nodes)
-    nodes <- data.frame(
-        id = c("Initial", "S1", "S2", "S3"),
-        label = c(
-            "Initial State",
-            "Sunny",
-            "Cloudy",
-            "Rainy"
-        ),
-        size = 50,
-        font.size = 18,
-        shape = "circle",
-        x     = c(0, -200, 0, 200),
-        y     = c(-200, 0, 0, 0),
-        color = "#3EB489",
-        title = "Hidden Markov Model Diagram"
-    )
-    nodes$x <- nodes$x * 2.5
-    nodes$y <- nodes$y * 2.5
-    
-    nodes$x[nodes$id == "Initial"] <- 0
-    nodes$y[nodes$id == "Initial"] <- -220
-    
-    nodes$x[nodes$id == "S1"] <- -300
-    nodes$y[nodes$id == "S1"] <- -50
-    
-    nodes$x[nodes$id == "S2"] <- 0
-    nodes$y[nodes$id == "S2"] <- -50
-    
-    nodes$x[nodes$id == "S3"] <- 300
-    nodes$y[nodes$id == "S3"] <- -50
-    
-    nodes$size[nodes$id %in% c("S1", "S2", "S3")] <- 110
-    
-    fa_codes <- c(S1 = "f185",  # sun
-                  S2 = "f0c2",  # cloud
-                  S3 = "f73d")  # cloud-rain
-    
-    # Switch S1..S3 nodes to icon shape and attach FA settings
-    mask <- nodes$id %in% names(fa_codes)
-    nodes$shape[mask]        <- "icon"
-    nodes$icon.face          <- NA
-    nodes$icon.code          <- NA
-    nodes$icon.size          <- NA
-    nodes$icon.color         <- NA
-    nodes$icon.weight        <- NA
-    
-    nodes$icon.face[mask]    <- "'Font Awesome 5 Free'"  # FA5 family name
-    nodes$icon.code[mask]    <- unname(fa_codes[nodes$id[mask]])
-    nodes$icon.size[mask]    <- 70                       # similar visual size as before
-    nodes$icon.color[mask]   <- "#3EB489"                # match your theme
-    nodes$icon.weight[mask]  <- 900                      # force solid weight in FA5
-    
-    nodes$icon.size[nodes$id == "S1"] <- 96   # Sunny: widest visual radius
-    nodes$icon.size[nodes$id == "S2"] <- 86   # Cloudy: a bit smaller
-    nodes$icon.size[nodes$id == "S3"] <- 100  # Rainy: drops extend the right edge
-    
-    nodes$color.background[nodes$id %in% c("S1","S2","S3")] <- "#3EB489"  # fill
-    nodes$color.border[nodes$id %in% c("S1","S2","S3")] <- "#3EB489"      # match fill
-
-    
-    # Define transitions (edges)
-    edges <- data.frame(
-        from = c(
-            "Initial", "Initial", "Initial",
-            "S1", "S1", "S1",
-            "S2", "S2", "S2",
-            "S3", "S3", "S3"
-        ),
-        to = c(
-            "S1", "S2", "S3",
-            "S1", "S2", "S3",
-            "S1", "S2", "S3",
-            "S1", "S2", "S3"
-        ),
-        label = c(
-            "P₁", "P₂", "P₃",
-            "P₁₁", "P₁₂", "P₁₃",
-            "P₂₁", "P₂₂", "P₂₃",
-            "P₃₁", "P₃₂", "P₃₃"
-        ),
-        arrows = "to",   # directed arrows
-        # optional placeholders for customization:
-        color = NA,
-        width = NA,
-        font.size = NA
-    )
-    
-    
-    edges$smooth <- vector("list", nrow(edges))
-    edges$dashes <- FALSE
-
-    edges <- edges %>%
-        mutate(
-             smooth = case_when(
-                 from == "Initial" ~ list(FALSE),
-                 from == to        ~ list(list(enabled=TRUE, type="curvedCW", roundness=0.3)),
-                 from == "S3" & to == "S1" ~ list(list(enabled=TRUE, type="curvedCW", roundness=0.3)),
-                 TRUE             ~ list(list(enabled=TRUE, type="curvedCW", roundness=0.2))
-             ),
-             dashes = from == to
-         )
-    
-
-    # # Self-loops: keep curved, but tighter and consistent
-    # edges$smooth[edges$from == edges$to] <- list(
-    #     list(enabled = TRUE, type = "curvedCW", roundness = 0.30)
-    # )
-
-    edge_font <- list(
-        size = 18,                              # label size
-        background = "rgba(245,247,250,0.96)",  # light canvas-colored mask
-        strokeWidth = 0,                        # no outline
-        vadjust = -4                            # nudge upward a bit
-    )
-    
-    
-    
-    # Build interactive HMM
-    output$hmm_vis = renderVisNetwork({ visNetwork(nodes, edges) %>%
-            addFontAwesome(version = "5.13.0") %>%
-            visEdges(
-                arrows = "to",
-                smooth = list(enabled = TRUE),
-                arrowStrikethrough = TRUE,
-                endPointOffset = list(from = 0, to = 10),
-                selfReference = list(size = 30, angle = 0.35, renderBehindTheNode = TRUE)
-            ) %>%
-            visNodes(fixed = TRUE) %>%
-            visOptions(
-                highlightNearest = TRUE,
-                nodesIdSelection = list(enabled = TRUE)
-            ) %>%
-            visInteraction(dragNodes = FALSE, dragView = FALSE, zoomView = FALSE) %>%
-            visLayout(randomSeed = 42)  # fix layout for reproducibility
+    observeEvent(input$hmm_info_tabs, ignoreInit = TRUE, {
+        t_prob <- identical(input$hmm_info_tabs, "trans_prob")
+        e_prob <- identical(input$hmm_info_tabs, "emission_prob")
+        session$sendCustomMessage("hmmFlags", list(t_prob = t_prob, e_prob = e_prob))
+        session$sendCustomMessage("redrawNet", list())
     })
     
+    nodes <- data.frame(
+        id   = c("Initial","S1","S2","S3"),
+        label= c("Initial State","Sunny","Cloudy","Rainy"),
+        shape= c("circle","icon","icon","icon"),
+        x    = c(   0, -300,   0,  300),
+        y    = c(-275,  -50, -50,  -50),
+        size = c(110,   NA,  NA,   NA),
+        font.size = 18,
+        color = "#3EB489",              # initial circle border
+        title = "Hidden Markov Model Diagram",
+        stringsAsFactors = FALSE,
+        font.size = 28,                # makes the box bigger because text is bigger
+        margin    = NA                # padding inside the box (increase box size)
+    )
+    
+    # Font Awesome icons (FA5)
+    fa_codes <- c(S1 = "f185", S2 = "f0c2", S3 = "f73d")  # sun, cloud, cloud-rain
+    mask <- nodes$id %in% names(fa_codes)
+    
+    nodes$icon.face  <- NA; nodes$icon.code  <- NA
+    nodes$icon.size  <- NA; nodes$icon.color <- NA; nodes$icon.weight <- NA
+    
+    nodes$icon.face[mask]   <- "'Font Awesome 5 Free'"
+    nodes$icon.code[mask]   <- unname(fa_codes[nodes$id[mask]])
+    nodes$icon.weight[mask] <- 900
+    
+    # tuned icon sizes and colors
+    nodes$icon.size[nodes$id=="S1"]  <- 96
+    nodes$icon.size[nodes$id=="S2"]  <- 86
+    nodes$icon.size[nodes$id=="S3"]  <- 100
+    
+    state_colors <- c(S1="#F6C54E", S2="#7A7A7A", S3="#4DA3FF")
+    
+    nodes$icon.color[nodes$id=="S1"] <- state_colors["S1"]  # sun (yellow)
+    nodes$icon.color[nodes$id=="S2"] <- state_colors["S2"]  # cloud (grey)
+    nodes$icon.color[nodes$id=="S3"] <- state_colors["S3"]  # rain (blue)
+    
+    # Nodes
+    S <- c("S1","S2","S3")
+    O <- c("O_hot","O_mild","O_cold")
+    
+    from_tr  <- c(rep("Initial", length(S)), rep(S, each = length(S)))
+    to_tr    <- c(S,                        rep(S, times = length(S)))
+    label_tr <- c("P₁","P₂","P₃",
+                  "P₁₁","P₁₂","P₁₃",
+                  "P₂₁","P₂₂","P₂₃",
+                  "P₃₁","P₃₂","P₃₃")
+    
+    ## emissions: 9 (every S* -> every O_*)
+    from_em <- rep(S, each = length(O))
+    to_em   <- rep(O, times = length(S))
+    
+    from  <- c(from_tr, from_em)
+    to    <- c(to_tr,   to_em)                  
+    label <- c(label_tr, rep(NA_character_, length(from_em)))
+    
+    is_emission <- to %in% O
+    is_initial  <- from == "Initial"
+    
+    ## Per edge attributes
+    arrows    <- rep("to", length(from))
+    dashes    <- is_emission    
+    color <- ifelse(
+        is_initial, 
+        "#000000", 
+        ifelse(
+            is_emission, 
+            state_colors[from],   # assumes `col` is your mapping: e.g., col <- c(S1="#F6C54E", S2="#7A7A7A", S3="#4DA3FF")
+            NA_character_
+        )
+    )
+    width     <- rep(2, length(from))
+    font.size <- ifelse(is_emission, 14, NA_real_)
+    
+    ## ---- smooth list-col (single pass) ----
+    smooth_rule <- function(f, t) {
+        if (t %in% O || f == "Initial") return(FALSE)                               # straight
+        if (f == t)                         return(list(enabled=TRUE,type="curvedCW",roundness=0.30))
+        if (f == "S3" && t == "S1")         return(list(enabled=TRUE,type="curvedCW",roundness=0.25))
+        return(list(enabled=TRUE,type="curvedCW",roundness=0.20))
+    }
+    smooth <- mapply(smooth_rule, from, to, SIMPLIFY = FALSE)
+    
+    edges <- data.frame(
+        id        = paste0(from, "->", to),
+        from      = from,
+        to        = to,
+        label     = label,
+        arrows    = arrows,
+        dashes    = dashes,
+        color     = color,
+        width     = width,
+        font.size = font.size,
+        stringsAsFactors = FALSE
+    )
+    edges$smooth <- smooth
+
+    edges$endPointOffset <- vector("list", nrow(edges))
+    edges$endPointOffset[edges$id == "Initial->S1"] <- list(list(from=14L, to=18L))
+    edges$endPointOffset[edges$id == "Initial->S2"] <- list(list(from=14L, to=20L))
+    edges$endPointOffset[edges$id == "Initial->S3"] <- list(list(from=14L, to=18L))
+    
+    
+    #temp disable edge labels
+    edges$label <- NULL
+
+    # Observation nodes
+    obs_nodes <- data.frame(
+        id         = c("O_hot","O_mild","O_cold"),
+        label      = c("Hot","Mild","Cold"),
+        size       = 100,
+        font.size  = 16,
+        shape      = "box",
+        x          = c(-300,   0,  300), 
+        y          = c(100,   100, 100),
+        color      = "#666666",
+        title      = NA_character_,
+        stringsAsFactors = FALSE,
+        font.size = 28,                # makes the box bigger because text is bigger
+        margin    = 20                # padding inside the box (increase box size)
+    )
+    
+    fa_obs <- c(O_sun="f185", O_cloud="f0c2", O_rain="f73d")
+    obs_nodes$icon.face   <- "'Font Awesome 5 Free'"
+    obs_nodes$icon.code   <- unname(fa_obs[obs_nodes$id])
+    obs_nodes$icon.weight <- 900
+    obs_nodes$icon.size   <- 80
+    obs_nodes$icon.color  <- c("#F6C54E","#7A7A7A","#4DA3FF")
+    
+    nodes <- rbind(nodes, obs_nodes)
+    
+    
+    output$hmm_vis <- renderVisNetwork({
+        visNetwork(nodes, edges) %>%
+            addFontAwesome(version = "5.13.0") %>%
+            visPhysics(enabled = FALSE) %>%
+            visEdges(
+                color  = list(color="rgba(0,0,0,0)",      # invisible by default; per-edge overrides show
+                              hover="rgba(0,0,0,0)",
+                              highlight="rgba(0,0,0,0)"),
+                smooth = list(enabled=TRUE),
+                arrowStrikethrough = FALSE,
+                endPointOffset = list(from=0, to=10),
+                selfReference   = list(size=30, angle=0.35, renderBehindTheNode=TRUE),
+                font = list(size=20, background="rgba(255,255,255,0.96)", strokeWidth=0, vadjust=-6),
+                dashes = T
+            ) %>%
+            # generate all gradient arrows
+            visEvents(beforeDrawing = htmlwidgets::JS("
+                function(ctx){
+                  var net = this;
+                
+                  // --- colors for gradient & loops ---
+                  var col = { S1:'#F6C54E', S2:'#7A7A7A', S3:'#4DA3FF' };
+                
+                  // --- state→state tweak table (control offset + trim) ---
+                  var s_width = 2
+                  var T = {
+                    'S1->S2': {dx:0,  dy:-20, t0:0.10, t1:0.85, w:s_width},
+                    'S2->S1': {dx:0,  dy:30, t0:0.08, t1:0.80, w:s_width},
+                    'S1->S3': {dx:30, dy:-150, t0:0.05, t1:0.90, w:s_width},
+                    
+                    'S3->S1': {dx:10, dy:70,  t0:0.0, t1:0.91, w:s_width},
+                    'S2->S3': {dx:0,  dy:-20,  t0:0.10, t1:0.82, w:s_width},
+                    'S3->S2': {dx:0,  dy:30,   t0:0.0, t1:0.8, w:s_width}
+                  };
+                
+                    function mkLoop(id, dy, ang){
+                      var nd = net.body.nodes[id];
+                      var sz = (nd && nd.options && nd.options.icon && nd.options.icon.size) ? nd.options.icon.size : 90;
+                      var r  = sz/2 + 0;      // radius ~ icon radius + margin
+                      var dx = sz/2 + 8;       // loop center to the right of node
+                        return { 
+                            dx: dx,                // horizontal shift of loop center
+                            dy: (dy ?? -5),        // vertical shift of loop center
+                            r: r,                  // loop radius
+                            a0:210,                // start angle (degrees)
+                            a1:450,                // end angle (degrees) → controls how “round” it is
+                            w:2,                   // stroke width
+                            tipBackPx: 9,          // how far back the loop stops before arrowhead
+                            ang: (ang || 0)        // small manual rotation of arrowhead direction
+                          };
+                    }
+                  var Lp = {
+                    'S1->S1': mkLoop('S1', -5, -5),  // rotate ~1.2° clockwise
+                    'S2->S2': mkLoop('S2', -5,  -5),  // rotate ~0.8° CCW
+                    'S3->S3': mkLoop('S3', -5,  -5)
+                  };
+                
+                  // --- nudge the label anchor for P13 (move vis's underlying via) ---
+                  var labelNudge = { 'S1->S3': {dx: 4, dy: -4} };
+                  var esData = net.body.data.edges.get();
+                  window.__baseVia = window.__baseVia || {};
+                  esData.forEach(function(e){
+                    var nud = labelNudge[e.id]; if(!nud) return;
+                    var eo = net.body.edges[e.id]; if(!eo) return;
+                
+                    if(!window.__baseVia[e.id]){
+                      if(eo.via){
+                        window.__baseVia[e.id] = {x:eo.via.x, y:eo.via.y};
+                      } else {
+                        var p = net.getPositions([e.from,e.to]), p0=p[e.from], p2=p[e.to];
+                        window.__baseVia[e.id] = {x:(p0.x+p2.x)/2, y:(p0.y+p2.y)/2 - 0.001};
+                        eo.options.smooth = {enabled:true,type:'curvedCW',roundness:0.001};
+                      }
+                    }
+                    var b = window.__baseVia[e.id];
+                    eo.via = {x:b.x+(nud.dx||0), y:b.y+(nud.dy||0)};
+                  });
+                
+                  // --- helpers (minimal) ---
+                  function B(t,p0,p1,p2){ var mt=1-t; return {
+                    x: mt*mt*p0.x + 2*mt*t*p1.x + t*t*p2.x,
+                    y: mt*mt*p0.y + 2*mt*t*p1.y + t*t*p2.y
+                  }; }
+                  function ctrl(p0,p2,opt){
+                    var dx=p2.x-p0.x, dy=p2.y-p0.y, L=Math.hypot(dx,dy)||1, ux=dx/L, uy=dy/L;
+                    var mx=(p0.x+p2.x)/2, my=(p0.y+p2.y)/2;
+                    var depth = 0.60*L * ((opt&&opt.roundness)?opt.roundness:0.20);
+                    var sgn   = (opt&&opt.type==='curvedCCW') ? 1 : -1;
+                    return { x: mx + sgn*depth*(-uy), y: my + sgn*depth*(ux) };
+                  }
+                  function gradAtTip(p0,p2,tip,c0,c1){
+                    function H(h){h=h.replace('#',''); if(h.length===3) h=h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
+                      var n=parseInt(h,16); return {r:(n>>16)&255,g:(n>>8)&255,b:n&255};}
+                    function X(r,g,b){var z=x=>('0'+x.toString(16)).slice(-2); return '#'+z(r)+z(g)+z(b);}
+                    var dx=p2.x-p0.x, dy=p2.y-p0.y, den=dx*dx+dy*dy||1;
+                    var t=((tip.x-p0.x)*dx + (tip.y-p0.y)*dy)/den; t=Math.max(0,Math.min(1,t));
+                    var a=H(c0), b=H(c1);
+                    return X(Math.round(a.r+(b.r-a.r)*t), Math.round(a.g+(b.g-a.g)*t), Math.round(a.b+(b.b-a.b)*t));
+                  }
+                  function drawHead(ctx, tip, dir, fill, w){
+                    var len=16, bw=12, round=-0.70, oCol='#000', oW=1.0, baseSeg=Math.max(5, 0.5*w);
+                    var L=Math.hypot(dir.x,dir.y)||1, ux=dir.x/L, uy=dir.y/L, nx=-uy, ny=ux;
+                    var bx=tip.x-ux*len, by=tip.y-uy*len, hw=bw/2;
+                    var Lp={x:bx-nx*hw, y:by-ny*hw}, Rp={x:bx+nx*hw, y:by+ny*hw}, Cp={x:bx-ux*(round*hw), y:by-uy*(round*hw)};
+                    
+                    // fill
+                    ctx.beginPath(); ctx.moveTo(tip.x, tip.y);
+                    ctx.lineTo(Lp.x, Lp.y); ctx.quadraticCurveTo(Cp.x, Cp.y, Rp.x, Rp.y); ctx.closePath();
+                    ctx.fillStyle=fill; ctx.fill();
+                    
+                    // side outlines + short base hints (no seam over shaft)
+                    ctx.save(); ctx.lineJoin='round'; ctx.miterLimit=2; ctx.strokeStyle=oCol; ctx.lineWidth=oW;
+                    ctx.beginPath(); ctx.moveTo(tip.x, tip.y); ctx.lineTo(Lp.x, Lp.y); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(tip.x, tip.y); ctx.lineTo(Rp.x, Rp.y); ctx.stroke();
+                    function shortSeg(P0,P1,lenPx){ var vx=P1.x-P0.x, vy=P1.y-P0.y, L=Math.hypot(vx,vy)||1, ux=vx/L, uy=vy/L;
+                      ctx.beginPath(); ctx.moveTo(P0.x,P0.y); ctx.lineTo(P0.x+ux*lenPx, P0.y+uy*lenPx); ctx.stroke(); }
+                    shortSeg(Lp, {x:Cp.x,y:Cp.y}, baseSeg); shortSeg(Rp, {x:Cp.x,y:Cp.y}, baseSeg);
+                    ctx.restore();
+                  }
+                
+                  // --- draw gradients & loops BEFORE labels so labels stay on top ---
+                  var pos = net.getPositions();
+                  var all = net.body.data.edges.get();
+                
+                  // state→state gradient shafts + heads
+                  all.forEach(function(e){
+                    var sf=['S1','S2','S3'].indexOf(e.from)>=0, st=['S1','S2','S3'].indexOf(e.to)>=0;
+                    if(!sf || !st || e.from===e.to) return;
+                    var p0=pos[e.from], p2=pos[e.to]; if(!p0||!p2) return;
+                    var eo=net.body.edges[e.id];
+                    var via=(eo&&eo.via)?{x:eo.via.x,y:eo.via.y}:ctrl(p0,p2,e.smooth);
+                    var tw=T[e.id]||{dx:0,dy:0,t0:0.08,t1:0.92,w:3};
+                    via.x+=(tw.dx||0); via.y+=(tw.dy||0);
+                
+                    var t0=tw.t0, t1=tw.t1, W=tw.w, steps=48, dt=(t1-t0)/steps;
+                
+                    // path
+                    var p=B(t0,p0,via,p2); ctx.beginPath(); ctx.moveTo(p.x,p.y);
+                    for(var tt=t0+dt; tt<=t1+1e-6; tt+=dt){ p=B(tt,p0,via,p2); ctx.lineTo(p.x,p.y); }
+                
+                    // outline then gradient stroke
+                    ctx.save(); ctx.lineCap='round'; ctx.lineJoin='round';
+                    ctx.strokeStyle='#000'; ctx.lineWidth=W+1.7; ctx.stroke();
+                    var g=ctx.createLinearGradient(p0.x,p0.y,p2.x,p2.y);
+                    g.addColorStop(0, col[e.from]||'#3EB489'); g.addColorStop(1, col[e.to]||'#3EB489');
+                    ctx.strokeStyle=g; ctx.lineWidth=W; ctx.stroke(); ctx.restore();
+                
+                    // --- head at tip ---
+                    var dtBack = Math.min(0.12, 6 / (Math.hypot(p2.x - p0.x, p2.y - p0.y) || 1));  // ~6px in t-space
+                    var tBack  = Math.max(t0 + 1e-3, t1 - dtBack);
+                    
+                    var back = B(tBack, p0, via, p2);
+                    var tip  = B(t1,    p0, via, p2);
+                    
+                    var dirx = tip.x - back.x, diry = tip.y - back.y;
+                    
+                    // nudge the head a couple of pixels forward so it kisses the stroke end
+                    var len  = Math.hypot(dirx, diry) || 1;
+                    var shiftPx = 5;              // tweak 1.5–3.0 if needed
+                    tip.x += shiftPx * (dirx / len);
+                    tip.y += shiftPx * (diry / len);
+                    
+                    // fill = gradient color at the (shifted) tip
+                    var fill = gradAtTip(p0, p2, tip, col[e.from] || '#3EB489', col[e.to] || '#3EB489');
+                    
+                    drawHead(ctx, tip, {x: dirx, y: diry}, fill, W);
+
+                  });
+                
+                  // self-loops (size-aware) with back-off so heads sit on the arc
+                  ['S1','S2','S3'].forEach(function(s){
+                    var p=pos[s]; if(!p) return;
+                    var t=Lp[s+'->'+s]; var cx=p.x+t.dx, cy=p.y+t.dy, r=t.r, lw=t.w;
+                    var a0=t.a0*Math.PI/180, a1=t.a1*Math.PI/180;
+                    var back = Math.min(0.5, (t.tipBackPx||9)/r);  // radians
+                    var aEnd = a1 - back;
+                
+                    ctx.save(); ctx.lineCap='round';
+                    ctx.beginPath(); ctx.arc(cx,cy,r,a0,aEnd,false);
+                    ctx.strokeStyle='#000'; ctx.lineWidth=lw+1.7; ctx.stroke();
+                    ctx.strokeStyle=col[s]||'#3EB489'; ctx.lineWidth=lw; ctx.stroke();
+                    ctx.restore();
+                
+                    // head at end angle
+                    var tip = { x: cx + r*Math.cos(a1), y: cy + r*Math.sin(a1) };
+                    
+                    // tangent at a1
+                    var tx = -Math.sin(a1), ty = Math.cos(a1);
+                    
+                    // optional per-loop micro-rotation (degrees)
+                    var key = s + '->' + s;
+                    var angDeg = (Lp[key] && Lp[key].ang) || 0;
+                    if (angDeg) {
+                      var a = angDeg * Math.PI / 180, ca = Math.cos(a), sa = Math.sin(a);
+                      var rx = tx*ca - ty*sa, ry = tx*sa + ty*ca;
+                      tx = rx; ty = ry;
+                    }
+
+                    // draw head with rotated direction
+                    drawHead(ctx, tip, { x: tx, y: ty }, col[s] || '#3EB489', lw);
+                    
+                    
+                    //var tip={x:cx+r*Math.cos(a1), y:cy+r*Math.sin(a1)};
+                    //var dir={x:-Math.sin(a1), y: Math.cos(a1)};
+                    //drawHead(ctx, tip, dir, col[s]||'#3EB489', lw);
+                  });
+                }
+            ")) %>%
+            
+            # Drawing labels and slightly adjusting vis canvas placement
+            visEvents(afterDrawing = htmlwidgets::JS("
+                function(ctx){
+                  var net = this;
+                
+                  // expose network for redraws
+                  window.__vn = this;
+                
+                  // one-time wiring for flag-driven redraw
+                  if (!window.__hmmFlagsWired){
+                    window.__hmmFlagsWired = true;
+                    window.hmmFlags = { t_prob:false, e_prob:false };
+                
+                    Shiny.addCustomMessageHandler('hmmFlags', function(flags){
+                      window.hmmFlags = flags || { t_prob:false, e_prob:false };
+                      if (window.__vn && typeof window.__vn.redraw === 'function') window.__vn.redraw();
+                    });
+                
+                    Shiny.addCustomMessageHandler('redrawNet', function(){
+                      if (window.__vn && typeof window.__vn.redraw === 'function') window.__vn.redraw();
+                    });
+                  }
+                
+                  if (!this.__movedOnce) {
+                    this.__movedOnce = true;
+                    this.moveTo({ position: { x: 0, y: -60 }, scale: 1.05, animation: false });
+                  }
+                
+                  // ---- CUSTOM EDGE LABELS (manual placement) ----
+                  (function(){
+                    var net  = this;
+                    var ctx  = arguments[0];
+                    var pos  = net.getPositions();
+                    var edges= net.body.data.edges.get();
+                
+                    // helpers
+                    function roundRect(ctx, x, y, w, h, r){
+                      var rr = Math.min(r, Math.min(w, h)/2);
+                      ctx.beginPath();
+                      ctx.moveTo(x+rr, y);
+                      ctx.arcTo(x+w, y,   x+w, y+h, rr);
+                      ctx.arcTo(x+w, y+h, x,   y+h, rr);
+                      ctx.arcTo(x,   y+h, x,   y,   rr);
+                      ctx.arcTo(x,   y,   x+w, y,   rr);
+                      ctx.closePath();
+                    }
+                    function B(t,p0,p1,p2){ var mt=1-t; return {
+                      x: mt*mt*p0.x + 2*mt*t*p1.x + t*t*p2.x,
+                      y: mt*mt*p0.y + 2*mt*t*p1.y + t*t*p2.y
+                    }; }
+                    function controlPoint(p0,p2,opt){
+                      var dx=p2.x-p0.x, dy=p2.y-p0.y, L=Math.hypot(dx,dy)||1, ux=dx/L, uy=dy/L;
+                      var mx=(p0.x+p2.x)/2, my=(p0.y+p2.y)/2;
+                      var depth = 0.60*L * ((opt&&opt.roundness)?opt.roundness:0.20);
+                      var sgn   = (opt&&opt.type==='curvedCCW') ? 1 : -1;
+                      return { x: mx + sgn*depth*(-uy), y: my + sgn*depth*(ux) };
+                    }
+                    function drawLabel(x, y, txt, opt){
+                      opt = opt || {};
+                      var fs = opt.size || 18;
+                      ctx.save();
+                      ctx.font = (opt.bold?'600 ':'') + fs + 'px Helvetica, Arial';
+                      ctx.textAlign = 'center';
+                      ctx.textBaseline = 'middle';
+                      var pad = (opt.pad!=null?opt.pad:4), rad = (opt.radius!=null?opt.radius:4);
+                      var w = ctx.measureText(txt).width + 2*pad;
+                      var h = fs*1.15 + 2*pad;
+                      var bx = x - w/2, by = y - h/2;
+                      ctx.fillStyle   = opt.bg    || 'rgba(255,255,255,0.98)';
+                      ctx.strokeStyle = opt.border|| 'rgba(0,0,0,0)';
+                      ctx.lineWidth   = opt.borderWidth || 0;
+                      roundRect(ctx, bx, by, w, h, rad);
+                      ctx.fill();
+                      if (ctx.lineWidth>0) ctx.stroke();
+                      ctx.fillStyle = opt.color || '#2b2b2b';
+                      ctx.fillText(txt, x, y);
+                      ctx.restore();
+                    }
+                
+                    // transition labels
+                    var edgeLabelsTrans = {
+                      'Initial->S1': { text: 'P₁',   t: 0.55, dx:  15, dy: -35 },
+                      'Initial->S2': { text: 'P₂',   t: 0.55, dx: -10, dy: -14 },
+                      'Initial->S3': { text: 'P₃',   t: 0.55, dx: -25, dy:   5 },
+                
+                      'S1->S1':      { text: 'P₁₁',  x: pos.S1.x + 35, y: pos.S1.y - 65 },
+                      'S1->S2':      { text: 'P₁₂',  t: 0.42, dx:  90, dy: -10 },
+                      'S1->S3':      { text: 'P₁₃',  t: 0.50, dx: -40, dy: -70 },
+                
+                      'S2->S1':      { text: 'P₂₁',  t: 0.55, dx:  80, dy:  14 },
+                      'S2->S2':      { text: 'P₂₂',  x: pos.S2.x + 38, y: pos.S2.y - 40 },
+                      'S2->S3':      { text: 'P₂₃',  t: 0.55, dx: -20, dy: -10 },
+                
+                      'S3->S1':      { text: 'P₃₁',  t: 0.52, dx:  10, dy:  38 },
+                      'S3->S2':      { text: 'P₃₂',  t: 0.52, dx:   0, dy:  14 },
+                      'S3->S3':      { text: 'P₃₃',  x: pos.S3.x + 52, y: pos.S3.y - 44 }
+                    };
+                
+                    // emission labels (example placeholders)
+                    var edgeLabelsEmit = {
+                      'S1->O_hot':   { text: 'b₁(hot)',  t: 0.50, dx: -10, dy:  8 },
+                      'S1->O_mild':  { text: 'b₁(mild)', t: 0.50, dx:   0, dy:  8 },
+                      'S1->O_cold':  { text: 'b₁(cold)', t: 0.50, dx:  10, dy:  8 },
+                
+                      'S2->O_hot':   { text: 'b₂(hot)',  t: 0.50, dx: -10, dy:  8 },
+                      'S2->O_mild':  { text: 'b₂(mild)', t: 0.50, dx:   0, dy:  8 },
+                      'S2->O_cold':  { text: 'b₂(cold)', t: 0.50, dx:  10, dy:  8 },
+                
+                      'S3->O_hot':   { text: 'b₃(hot)',  t: 0.50, dx: -10, dy:  8 },
+                      'S3->O_mild':  { text: 'b₃(mild)', t: 0.50, dx:   0, dy:  8 },
+                      'S3->O_cold':  { text: 'b₃(cold)', t: 0.50, dx:  10, dy:  8 }
+                    };
+                
+                    // decide which set to draw
+                    var flags = window.hmmFlags || { t_prob:false, e_prob:false };
+                    if (!flags.t_prob && !flags.e_prob) return;
+                    var labelSet = flags.t_prob ? edgeLabelsTrans : edgeLabelsEmit;
+                
+                    // draw labels
+                    edges.forEach(function(e){
+                      var key = e.id || (e.from + '->' + e.to);
+                      var def = labelSet[key];
+                      if (!def) return;
+                
+                      var x, y;
+                      if (typeof def.x === 'number' && typeof def.y === 'number'){
+                        x = def.x; y = def.y;
+                      } else if (typeof def.t === 'number'){
+                        var p0 = pos[e.from], p2 = pos[e.to];
+                        if(!p0 || !p2) return;
+                        var eo  = net.body.edges[e.id];
+                        var via = (eo && eo.via) ? eo.via : controlPoint(p0,p2, e.smooth);
+                        var P   = B(Math.max(0, Math.min(1, def.t)), p0, via, p2);
+                        x = P.x + (def.dx||0);
+                        y = P.y + (def.dy||0);
+                      } else {
+                        return;
+                      }
+                
+                      drawLabel(x, y, def.text, {
+                        size: 15,
+                        bold: true,
+                        bg: 'rgba(255,255,255,0.98)',
+                        border: '#000000',
+                        borderWidth: 1.0
+                      });
+                    });
+                
+                    // console helper
+                    window.setEdgeLabel = function(id, obj){
+                      var target = ( (window.hmmFlags||{}).t_prob ? edgeLabelsTrans : edgeLabelsEmit );
+                      target[id] = Object.assign(target[id]||{}, obj||{});
+                      net.redraw();
+                    };
+                  }).apply(this, arguments);
+                }
+                ")) %>%
+            visNodes(fixed = TRUE) %>%
+            visOptions(highlightNearest = TRUE, nodesIdSelection = FALSE) %>%
+            visInteraction(dragNodes = FALSE, dragView = FALSE, zoomView = FALSE)
+    })
+    
+    
+    
+    
+    
     # helper to produce HTML matrix with specified highlights
+    
+    
     render_matrix <- function(highlight_cells) {
         mat <- matrix(paste0("P", rep(1:3, each=3), rep(1:3, times=3)), 3, 3, byrow=TRUE)
         html <- "$$ \\begin{bmatrix} "
@@ -1395,13 +1836,34 @@ server <- function(input, output, session) {
                             justify-content: center;
                             align-items: flex-start;   /* or center */
                             height: 100px;             /* adjust container height */
-                            padding-top: 10px;         /* optional: add some top padding */
+                            //padding-top: 10px;         /* optional: add some top padding */
                           ",
                     HTML(pre_rendered_matrix)
                 )
             )
         )
     })
+    
+    output$emissions_prob_mat <- renderUI({
+        withMathJax(
+            div(
+                HTML("<h4 style='text-align:center;
+                         padding: 0px;
+                         height: 0px;'>Transition Matrix</h4>"),
+                div(
+                    style = "
+                            display: flex;
+                            justify-content: center;
+                            align-items: flex-start;   /* or center */
+                            height: 100px;             /* adjust container height */
+                            //padding-top: 10px;         /* optional: add some top padding */
+                          ",
+                    HTML(emissions_mat)
+                )
+            )
+        )
+    })
+    
     
     
     observeEvent(list(input$hmm_vis_selected, input$hmm_vis_selectedEdges), {
@@ -1553,7 +2015,7 @@ server <- function(input, output, session) {
              0.167 & 0.750 & 0.083 \\\\\n
              0.142 & 0.000 & 0.858
            \\end{bmatrix}
-          $$ 
+          $$
           <table class="matrix-overlay" style="position:absolute; top:50%; left:50%;
                                                 transform: translate(-50%, -50%);
                                                 border:0; border-spacing:0;">
