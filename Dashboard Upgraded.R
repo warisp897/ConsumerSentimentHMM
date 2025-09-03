@@ -20,9 +20,12 @@ library(RColorBrewer)
 library(Rtsne)
 library(shinyjs)
 library(here)
+library(rhandsontable)
+
+library(ggplot2)
+library(depmixS4)
 
 # SHOULD NOT BE NEEDED
-#library(depmixS4) 
 
 mint_theme <- bs_theme(
     bootswatch = "flatly",  # clean base
@@ -479,10 +482,11 @@ ui <- bs4DashPage(
                          div(style = "height:636px;",
                              emission_prob,
                              uiOutput("emissions_prob_mat"))
+                        )
+                    )
                 )
-            )
-            )
             ),
+            
             column(
                 width = 7,
                 div(
@@ -494,11 +498,21 @@ ui <- bs4DashPage(
                         width = 12,
                         status = "success",
                         solidHeader = TRUE,
-                        visNetworkOutput("hmm_vis", height = "700px", width = "100%")
+                        #visNetworkOutput("hmm_vis", height = "700px", width = "100%")
+                        #hmm_interactive_ui(id = "my_interactive_hmm")
+                        sliderInput("hmm_T", "Sequence length", min = 15, max = 100, value = 30, step = 1),
+                        actionButton("hmm_run_demo", "Generate & Fit (EM)", class = "btn btn-success btn-block"),
+                        highchartOutput("hmm_demo_timeline", height = 280),
+                        tableOutput("hmm_demo_metrics"),
+                        column(
+                            width = 4,
+                            rHandsontableOutput("A_tbl", height = 180),
+                            rHandsontableOutput("B_tbl", height = 180)
+                        )
                     )
                 )
             )
-                )
+            )
             ),
             
             # Model Analysis Tab
@@ -1888,6 +1902,212 @@ server <- function(input, output, session) {
         cat("⚙️  [R] sending highlight-cells:", paste(message, collapse = ","), "\n")
         session$sendCustomMessage("highlight-cells", message)
     })
+    
+    `%||%` <- function(x, y) if (is.null(x)) y else x
+    .norm  <- function(v) { s <- sum(v); if (!is.finite(s) || s<=0) rep(1/length(v), length(v)) else v/s }
+    
+    # defaults (tweak if you like)
+    pi0 <- c(0.6, 0.3, 0.1)
+    A0  <- matrix(c(0.75,0.20,0.05,
+                    0.20,0.65,0.15,
+                    0.10,0.20,0.70), 3, byrow=TRUE)
+    B0  <- matrix(c(0.70,0.20,0.10,   # S1 -> Hot/Mild/Cold
+                    0.20,0.60,0.20,   # S2 -> …
+                    0.10,0.25,0.65), 3, byrow=TRUE)
+    
+    # reactives with safe fallbacks
+    R_pi <- reactive({
+        .norm(c(input$hmm_pi1 %||% pi0[1],
+                input$hmm_pi2 %||% pi0[2],
+                input$hmm_pi3 %||% pi0[3]))
+    })
+    
+    .norm <- function(v){ s <- sum(v, na.rm=TRUE); if(!is.finite(s) || s<=0) rep(1/length(v), length(v)) else v/s }
+    
+    make_mat_df <- function(M, rowlabs, collabs){
+        df <- as.data.frame(M); names(df) <- collabs; rownames(df) <- rowlabs; df
+    }
+    
+    # initial values you already have (A0, B0)
+    output$A_tbl <- renderRHandsontable({
+        rhandsontable(round(make_mat_df(A0, c("S1","S2","S3"), c("S1","S2","S3")), 2),
+                      rowHeaders = TRUE, stretchH = "all") %>%
+            hot_validate_numeric(cols = 1:3, min = 0, max = 1, allowInvalid = TRUE) %>%
+            hot_cols(format = "0.00")
+    })
+    
+    output$B_tbl <- renderRHandsontable({
+        rhandsontable(round(make_mat_df(B0, c("S1","S2","S3"), c("Hot","Mild","Cold")), 2),
+                      rowHeaders = TRUE, stretchH = "all") %>%
+            hot_validate_numeric(cols = 1:3, min = 0, max = 1, allowInvalid = TRUE) %>%
+            hot_cols(format = "0.00")
+    })
+    
+    A_values <- reactiveVal(A0)
+    B_values <- reactiveVal(B0)
+    
+    observeEvent(input$A_tbl, {
+        M <- as.matrix(hot_to_r(input$A_tbl))
+        M[is.na(M)] <- 0
+        A_values(t(apply(M, 1, .norm)))
+    })
+    
+    observeEvent(input$B_tbl, {
+        M <- as.matrix(hot_to_r(input$B_tbl))
+        M[is.na(M)] <- 0
+        B_values(t(apply(M, 1, .norm)))
+    })
+    
+    # Plug these into your HMM reactives:
+    R_A <- reactive(A_values())
+    R_B <- reactive(B_values())
+    
+    draw_cat <- function(p) sample.int(length(p), 1L, prob = p)
+    
+    demo_data <- eventReactive(input$hmm_run_demo, {
+        # Use your existing parameter sources
+        pi <- R_pi()     # numeric length 3
+        A  <- R_A()      # 3x3 transition matrix
+        B  <- R_B()      # 3x3 emission matrix (rows=states; cols=Hot/Mild/Cold)
+        
+        Tn <- input$hmm_T
+        states <- c("S1","S2","S3")
+        obs_lv  <- c("Hot","Mild","Cold")
+        
+        # simulate from HMM
+        z <- x <- integer(Tn)
+        z[1] <- draw_cat(pi); x[1] <- draw_cat(B[z[1],])
+        for (t in 2:Tn) {
+            z[t] <- draw_cat(A[z[t-1],])
+            x[t] <- draw_cat(B[z[t],])
+        }
+        
+        # fit with depmixS4
+        df  <- data.frame(obs = factor(obs_lv[x], levels = obs_lv))
+        mod <- depmix(obs ~ 1, data = df, nstates = 3, family = multinomial("identity"))
+        fit <- fit(mod, verbose = FALSE)
+        zh  <- posterior(fit)$state
+        
+        list(
+            t  = seq_len(Tn),
+            x  = factor(obs_lv[x],     levels = obs_lv),
+            z  = factor(states[z],     levels = states),
+            zh = factor(states[zh],    levels = states)
+        )
+    }, ignoreInit = TRUE)
+    
+    
+    output$hmm_demo_timeline <- renderHighchart({
+        dd <- demo_data(); req(dd)
+        library(highcharter)
+        
+        # MODIFICATION: New color palettes for states and observations
+        cols_state <- c(S1="#F6C54E", S2="#A9A9A9", S3="#4DA3FF")       # Sunny, Cloudy, Rainy
+        cols_obs   <- c(Hot="#FF7F50", Mild="#9ACD32", Cold="#778899")  # Hot, Mild, Cold
+        
+        n <- length(dd$t)
+        
+        # MODIFICATION: Scale marker and cross size. Increased cross multiplier for size.
+        dot   <- max(6, min(18, 150 / n))
+        cross <- round(dot * 3.0)      # font px for ×, larger to extend past circle
+        
+        # y rows (use categories)
+        cats <- c("Observation","True state","Decoded")
+        yObs <- 0; yTrue <- 1; yDec <- 2
+        
+        # helper to build point objects
+        mkpt <- function(x, y, fill)
+            list(x = x, y = y,
+                 marker = list(radius = dot, symbol = "circle",
+                               fillColor = fill, lineColor = "#222", lineWidth = 1))
+        
+        obs_data  <- Map(function(t, cl) mkpt(t, yObs, cl),  dd$t, cols_obs[as.character(dd$x)])
+        true_data <- Map(function(t, cl) mkpt(t, yTrue, cl), dd$t, cols_state[as.character(dd$z)])
+        dec_data  <- Map(function(t, cl) mkpt(t, yDec, cl),  dd$t, cols_state[as.character(dd$zh)])
+        
+        # MODIFICATION: decode errors → red × adjusted for size and vertical alignment
+        wrong <- which(as.character(dd$z) != as.character(dd$zh))
+        err_data <- lapply(dd$t[wrong], function(t) {
+            list(x = t, y = yDec,
+                 dataLabels = list(enabled = TRUE, useHTML = TRUE, crop = FALSE, overflow = "none",
+                                   align = "center", verticalAlign = "middle",
+                                   y = round(cross * -0.05), # Nudge down to center large X
+                                   style = list(color = "#cc0000", fontWeight = "900",
+                                                fontFamily = "Arial, sans-serif",
+                                                fontSize = paste0(cross, "px"),
+                                                textOutline = "none", pointerEvents = "none"),
+                                   format = "&times;"),
+                 marker = list(enabled = FALSE))
+        })
+        
+        # MODIFICATION: Hardcoded HTML legend
+        legend_html <- paste0(
+            '<div style="font-size: 13px; font-family: sans-serif;">',
+            '  <style>',
+            '    .legend-table td { padding: 2px 0; }',
+            '    .legend-swatch { height: 12px; width: 12px; border-radius: 50%; display: inline-block; border: 1px solid #222; vertical-align: middle; }',
+            '    .legend-label { padding-left: 6px; }',
+            '    .legend-x { color:#cc0000; font-weight: 900; font-size: 22px; text-align: center; vertical-align: middle; line-height: 1; }',
+            '  </style>',
+            '  <table class="legend-table" style="border-spacing: 0 4px; border-collapse: separate;">',
+            '    <tr><td colspan="2" style="font-weight: bold;">States</td><td colspan="2" style="padding-left: 20px; font-weight: bold;">Observations</td></tr>',
+            '    <tr>',
+            '      <td><span class="legend-swatch" style="background-color:', cols_state["S1"], ';"></span></td><td class="legend-label">Sunny</td>',
+            '      <td style="padding-left: 20px;"><span class="legend-swatch" style="background-color:', cols_obs["Hot"], ';"></span></td><td class="legend-label">Hot</td>',
+            '    </tr>',
+            '    <tr>',
+            '      <td><span class="legend-swatch" style="background-color:', cols_state["S2"], ';"></span></td><td class="legend-label">Cloudy</td>',
+            '      <td style="padding-left: 20px;"><span class="legend-swatch" style="background-color:', cols_obs["Mild"], ';"></span></td><td class="legend-label">Mild</td>',
+            '    </tr>',
+            '    <tr>',
+            '      <td><span class="legend-swatch" style="background-color:', cols_state["S3"], ';"></span></td><td class="legend-label">Rainy</td>',
+            '      <td style="padding-left: 20px;"><span class="legend-swatch" style="background-color:', cols_obs["Cold"], ';"></span></td><td class="legend-label">Cold</td>',
+            '    </tr>',
+            '    <tr>',
+            '      <td><div class="legend-x">&times;</div></td><td class="legend-label">Decode Error</td>',
+            '      <td></td><td></td>',
+            '    </tr>',
+            '  </table>',
+            '</div>'
+        )
+        
+        # MODIFICATION: Chart construction with custom HTML legend
+        hc <- highchart() %>%
+            hc_chart(
+                type = "scatter",
+                spacingRight = 260, # Increased space for the new legend
+                spacingLeft = 0,
+                events = list(
+                    # Render the custom HTML legend on chart load
+                    load = JS(sprintf(
+                        "function() { this.renderer.html('%s', this.chartWidth - 205, 60).add(); }",
+                        gsub("'", "\\\\'", legend_html) # Escape quotes for JS
+                    ))
+                )
+            ) %>%
+            hc_title(text = "HMM demo (simulate \u2192 EM fit via depmixS4)") %>%
+            hc_xAxis(title = list(text = "Time"), min = 1, max = n, tickInterval = 1) %>%
+            hc_yAxis(categories = cats, tickPositions = list(yObs, yTrue, yDec),
+                     min = -0.5, max = 2.5, gridLineWidth = 0, title = list(text = NULL)) %>%
+            hc_plotOptions(scatter = list(stickyTracking = FALSE, enableMouseTracking = FALSE)) %>%
+            hc_add_series(data = obs_data,  name = "Observation", showInLegend = FALSE) %>%
+            hc_add_series(data = true_data, name = "True state",  showInLegend = FALSE) %>%
+            hc_add_series(data = dec_data,  name = "Decoded",     showInLegend = FALSE)
+        
+        if (length(err_data)) {
+            hc <- hc %>% hc_add_series(type = "scatter", data = err_data, name = "Decode error",
+                                       showInLegend = FALSE, enableMouseTracking = FALSE)
+        }
+        
+        # MODIFICATION: Removed old legend series and hc_legend call
+        hc %>%
+            hc_tooltip(enabled = FALSE) %>%
+            hc_credits(enabled = FALSE)
+    })
+    
+    
+    
+    
     
     
     #SERVER CODE FOR HMM ABOVE, ANALYSIS BELOW
