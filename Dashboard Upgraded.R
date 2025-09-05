@@ -21,6 +21,7 @@ library(Rtsne)
 library(shinyjs)
 library(here)
 library(rhandsontable)
+library(shinyjs)
 
 library(ggplot2)
 library(depmixS4)
@@ -35,7 +36,11 @@ mint_theme <- bs_theme(
     heading_font = font_google("Quicksand")
 )
 
-# ------ Static content definitions (unchanged) ------
+
+# HTML STRINGS FOR EACH TAB
+
+# --- Consumer Sentiment Plot Info ---
+
 summary_string <- HTML(
     "<p>Consumer sentiment plays a critical role in the growth of the economy. The average consumer's opinion on the state of the economy can manifest directly in changes in spending, saving, investment, and the flow of capital, directly shifting the flow of the economy.</p>
   <p>However, consumer sentiment is noisy and serves as a response to economic conditions, so deeper potential relationships may not be fully captured by traditional time series analysis. This analysis serves as an alternate approach to identify these shifts in sentiment by applying a Hidden Markov Model (HMM) to categorize consumer sentiment into specific states, which can then be better understood using macroeconomic indicators.</p>
@@ -70,7 +75,7 @@ cs_data_collection<- HTML(
   <p> The Federal Reserve of St. Louis uploads accurate, up to date, information on multiple sectors of the economy. </p>
   <p> For this analysis, a series of 20 macroeconomic indicators were collected from the year 1987 to 2024, as it provided a good balance between for the length of the dataset and the number of predictors.</p>
   <p> The indicators are categorized as the following:</p>
-      <ul>
+    <ul>
       <li>Output</li>
       <li>Labor Market</li>
       <li>Price Levels</li>
@@ -90,6 +95,100 @@ cs_interpretation <- HTML(
 </div>"
 )
 
+# --- Preliminary Analysis Info ---
+
+output_analysis <- HTML('
+      <p><strong>Output indicators:</strong> variables that measure the U.S.\'s total economic production.</p>
+      <ul>
+        <li><strong>Nominal GDP:</strong> the raw dollar value of all goods and services produced. 
+          An increase means more dollars are changing hands-often signaling higher incomes and business investment. 
+          When Nominal GDP is rising, consumers generally feel richer and more willing to spend; a slowdown can sap confidence.</li>
+        <li><strong>Real GDP:</strong> Nominal GDP adjusted for inflation. 
+          Growth here reflects true increases in volume of production. 
+          Strong Real GDP growth suggests rising real wages and employment, which typically boost consumer sentiment. 
+          Conversely, flat or negative Real GDP growth often coincides with weaker confidence and lower spending.</li>
+      </ul>
+      <p>Because consumer spending accounts for roughly two‑thirds of GDP, shifts in these output measures quickly feed back into how households view their personal finances and the broader economy.</p>
+    ')
+
+labor_analysis <- HTML('
+      <p><strong>Labor market indicators:</strong> measures of how easily people find and keep jobs.</p>
+      <ul>
+        <li><strong>Unemployment rate:</strong> percent of the labor force without a job. 
+          Rising unemployment often reflects businesses cutting back. This tends to dent consumer sentiment as job security erodes. 
+          Falling unemployment generally lifts confidence and spending.</li>
+        <li><strong>Participation rate:</strong> share of working‑age people in the labor force. 
+          A rising participation rate can signal optimism that jobs are available, bolstering sentiment; 
+          a falling rate may reflect discouraged workers leaving the market, dampening overall confidence.</li>
+        <li><strong>Unemployment claims:</strong> weekly filings for jobless benefits. 
+          Spikes in initial claims often presage layoffs and can spook consumers, while declines point to a stable labor market and support higher sentiment.</li>
+      </ul>
+      <p>Together, these indicators tell you how tight or slack the jobs market is, a key driver of household incomes and therefore consumer attitudes toward spending and saving.</p>
+    ')
+
+price_analysis <- HTML('
+      <p><strong>Price levels/inflation indicators:</strong> gauges of how fast prices are rising.</p>
+      <ul>
+        <li><strong>CPI:</strong> tracks the cost of a fixed basket of goods for the average urban consumer. 
+          Rapid CPI increases erode purchasing power and often hurt consumer sentiment; 
+          moderate, predictable inflation is less damaging.</li>
+        <li><strong>PCEPI:</strong> measures prices for what people actually buy (a dynamic basket). 
+          Because it better reflects changing consumption patterns, PCEPI can give early warning of shifts in real household outlays and sentiment.</li>
+        <li><strong>Robust PCEPI:</strong> excludes volatile food and energy. 
+          This “core” measure helps isolate underlying inflation trends that more directly influence long‑term consumer expectations.</li>
+        <li><strong>PPI:</strong> producer prices at the wholesale level. 
+          Rising PPI often foreshadows higher CPI and can signal incoming price pressures that eventually filter through consumers’ wallets.</li>
+      </ul>
+      <p>When consumers see news of accelerating prices-especially core inflation, they may feel their real incomes shrinking, pulling down sentiment.  
+      Conversely, stable or falling inflation tends to reassure.</p>
+    ')
+
+monetary_analysis <- HTML('
+      <p><strong>Monetary & fiscal indicators:</strong> measures of borrowing costs and government finances.</p>
+      <ul>
+        <li><strong>Federal funds rate:</strong> the Fed’s overnight bank‑to‑bank lending rate. 
+          A higher rate makes all loans-home, auto, business-more expensive, cooling borrowing and spending. 
+          Cutting the rate tends to spur activity and lift consumer confidence.</li>
+        <li><strong>Three‑month Treasury yield:</strong> short‑term government borrowing cost. 
+          Rising yields can reflect higher inflation expectations and tighter financial conditions, which may weaken sentiment.</li>
+        <li><strong>Ten‑year Treasury yield:</strong> longer‑term borrowing cost, influenced by growth and inflation expectations. 
+          An inverted yield curve (short rates above long rates) often signals recession risk and can pre‑empt lower consumer sentiment.</li>
+        <li><strong>M2 money supply:</strong> the total of cash, checking deposits, and easily convertible near‑money instruments. 
+          Rapid M2 growth can signal easy credit (boosting sentiment), while slow growth or contraction may reflect monetary tightening and dampen sentiment.</li>
+      </ul>
+      <p>Higher interest rates generally translate into higher borrowing costs and squeeze household budgets, whereas easier policy (lower rates, faster money growth) tends to buoy consumer confidence.</p>
+    ')
+
+housing_analysis <- HTML('
+      <p><strong>Housing & construction indicators:</strong> gauges of residential building and sales activity.</p>
+      <ul>
+        <li><strong>New private houses:</strong> volume of single‑family homes built. 
+          A pickup in home construction suggests builders expect strong demand-often reflecting and reinforcing higher consumer sentiment.</li>
+        <li><strong>New permits:</strong> approvals for future building. 
+          Rising permits indicate confidence among developers and signal that the housing market-and thus consumer confidence-is on solid ground.</li>
+        <li><strong>House sales:</strong> number of homes sold. 
+          Strong sales often coincide with easy credit and consumer optimism; a slump may reflect tighter lending standards or weaker sentiment.</li>
+        <li><strong>Case‑Shiller Index:</strong> a repeat‑sales index tracking home price changes. 
+          Rising home prices build household wealth (the “wealth effect”), boosting consumer sentiment; falling prices can have the opposite effect.</li>
+      </ul>
+      <p>Because housing is a large share of household wealth and spending, swings in these indicators can move consumer attitudes sharply, especially on big‑ticket purchases.</p>
+    ')
+
+trade_analysis <- HTML('
+      <p><strong>Trade indicators:</strong> the flow of goods and services across borders.</p>
+      <ul>
+        <li><strong>Imports:</strong> value of foreign goods and services purchased domestically. 
+          Rising imports can signal strong domestic demand (positive for sentiment), but persistent trade deficits may feed concerns about domestic manufacturing and jobs.</li>
+        <li><strong>Exports:</strong> value of domestic goods sold abroad. 
+          Higher exports support U.S. production and jobs, which can lift consumer sentiment, especially in manufacturing regions.</li>
+        <li><strong>Current account balance:</strong> net of exports minus imports plus foreign income. 
+          A surplus indicates net foreign demand for U.S. output-often a positive for aggregate production and therefore consumer confidence.</li>
+      </ul>
+      <p>Trade balances reflect global demand for U.S. goods and services.  
+      Strong export growth often bolsters jobs and incomes, lifting sentiment, while widening trade deficits can raise questions about competitiveness and growth.</p>
+    ')
+
+# --- Hidden Markov Model Information ---
 
 intro_hmm_text <- HTML(
     "<div style='font-size:17px; line-height:1.6;'>
@@ -265,6 +364,39 @@ emissions_mat <- '
   </table>
 </div>'
 
+# --- Model Analysis Info
+
+model_result_info <- HTML(
+    "<div style='font-size:18px; line-height:1.6;'>
+  <p>
+    To optimize the Hidden Markov Model algorithm, the model is reduced to use a select number of the predictors for analysis. 
+    A set of 7 predictors were determined to be the most accurate in detecting hidden states using an algorithm of 
+    maximizing the log-likelihood of each possible set. The predictors most effective for predicting consumer sentiment are:
+    
+    <ol>
+      <li>Nominal GDP</li>
+      <li>Real GDP</li>
+      <li>Unemployment Rate</li>
+      <li>Robust PCEPI</li>
+      <li>Federal Funds Rate</li>
+      <li>Case-Schiller Index</li>
+     </ol>
+    
+  </p>
+  
+  By this, we can identify that the variables that affect consumer sentiment the most are the ones that hit consumers
+  the hardest. <b> Nominal GDP </b> and <b> Real GDP </b> are a result of consumers (something about what they see on the news and how
+  it affects their view of the economy? Find an article for this). The <b> Unemployment Rate </b> is a direct response
+  to their ability to find work. The <b> Robust PCEIPI </b> is representative of their cost of living, as it represents
+  how much they are spending each year, properly accounting for the (hyperlink blue) Substitution Effect. And finally, the <b> Federal Funds
+  Rate </b> affects their ability to make large purchases, such as cars and homes. The presence of the <b> Case-Schiller Index </b> 
+  further emphasizes this, as home ownership is parallel to economic propserity and the American Dream.
+  
+</div>"
+)
+
+# --- Dashboard Theming
+
 mint_dark_theme <- create_theme(
     theme = "superhero",  # matches your preset
     bs4dash_vars(
@@ -301,13 +433,14 @@ ui <- bs4DashPage(
     
     # Sidebar with vertical menu
     sidebar = bs4DashSidebar(
-        id   = "sidebar",
+        id   = "sidebar", # ID of the sidebar object (not the tabs)
         skin = "light",
         #status = "success",
         #brandColor = "success",
         #brandColor = "teal",
         collapsed = TRUE,
         bs4SidebarMenu(
+            id = "dashboard_tabs", # ID of Sidebar menu
             bs4SidebarMenuItem("Overview", tabName = "overview", icon = icon("dashboard")),
             bs4SidebarMenuItem("Preliminary Analysis", tabName = "preliminary_analysis", icon = icon("chart-line")),
             bs4SidebarMenuItem("Hidden Markov Model", tabName = "model_intro", icon = icon("project-diagram")),
@@ -449,7 +582,7 @@ ui <- bs4DashPage(
                 )
             ),
             
-            #Hidden Markov Model Tab
+            # Hidden Markov Model Tab
             bs4TabItem(
                 tabName = "model_intro",
 
@@ -471,7 +604,9 @@ ui <- bs4DashPage(
                 selected = "hmm_intro",
                 tabPanel("Introduction", value = "hmm_intro", intro_hmm_text),
                 tabPanel("Model Training", value = "hmm_train_exp", hmm_training),
-                tabPanel("Initial State", value = "init_state", initial_state_selected),
+                # We may not want initial state in the model explanation, unecessary and not enough content
+                
+                #tabPanel("Initial State", value = "init_state", initial_state_selected),
                 tabPanel("Transition Probability", value = "trans_prob",
                          div(style = "height:636px;",
                             transition_prob,
@@ -498,21 +633,50 @@ ui <- bs4DashPage(
                         width = 12,
                         status = "success",
                         solidHeader = TRUE,
-                        #visNetworkOutput("hmm_vis", height = "700px", width = "100%")
-                        #hmm_interactive_ui(id = "my_interactive_hmm")
-                        sliderInput("hmm_T", "Sequence length", min = 15, max = 100, value = 30, step = 1),
-                        actionButton("hmm_run_demo", "Generate & Fit (EM)", class = "btn btn-success btn-block"),
-                        highchartOutput("hmm_demo_timeline", height = 280),
-                        tableOutput("hmm_demo_metrics"),
-                        column(
-                            width = 4,
-                            rHandsontableOutput("A_tbl", height = 180),
-                            rHandsontableOutput("B_tbl", height = 180)
+                        
+                        # Display the HMM Diagram if on the Intro or Training tab
+                        conditionalPanel(
+                            condition = "input.hmm_info_tabs == 'hmm_intro' || input.hmm_info_tabs == 'hmm_train_exp'",
+                            uiOutput("hmm_vis_full")
+                        ),
+                        
+                        # Display the diagram AND the respective matrix on Transition/Emission tabs
+                        conditionalPanel(
+                            condition = "input.hmm_info_tabs == 'trans_prob' || input.hmm_info_tabs == 'emission_prob'",
+                            fluidRow(
+                                column(
+                                    width = 6,
+                                    # Conditional panel for the Transition Probability table
+                                    conditionalPanel(
+                                        condition = "input.hmm_info_tabs == 'trans_prob'",
+                                        rHandsontableOutput("A_tbl", height = 180)
+                                    ),
+                                    
+                                    # Conditional panel for the Emission Probability table
+                                    conditionalPanel(
+                                        condition = "input.hmm_info_tabs == 'emission_prob'",
+                                        rHandsontableOutput("B_tbl", height = 180)
+                                    )
+                                ),
+                                
+                                column(
+                                    width = 6,
+                                    uiOutput("hmm_vis_small")
+                                )
+                            )
+                        ),
+                        # Conditional panel for the Simulation
+                        conditionalPanel(
+                            condition = "input.hmm_info_tabs == 'trans_prob' || input.hmm_info_tabs == 'emission_prob'",
+                            sliderInput("hmm_T", "Sequence length", min = 15, max = 45, value = 20, step = 1),
+                            actionButton("hmm_run_demo", "Run Simulation", class = "btn btn-success btn-block"),
+                            highchartOutput("hmm_demo_timeline", height = 280),
+                            tableOutput("hmm_demo_metrics")
+                        )
                         )
                     )
                 )
-            )
-            )
+                )
             ),
             
             # Model Analysis Tab
@@ -528,10 +692,26 @@ ui <- bs4DashPage(
                         width = 7,
                         status = "success",
                         solidHeader = TRUE,
-                        div(
-                            style = "flex: 2; display: flex; justify-content: center;",
-                            "" 
-                            # REPLACE WITH ACTUAL TEXT LATER
+                        bs4Dash::tabsetPanel(
+                            id = "model_analysis_tabs",
+                            type = "pills",
+                            tabPanel("Top Economic Indicators",
+                                     div(style = "padding:10px; font-size:18px; line-height:1.5; overflow-y:auto;",
+                                         model_result_info)
+                            ),
+                            tabPanel("Transition Matrix",
+                                     div(style = "padding:10px; font-size:16px; line-height:1.5; height:398.5px; overflow-y:auto;",
+                                         "ok",
+                                         uiOutput("transition_mat", height = "600px", width = "100%"))
+                            ),
+                            tabPanel("t-SNE Plot",
+                                     div(style = "padding:10px; font-size:16px; line-height:1.5; height:398.5px; overflow-y:auto;",
+                                         cs_interpretation)
+                            ),
+                            tabPanel("Data Collection",
+                                     div(style = "padding:10px; font-size:16px; line-height:1.5; height:398.5px; overflow-y:auto;",
+                                         cs_data_collection)
+                            )
                         )
                     ),
                     
@@ -539,12 +719,10 @@ ui <- bs4DashPage(
                         collapsible = FALSE,   # removes collapse toggle
                         closable = FALSE,      # removes close icon
                         width = 5,
-                        uiOutput("transition_mat", height = "600px", width = "100%"),
                         
                         # State plot, aligned to bottom
                         div(
                             style = "flex-grow: 1; display: flex; flex-direction: column; justify-content: flex-end; height: calc(100vh - 200px);",  # 200px = height of header/navbar/etc
-                            #plotlyOutput("state_plot", height = "650px", width = "100%")
                             highchartOutput("state_plot", height = "650px", width = "100%")
                         )
                     )
@@ -559,97 +737,15 @@ server <- function(input, output, session) {
     output$category_summary <- renderUI({
         summary_text <- switch(input$select1,
                                
-                               "Output" = HTML('
-      <p><strong>Output indicators:</strong> variables that measure the U.S.\'s total economic production.</p>
-      <ul>
-        <li><strong>Nominal GDP:</strong> the raw dollar value of all goods and services produced. 
-          An increase means more dollars are changing hands-often signaling higher incomes and business investment. 
-          When Nominal GDP is rising, consumers generally feel richer and more willing to spend; a slowdown can sap confidence.</li>
-        <li><strong>Real GDP:</strong> Nominal GDP adjusted for inflation. 
-          Growth here reflects true increases in volume of production. 
-          Strong Real GDP growth suggests rising real wages and employment, which typically boost consumer sentiment. 
-          Conversely, flat or negative Real GDP growth often coincides with weaker confidence and lower spending.</li>
-      </ul>
-      <p>Because consumer spending accounts for roughly two‑thirds of GDP, shifts in these output measures quickly feed back into how households view their personal finances and the broader economy.</p>
-    '),
+                               # Text displayed based on selected predictor type in combo box
                                
-                               "Labor Market" = HTML('
-      <p><strong>Labor market indicators:</strong> measures of how easily people find and keep jobs.</p>
-      <ul>
-        <li><strong>Unemployment rate:</strong> percent of the labor force without a job. 
-          Rising unemployment often reflects businesses cutting back-this tends to dent consumer sentiment as job security erodes. 
-          Falling unemployment generally lifts confidence and spending.</li>
-        <li><strong>Participation rate:</strong> share of working‑age people in the labor force. 
-          A rising participation rate can signal optimism that jobs are available, bolstering sentiment; 
-          a falling rate may reflect discouraged workers leaving the market, dampening overall confidence.</li>
-        <li><strong>Unemployment claims:</strong> weekly filings for jobless benefits. 
-          Spikes in initial claims often presage layoffs and can spook consumers, while declines point to a stable labor market and support higher sentiment.</li>
-      </ul>
-      <p>Together, these indicators tell you how tight or slack the jobs market is, a key driver of household incomes and therefore consumer attitudes toward spending and saving.</p>
-    '),
-                               
-                               "Price Levels" = HTML('
-      <p><strong>Price levels/inflation indicators:</strong> gauges of how fast prices are rising.</p>
-      <ul>
-        <li><strong>CPI:</strong> tracks the cost of a fixed basket of goods for the average urban consumer. 
-          Rapid CPI increases erode purchasing power and often hurt consumer sentiment; 
-          moderate, predictable inflation is less damaging.</li>
-        <li><strong>PCEPI:</strong> measures prices for what people actually buy (a dynamic basket). 
-          Because it better reflects changing consumption patterns, PCEPI can give early warning of shifts in real household outlays and sentiment.</li>
-        <li><strong>Robust PCEPI:</strong> excludes volatile food and energy. 
-          This “core” measure helps isolate underlying inflation trends that more directly influence long‑term consumer expectations.</li>
-        <li><strong>PPI:</strong> producer prices at the wholesale level. 
-          Rising PPI often foreshadows higher CPI and can signal incoming price pressures that eventually filter through consumers’ wallets.</li>
-      </ul>
-      <p>When consumers see news of accelerating prices-especially core inflation, they may feel their real incomes shrinking, pulling down sentiment.  
-      Conversely, stable or falling inflation tends to reassure.</p>
-    '),
-                               
-                               "Monetary and Fiscal" = HTML('
-      <p><strong>Monetary & fiscal indicators:</strong> measures of borrowing costs and government finances.</p>
-      <ul>
-        <li><strong>Federal funds rate:</strong> the Fed’s overnight bank‑to‑bank lending rate. 
-          A higher rate makes all loans-home, auto, business-more expensive, cooling borrowing and spending. 
-          Cutting the rate tends to spur activity and lift consumer confidence.</li>
-        <li><strong>Three‑month Treasury yield:</strong> short‑term government borrowing cost. 
-          Rising yields can reflect higher inflation expectations and tighter financial conditions, which may weaken sentiment.</li>
-        <li><strong>Ten‑year Treasury yield:</strong> longer‑term borrowing cost, influenced by growth and inflation expectations. 
-          An inverted yield curve (short rates above long rates) often signals recession risk and can pre‑empt lower consumer sentiment.</li>
-        <li><strong>M2 money supply:</strong> the total of cash, checking deposits, and easily convertible near‑money instruments. 
-          Rapid M2 growth can signal easy credit (boosting sentiment), while slow growth or contraction may reflect monetary tightening and dampen sentiment.</li>
-      </ul>
-      <p>Higher interest rates generally translate into higher borrowing costs and squeeze household budgets, whereas easier policy (lower rates, faster money growth) tends to buoy consumer confidence.</p>
-    '),
-                               
-                               "Housing and Construction" = HTML('
-      <p><strong>Housing & construction indicators:</strong> gauges of residential building and sales activity.</p>
-      <ul>
-        <li><strong>New private houses:</strong> volume of single‑family homes built. 
-          A pickup in home construction suggests builders expect strong demand-often reflecting and reinforcing higher consumer sentiment.</li>
-        <li><strong>New permits:</strong> approvals for future building. 
-          Rising permits indicate confidence among developers and signal that the housing market-and thus consumer confidence-is on solid ground.</li>
-        <li><strong>House sales:</strong> number of homes sold. 
-          Strong sales often coincide with easy credit and consumer optimism; a slump may reflect tighter lending standards or weaker sentiment.</li>
-        <li><strong>Case‑Shiller Index:</strong> a repeat‑sales index tracking home price changes. 
-          Rising home prices build household wealth (the “wealth effect”), boosting consumer sentiment; falling prices can have the opposite effect.</li>
-      </ul>
-      <p>Because housing is a large share of household wealth and spending, swings in these indicators can move consumer attitudes sharply, especially on big‑ticket purchases.</p>
-    '),
-                               
-                               "Trade" = HTML('
-      <p><strong>Trade indicators:</strong> the flow of goods and services across borders.</p>
-      <ul>
-        <li><strong>Imports:</strong> value of foreign goods and services purchased domestically. 
-          Rising imports can signal strong domestic demand (positive for sentiment), but persistent trade deficits may feed concerns about domestic manufacturing and jobs.</li>
-        <li><strong>Exports:</strong> value of domestic goods sold abroad. 
-          Higher exports support U.S. production and jobs, which can lift consumer sentiment, especially in manufacturing regions.</li>
-        <li><strong>Current account balance:</strong> net of exports minus imports plus foreign income. 
-          A surplus indicates net foreign demand for U.S. output-often a positive for aggregate production and therefore consumer confidence.</li>
-      </ul>
-      <p>Trade balances reflect global demand for U.S. goods and services.  
-      Strong export growth often bolsters jobs and incomes, lifting sentiment, while widening trade deficits can raise questions about competitiveness and growth.</p>
-    ')
-        )
+                               "Output" = output_analysis,
+                               "Labor Market" = labor_analysis,
+                               "Price Levels" = price_analysis,
+                               "Monetary and Fiscal" = monetary_analysis,
+                               "Housing and Construction" = housing_analysis,
+                               "Trade" = trade_analysis
+                               )
         
         div(
             style = "font-size:15px; font-family:Segoe UI, sans-serif; line-height:1.6;",
@@ -657,14 +753,10 @@ server <- function(input, output, session) {
         )
     })
     
-        
-    #function to go to preliminary analysis
-    # observeEvent(input$prelim_analysis, {
-    #     updateTabsetPanel(session, "tabs", selected = "analysis")
-    # })
     
-    shinyjs::onclick("prelim_analysis", {
-        updateTabsetPanel(session, "tabs", selected = "preliminary_analysis")
+    onclick("prelim_analysis", {
+        print("Link inside HTML was clicked!")
+        updateTabsetPanel(session, "dashboard_tabs", selected = "preliminary_analysis")
     })
     
     
@@ -1405,7 +1497,7 @@ server <- function(input, output, session) {
         stringsAsFactors = FALSE
     )
     edges$smooth <- smooth
-
+    
     edges$endPointOffset <- vector("list", nrow(edges))
     edges$endPointOffset[edges$id == "Initial->S1"] <- list(list(from=14L, to=18L))
     edges$endPointOffset[edges$id == "Initial->S2"] <- list(list(from=14L, to=20L))
@@ -1414,7 +1506,7 @@ server <- function(input, output, session) {
     
     #temp disable edge labels
     edges$label <- NULL
-
+    
     # Observation nodes
     obs_nodes <- data.frame(
         id         = c("O_hot","O_mild","O_cold"),
@@ -1440,6 +1532,17 @@ server <- function(input, output, session) {
     
     nodes <- rbind(nodes, obs_nodes)
     
+    # Big and small visnetwork for display purposes
+    
+    output$hmm_vis_full <- renderUI({
+        visNetworkOutput("hmm_vis", height = "700px", width = "100%")
+    })
+    
+    output$hmm_vis_small <- renderUI({
+        # Adjust height/width as needed for the smaller view
+        visNetworkOutput("hmm_vis", height = "400px", width = "100%") 
+    })
+    
     
     output$hmm_vis <- renderVisNetwork({
         visNetwork(nodes, edges) %>%
@@ -1460,37 +1563,38 @@ server <- function(input, output, session) {
             visEvents(beforeDrawing = htmlwidgets::JS("
                 function(ctx){
                   var net = this;
+                  var scaleFactor = ctx.canvas.height / 700.0;
                 
                   // --- colors for gradient & loops ---
                   var col = { S1:'#F6C54E', S2:'#7A7A7A', S3:'#4DA3FF' };
                 
                   // --- state→state tweak table (control offset + trim) ---
-                  var s_width = 2
+                  var s_width = Math.max(1.0, 2 * scaleFactor);
                   var T = {
-                    'S1->S2': {dx:0,  dy:-20, t0:0.10, t1:0.85, w:s_width},
-                    'S2->S1': {dx:0,  dy:30, t0:0.08, t1:0.80, w:s_width},
-                    'S1->S3': {dx:30, dy:-150, t0:0.05, t1:0.90, w:s_width},
+                    'S1->S2': {dx:0,  dy:-20*scaleFactor, t0:0.10, t1:0.85, w:s_width},
+                    'S2->S1': {dx:0,  dy:30*scaleFactor,  t0:0.08, t1:0.80, w:s_width},
+                    'S1->S3': {dx:30*scaleFactor, dy:-150*scaleFactor, t0:0.05, t1:0.90, w:s_width},
                     
-                    'S3->S1': {dx:10, dy:70,  t0:0.0, t1:0.91, w:s_width},
-                    'S2->S3': {dx:0,  dy:-20,  t0:0.10, t1:0.82, w:s_width},
-                    'S3->S2': {dx:0,  dy:30,   t0:0.0, t1:0.8, w:s_width}
+                    'S3->S1': {dx:10*scaleFactor, dy:70*scaleFactor,  t0:0.0, t1:0.91, w:s_width},
+                    'S2->S3': {dx:0,  dy:-20*scaleFactor, t0:0.10, t1:0.82, w:s_width},
+                    'S3->S2': {dx:0,  dy:30*scaleFactor,  t0:0.0, t1:0.8, w:s_width}
                   };
                 
                     function mkLoop(id, dy, ang){
                       var nd = net.body.nodes[id];
-                      var sz = (nd && nd.options && nd.options.icon && nd.options.icon.size) ? nd.options.icon.size : 90;
+                      var sz = ((nd && nd.options && nd.options.icon && nd.options.icon.size) ? nd.options.icon.size : 90) * scaleFactor;
                       var r  = sz/2 + 0;      // radius ~ icon radius + margin
-                      var dx = sz/2 + 8;       // loop center to the right of node
+                      var dx = sz/2 + (8 * scaleFactor);    // loop center to the right of node
                         return { 
-                            dx: dx,                // horizontal shift of loop center
-                            dy: (dy ?? -5),        // vertical shift of loop center
-                            r: r,                  // loop radius
-                            a0:210,                // start angle (degrees)
-                            a1:450,                // end angle (degrees) → controls how “round” it is
-                            w:2,                   // stroke width
-                            tipBackPx: 9,          // how far back the loop stops before arrowhead
-                            ang: (ang || 0)        // small manual rotation of arrowhead direction
-                          };
+                          dx: dx,                  // horizontal shift of loop center
+                          dy: ((dy ?? -5) * scaleFactor),    // vertical shift of loop center
+                          r: r,                    // loop radius
+                          a0:210,                   // start angle (degrees)
+                          a1:450,                   // end angle (degrees) → controls how “round” it is
+                          w: Math.max(1.0, 2 * scaleFactor),                   // stroke width
+                          tipBackPx: (9 * scaleFactor),        // how far back the loop stops before arrowhead
+                          ang: (ang || 0)          // small manual rotation of arrowhead direction
+                        };
                     }
                   var Lp = {
                     'S1->S1': mkLoop('S1', -5, -5),  // rotate ~1.2° clockwise
@@ -1499,7 +1603,7 @@ server <- function(input, output, session) {
                   };
                 
                   // --- nudge the label anchor for P13 (move vis's underlying via) ---
-                  var labelNudge = { 'S1->S3': {dx: 4, dy: -4} };
+                  var labelNudge = { 'S1->S3': {dx: 4*scaleFactor, dy: -4*scaleFactor} };
                   var esData = net.body.data.edges.get();
                   window.__baseVia = window.__baseVia || {};
                   esData.forEach(function(e){
@@ -1541,7 +1645,7 @@ server <- function(input, output, session) {
                     return X(Math.round(a.r+(b.r-a.r)*t), Math.round(a.g+(b.g-a.g)*t), Math.round(a.b+(b.b-a.b)*t));
                   }
                   function drawHead(ctx, tip, dir, fill, w){
-                    var len=16, bw=12, round=-0.70, oCol='#000', oW=1.0, baseSeg=Math.max(5, 0.5*w);
+                    var len=16*scaleFactor, bw=12*scaleFactor, round=-0.70, oCol='#000', oW=1.0, baseSeg=Math.max(5*scaleFactor, 0.5*w);
                     var L=Math.hypot(dir.x,dir.y)||1, ux=dir.x/L, uy=dir.y/L, nx=-uy, ny=ux;
                     var bx=tip.x-ux*len, by=tip.y-uy*len, hw=bw/2;
                     var Lp={x:bx-nx*hw, y:by-ny*hw}, Rp={x:bx+nx*hw, y:by+ny*hw}, Cp={x:bx-ux*(round*hw), y:by-uy*(round*hw)};
@@ -1572,7 +1676,7 @@ server <- function(input, output, session) {
                     var p0=pos[e.from], p2=pos[e.to]; if(!p0||!p2) return;
                     var eo=net.body.edges[e.id];
                     var via=(eo&&eo.via)?{x:eo.via.x,y:eo.via.y}:ctrl(p0,p2,e.smooth);
-                    var tw=T[e.id]||{dx:0,dy:0,t0:0.08,t1:0.92,w:3};
+                    var tw=T[e.id]||{dx:0,dy:0,t0:0.08,t1:0.92,w:3*scaleFactor};
                     via.x+=(tw.dx||0); via.y+=(tw.dy||0);
                 
                     var t0=tw.t0, t1=tw.t1, W=tw.w, steps=48, dt=(t1-t0)/steps;
@@ -1583,7 +1687,7 @@ server <- function(input, output, session) {
                 
                     // outline then gradient stroke
                     ctx.save(); ctx.lineCap='round'; ctx.lineJoin='round';
-                    ctx.strokeStyle='#000'; ctx.lineWidth=W+1.7; ctx.stroke();
+                    ctx.strokeStyle='#000'; ctx.lineWidth=W+Math.max(0.8, 1.7*scaleFactor); ctx.stroke();
                     var g=ctx.createLinearGradient(p0.x,p0.y,p2.x,p2.y);
                     g.addColorStop(0, col[e.from]||'#3EB489'); g.addColorStop(1, col[e.to]||'#3EB489');
                     ctx.strokeStyle=g; ctx.lineWidth=W; ctx.stroke(); ctx.restore();
@@ -1599,7 +1703,7 @@ server <- function(input, output, session) {
                     
                     // nudge the head a couple of pixels forward so it kisses the stroke end
                     var len  = Math.hypot(dirx, diry) || 1;
-                    var shiftPx = 5;              // tweak 1.5–3.0 if needed
+                    var shiftPx = 5 * scaleFactor;       // tweak 1.5–3.0 if needed
                     tip.x += shiftPx * (dirx / len);
                     tip.y += shiftPx * (diry / len);
                     
@@ -1615,12 +1719,12 @@ server <- function(input, output, session) {
                     var p=pos[s]; if(!p) return;
                     var t=Lp[s+'->'+s]; var cx=p.x+t.dx, cy=p.y+t.dy, r=t.r, lw=t.w;
                     var a0=t.a0*Math.PI/180, a1=t.a1*Math.PI/180;
-                    var back = Math.min(0.5, (t.tipBackPx||9)/r);  // radians
+                    var back = Math.min(0.5, (t.tipBackPx||(9*scaleFactor))/r);  // radians
                     var aEnd = a1 - back;
                 
                     ctx.save(); ctx.lineCap='round';
                     ctx.beginPath(); ctx.arc(cx,cy,r,a0,aEnd,false);
-                    ctx.strokeStyle='#000'; ctx.lineWidth=lw+1.7; ctx.stroke();
+                    ctx.strokeStyle='#000'; ctx.lineWidth=lw+Math.max(0.8, 1.7*scaleFactor); ctx.stroke();
                     ctx.strokeStyle=col[s]||'#3EB489'; ctx.lineWidth=lw; ctx.stroke();
                     ctx.restore();
                 
@@ -1675,7 +1779,8 @@ server <- function(input, output, session) {
                 
                   if (!this.__movedOnce) {
                     this.__movedOnce = true;
-                    this.moveTo({ position: { x: 0, y: -60 }, scale: 1.05, animation: false });
+                    var scaleFactor = ctx.canvas.height / 700.0;
+                    this.moveTo({ position: { x: 0, y: -60 * scaleFactor }, scale: 1.05, animation: false });
                   }
                 
                   // ---- CUSTOM EDGE LABELS (manual placement) ----
@@ -1684,6 +1789,7 @@ server <- function(input, output, session) {
                     var ctx  = arguments[0];
                     var pos  = net.getPositions();
                     var edges= net.body.data.edges.get();
+                    var scaleFactor = ctx.canvas.height / 700.0;
                 
                     // helpers
                     function roundRect(ctx, x, y, w, h, r){
@@ -1709,18 +1815,18 @@ server <- function(input, output, session) {
                     }
                     function drawLabel(x, y, txt, opt){
                       opt = opt || {};
-                      var fs = opt.size || 18;
+                      var fs = (opt.size || 18) * scaleFactor;
                       ctx.save();
                       ctx.font = (opt.bold?'600 ':'') + fs + 'px Helvetica, Arial';
                       ctx.textAlign = 'center';
                       ctx.textBaseline = 'middle';
-                      var pad = (opt.pad!=null?opt.pad:4), rad = (opt.radius!=null?opt.radius:4);
+                      var pad = (opt.pad!=null?opt.pad:4) * scaleFactor, rad = (opt.radius!=null?opt.radius:4) * scaleFactor;
                       var w = ctx.measureText(txt).width + 2*pad;
                       var h = fs*1.15 + 2*pad;
                       var bx = x - w/2, by = y - h/2;
-                      ctx.fillStyle   = opt.bg    || 'rgba(255,255,255,0.98)';
+                      ctx.fillStyle    = opt.bg    || 'rgba(255,255,255,0.98)';
                       ctx.strokeStyle = opt.border|| 'rgba(0,0,0,0)';
-                      ctx.lineWidth   = opt.borderWidth || 0;
+                      ctx.lineWidth   = (opt.borderWidth || 0) * scaleFactor;
                       roundRect(ctx, bx, by, w, h, rad);
                       ctx.fill();
                       if (ctx.lineWidth>0) ctx.stroke();
@@ -1731,36 +1837,36 @@ server <- function(input, output, session) {
                 
                     // transition labels
                     var edgeLabelsTrans = {
-                      'Initial->S1': { text: 'P₁',   t: 0.55, dx:  15, dy: -35 },
-                      'Initial->S2': { text: 'P₂',   t: 0.55, dx: -10, dy: -14 },
-                      'Initial->S3': { text: 'P₃',   t: 0.55, dx: -25, dy:   5 },
+                      'Initial->S1': { text: 'P₁',   t: 0.55, dx:  15*scaleFactor, dy: -35*scaleFactor },
+                      'Initial->S2': { text: 'P₂',   t: 0.55, dx: -10*scaleFactor, dy: -14*scaleFactor },
+                      'Initial->S3': { text: 'P₃',   t: 0.55, dx: -25*scaleFactor, dy:   5*scaleFactor },
                 
-                      'S1->S1':      { text: 'P₁₁',  x: pos.S1.x + 35, y: pos.S1.y - 65 },
-                      'S1->S2':      { text: 'P₁₂',  t: 0.42, dx:  90, dy: -10 },
-                      'S1->S3':      { text: 'P₁₃',  t: 0.50, dx: -40, dy: -70 },
+                      'S1->S1':      { text: 'P₁₁',  x: pos.S1.x + 35*scaleFactor, y: pos.S1.y - 65*scaleFactor },
+                      'S1->S2':      { text: 'P₁₂',  t: 0.42, dx:  90*scaleFactor, dy: -10*scaleFactor },
+                      'S1->S3':      { text: 'P₁₃',  t: 0.50, dx: -40*scaleFactor, dy: -70*scaleFactor },
                 
-                      'S2->S1':      { text: 'P₂₁',  t: 0.55, dx:  80, dy:  14 },
-                      'S2->S2':      { text: 'P₂₂',  x: pos.S2.x + 38, y: pos.S2.y - 40 },
-                      'S2->S3':      { text: 'P₂₃',  t: 0.55, dx: -20, dy: -10 },
+                      'S2->S1':      { text: 'P₂₁',  t: 0.55, dx:  80*scaleFactor, dy:  14*scaleFactor },
+                      'S2->S2':      { text: 'P₂₂',  x: pos.S2.x + 38*scaleFactor, y: pos.S2.y - 40*scaleFactor },
+                      'S2->S3':      { text: 'P₂₃',  t: 0.55, dx: -20*scaleFactor, dy: -10*scaleFactor },
                 
-                      'S3->S1':      { text: 'P₃₁',  t: 0.52, dx:  10, dy:  38 },
-                      'S3->S2':      { text: 'P₃₂',  t: 0.52, dx:   0, dy:  14 },
-                      'S3->S3':      { text: 'P₃₃',  x: pos.S3.x + 52, y: pos.S3.y - 44 }
+                      'S3->S1':      { text: 'P₃₁',  t: 0.52, dx:  10*scaleFactor, dy:  38*scaleFactor },
+                      'S3->S2':      { text: 'P₃₂',  t: 0.52, dx:   0*scaleFactor, dy:  14*scaleFactor },
+                      'S3->S3':      { text: 'P₃₃',  x: pos.S3.x + 52*scaleFactor, y: pos.S3.y - 44*scaleFactor }
                     };
                 
                     // emission labels (example placeholders)
                     var edgeLabelsEmit = {
-                      'S1->O_hot':   { text: 'b₁(hot)',  t: 0.50, dx: -10, dy:  8 },
-                      'S1->O_mild':  { text: 'b₁(mild)', t: 0.50, dx:   0, dy:  8 },
-                      'S1->O_cold':  { text: 'b₁(cold)', t: 0.50, dx:  10, dy:  8 },
+                      'S1->O_hot':   { text: 'b₁(hot)',  t: 0.50, dx: -10*scaleFactor, dy:  8*scaleFactor },
+                      'S1->O_mild':  { text: 'b₁(mild)', t: 0.50, dx:   0*scaleFactor, dy:  8*scaleFactor },
+                      'S1->O_cold':  { text: 'b₁(cold)', t: 0.50, dx:  10*scaleFactor, dy:  8*scaleFactor },
                 
-                      'S2->O_hot':   { text: 'b₂(hot)',  t: 0.50, dx: -10, dy:  8 },
-                      'S2->O_mild':  { text: 'b₂(mild)', t: 0.50, dx:   0, dy:  8 },
-                      'S2->O_cold':  { text: 'b₂(cold)', t: 0.50, dx:  10, dy:  8 },
+                      'S2->O_hot':   { text: 'b₂(hot)',  t: 0.50, dx: -10*scaleFactor, dy:  8*scaleFactor },
+                      'S2->O_mild':  { text: 'b₂(mild)', t: 0.50, dx:   0*scaleFactor, dy:  8*scaleFactor },
+                      'S2->O_cold':  { text: 'b₂(cold)', t: 0.50, dx:  10*scaleFactor, dy:  8*scaleFactor },
                 
-                      'S3->O_hot':   { text: 'b₃(hot)',  t: 0.50, dx: -10, dy:  8 },
-                      'S3->O_mild':  { text: 'b₃(mild)', t: 0.50, dx:   0, dy:  8 },
-                      'S3->O_cold':  { text: 'b₃(cold)', t: 0.50, dx:  10, dy:  8 }
+                      'S3->O_hot':   { text: 'b₃(hot)',  t: 0.50, dx: -10*scaleFactor, dy:  8*scaleFactor },
+                      'S3->O_mild':  { text: 'b₃(mild)', t: 0.50, dx:   0*scaleFactor, dy:  8*scaleFactor },
+                      'S3->O_cold':  { text: 'b₃(cold)', t: 0.50, dx:  10*scaleFactor, dy:  8*scaleFactor }
                     };
                 
                     // decide which set to draw
@@ -1811,11 +1917,7 @@ server <- function(input, output, session) {
             visOptions(highlightNearest = TRUE, nodesIdSelection = FALSE) %>%
             visInteraction(dragNodes = FALSE, dragView = FALSE, zoomView = FALSE)
     })
-    
-    
-    
-    
-    
+
     # helper to produce HTML matrix with specified highlights
     
     
@@ -2085,7 +2187,7 @@ server <- function(input, output, session) {
                     ))
                 )
             ) %>%
-            hc_title(text = "HMM demo (simulate \u2192 EM fit via depmixS4)") %>%
+            #hc_title(text = "Simulation") %>%
             hc_xAxis(title = list(text = "Time"), min = 1, max = n, tickInterval = 1) %>%
             hc_yAxis(categories = cats, tickPositions = list(yObs, yTrue, yDec),
                      min = -0.5, max = 2.5, gridLineWidth = 0, title = list(text = NULL)) %>%
