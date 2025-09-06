@@ -413,6 +413,8 @@ mint_dark_theme <- create_theme(
     )
 )
 
+hmm_vis_ui <- visNetworkOutput("hmm_vis", width = "100%", height = "100%")
+
 # ----- UI: bs4DashPage with vertical sidebar navigation -----
 ui <- bs4DashPage(
     freshTheme = mint_dark_theme,
@@ -445,7 +447,7 @@ ui <- bs4DashPage(
             bs4SidebarMenuItem("Preliminary Analysis", tabName = "preliminary_analysis", icon = icon("chart-line")),
             bs4SidebarMenuItem("Hidden Markov Model", tabName = "model_intro", icon = icon("project-diagram")),
             bs4SidebarMenuItem("Analysis", tabName = "model_analysis", icon = icon("chart-line")),
-            bs4SidebarMenuItem("Conclusion", tabName = "Model Conclusion", icon = icon("chart-line"))
+            bs4SidebarMenuItem("Conclusion", tabName = "model_conclusion", icon = icon("chart-line"))
         )
     ),
     
@@ -487,6 +489,64 @@ ui <- bs4DashPage(
               }
 
             .matrix-overlay { pointer-events: none; }
+            
+            #hmmwrap { position: relative; width: 100%; }
+            #hmmwrap .base-svg { width: 100%; height: auto; display: block; }
+            
+            /* Hotspot container: positioned by % and centered on that point */
+            .hs { position: absolute; transform: translate(-50%, -50%); pointer-events: auto; }
+            
+            /* Visible tag (the label on the arrow) */
+            .hs .tag {
+              font-weight: 600;
+              padding: .15rem .35rem;
+              border-radius: .5rem;
+              background: rgba(0,0,0,.55);
+              color: #fff;
+              line-height: 1;
+              font-size: clamp(10px, 1.2vw, 14px);
+              backdrop-filter: blur(2px);
+              -webkit-backdrop-filter: blur(2px);
+            }
+            
+            /* The hover card */
+            .hs .callout {
+              position: absolute;
+              left: 50%; top: -8px;
+              transform: translate(-50%, -12px) scale(.98);
+              opacity: 0; visibility: hidden;
+              transition: opacity .18s ease, transform .18s ease, visibility 0s linear .18s;
+              background: #fff; color: #222;
+              border: 1px solid rgba(0,0,0,.12);
+              box-shadow: 0 6px 22px rgba(0,0,0,.12);
+              border-radius: .6rem;
+              padding: .5rem .6rem;
+              min-width: 180px; max-width: min(360px, 60vw);
+              z-index: 2;
+              white-space: normal;
+            }
+            
+            /* Little arrow */
+            .hs .callout::after {
+              content: \"\";
+              position: absolute;
+              left: 50%; bottom: -6px;
+              transform: translateX(-50%);
+              border: 6px solid transparent;
+              border-top-color: #fff;
+            }
+            
+            /* Show on hover/focus */
+            .hs:hover .callout, .hs:focus-within .callout {
+              opacity: 1; visibility: visible;
+              transform: translate(-50%, -16px) scale(1);
+              transition-delay: 0s;
+            }
+            
+            /* Optional per-group tint for the tag */
+            .hs.pi    .tag { background: rgba(46,134,222,.75); }   /* π */
+            .hs.trans .tag { background: rgba(231,76,60,.75); }    /* A */
+            .hs.emit  .tag { background: rgba(39,174,96,.75); }    /* B */
           "))
         ),
 
@@ -622,6 +682,7 @@ ui <- bs4DashPage(
                 )
             ),
             
+            
             column(
                 width = 7,
                 div(
@@ -637,7 +698,7 @@ ui <- bs4DashPage(
                         # Display the HMM Diagram if on the Intro or Training tab
                         conditionalPanel(
                             condition = "input.hmm_info_tabs == 'hmm_intro' || input.hmm_info_tabs == 'hmm_train_exp'",
-                            uiOutput("hmm_vis_full")
+                            uiOutput("hmm_area")
                         ),
                         
                         # Display the diagram AND the respective matrix on Transition/Emission tabs
@@ -661,7 +722,7 @@ ui <- bs4DashPage(
                                 
                                 column(
                                     width = 6,
-                                    uiOutput("hmm_vis_small")
+                                    uiOutput("hmm_area")
                                 )
                             )
                         ),
@@ -727,6 +788,21 @@ ui <- bs4DashPage(
                         )
                     )
                 ),
+            ),
+            
+            bs4TabItem(
+                tabName = "model_conclusion",
+                bs4Card(
+                    title = "HMM Annotated Diagram",
+                    width = 12,
+                    # toggles (bind these to your own booleans if you already have them)
+                    fluidRow(
+                        column(4, checkboxInput("initial_tab", "Show initial probabilities (π)", TRUE)),
+                        column(4, checkboxInput("transition_prob", "Show transition probabilities (A)", TRUE)),
+                        column(4, checkboxInput("emission_prob", "Show emission probabilities (B)", TRUE))
+                    ),
+                    uiOutput("hmm_overlay", inline = TRUE)
+                )
             )
         )
     )
@@ -1534,15 +1610,6 @@ server <- function(input, output, session) {
     
     # Big and small visnetwork for display purposes
     
-    output$hmm_vis_full <- renderUI({
-        visNetworkOutput("hmm_vis", height = "700px", width = "100%")
-    })
-    
-    output$hmm_vis_small <- renderUI({
-        # Adjust height/width as needed for the smaller view
-        visNetworkOutput("hmm_vis", height = "400px", width = "100%") 
-    })
-    
     
     output$hmm_vis <- renderVisNetwork({
         visNetwork(nodes, edges) %>%
@@ -1563,7 +1630,7 @@ server <- function(input, output, session) {
             visEvents(beforeDrawing = htmlwidgets::JS("
                 function(ctx){
                   var net = this;
-                  var scaleFactor = ctx.canvas.height / 700.0;
+                  var scaleFactor = ctx.canvas.height / 1000.0;
                 
                   // --- colors for gradient & loops ---
                   var col = { S1:'#F6C54E', S2:'#7A7A7A', S3:'#4DA3FF' };
@@ -1916,6 +1983,35 @@ server <- function(input, output, session) {
             visNodes(fixed = TRUE) %>%
             visOptions(highlightNearest = TRUE, nodesIdSelection = FALSE) %>%
             visInteraction(dragNodes = FALSE, dragView = FALSE, zoomView = FALSE)
+    })
+    
+    
+    output$hmm_area <- renderUI({
+        tab <- input$hmm_info_tabs
+        if (tab %in% c("hmm_intro", "hmm_train_exp")) {
+            # big, full-width diagram only
+            fluidRow(
+                column(
+                    width = 12,
+                    div(style = "height:700px;", visNetworkOutput("hmm_vis", height = "100%"))
+                )
+            )
+        } else if (tab %in% c("trans_prob", "emission_prob")) {
+            # two-column layout: matrix + small diagram
+            fluidRow(
+                column(
+                    width = 6,
+                    if (tab == "trans_prob")  rHandsontableOutput("A_tbl", height = 180),
+                    if (tab == "emission_prob") rHandsontableOutput("B_tbl", height = 180)
+                ),
+                column(
+                    width = 6,
+                    div(style = "height:400px;", visNetworkOutput("hmm_vis", height = "100%"))
+                )
+            )
+        } else {
+            NULL
+        }
     })
 
     # helper to produce HTML matrix with specified highlights
@@ -2397,6 +2493,67 @@ server <- function(input, output, session) {
         
         #Default text
         p(no_state_selected)
+    })
+    
+    # 1) Place your SVG in ./www (name without spaces is simpler):
+    svg_file <- "HMM_Diagram.svg"  # e.g., rename "HMM Diagram.svg" -> "HMM_Diagram.svg"
+    
+    # 2) Define overlay points in PERCENT of the wrapper (responsive).
+    #    Adjust left/top to put labels near the arrows. Add as many as you want.
+    overlays0 <- tibble::tribble(
+        ~id,   ~group,  ~left, ~top, ~label,  ~info_html,
+        # π (initial)
+        "pi1", "pi",      12,    18,  "π₁",   "<b>π₁</b>: P(start in state 1). Typical init prior.",
+        "pi2", "pi",      50,    10,  "π₂",   "<b>π₂</b>: P(start in state 2). Adjust from data or prior.",
+        "pi3", "pi",      85,    22,  "π₃",   "<b>π₃</b>: P(start in state 3). Often small if rare start.",
+        
+        # A (transitions)
+        "a12", "trans",   35,    35,  "A₁₂",  "<b>A₁₂</b>: P(Sₜ=2 | Sₜ₋₁=1). Forward edge 1→2.",
+        "a23", "trans",   68,    40,  "A₂₃",  "<b>A₂₃</b>: P(Sₜ=3 | Sₜ₋₁=2). Escalation transition.",
+        "a31", "trans",   40,    72,  "A₃₁",  "<b>A₃₁</b>: P(Sₜ=1 | Sₜ₋₁=3). Recovery/reversion.",
+        
+        # B (emissions)
+        "b1",  "emit",    20,    65,  "B₁(o)", "<b>B₁(o)</b>: P(observation=o | state=1). Emission model.",
+        "b2",  "emit",    54,    78,  "B₂(o)", "<b>B₂(o)</b>: P(o | 2). Often Gaussian/logit by feature.",
+        "b3",  "emit",    82,    63,  "B₃(o)", "<b>B₃(o)</b>: P(o | 3). Tune via MLE/EM."
+    )
+    
+    overlays <- reactiveVal(overlays0)
+    
+    # Helper: visible rows based on toggles (booleans)
+    visible_df <- reactive({
+        df <- overlays()
+        keep_pi   <- if (isTRUE(input$initial_tab))       df$group == "pi"   else rep(FALSE, nrow(df))
+        keep_tr   <- if (isTRUE(input$transition_prob))    df$group == "trans"else rep(FALSE, nrow(df))
+        keep_em   <- if (isTRUE(input$emission_prob))      df$group == "emit" else rep(FALSE, nrow(df))
+        df[ keep_pi | keep_tr | keep_em, , drop = FALSE ]
+    })
+    
+    # 3) Render the SVG + overlay DOM widgets
+    output$hmm_overlay <- renderUI({
+        df <- visible_df()
+        
+        # NOTE: if you already maintain booleans server-side, you can skip the checkboxes
+        # and directly set input$initial_tab / $transition_prob / $emission_prob via updateCheckboxInput.
+        
+        div(
+            id = "hmmwrap",
+            # Base SVG (vector, scales with container)
+            tags$img(src = svg_file, class = "base-svg", alt = "HMM diagram"),
+            
+            # Hotspots (generated from data)
+            lapply(seq_len(nrow(df)), function(i){
+                hs <- df[i, ]
+                div(
+                    id = hs$id,
+                    class = paste("hs", ifelse(hs$group == "pi", "pi", ifelse(hs$group=="trans","trans","emit"))),
+                    tabindex = "0",  # focusable for keyboard users
+                    style = sprintf("left:%s%%; top:%s%%;", hs$left, hs$top),
+                    span(class = "tag", hs$label),
+                    div(class = "callout", HTML(hs$info_html))
+                )
+            })
+        )
     })
     
     
