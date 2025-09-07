@@ -491,7 +491,7 @@ ui <- bs4DashPage(
             .matrix-overlay { pointer-events: none; }
             
             #hmmwrap { position: relative; width: 100%; }
-            #hmmwrap .base-svg { width: 100%; height: auto; display: block; }
+            #hmmwrap .base-svg { width: 100%; height: 60vh; display: block; }
             
             /* Hotspot container: positioned by % and centered on that point */
             .hs { position: absolute; transform: translate(-50%, -50%); pointer-events: auto; }
@@ -801,7 +801,7 @@ ui <- bs4DashPage(
                         column(4, checkboxInput("transition_prob", "Show transition probabilities (A)", TRUE)),
                         column(4, checkboxInput("emission_prob", "Show emission probabilities (B)", TRUE))
                     ),
-                    uiOutput("hmm_overlay", inline = TRUE)
+                    uiOutput("hmm_overlay", inline = TRUE, height = "150px")
                 )
             )
         )
@@ -1635,7 +1635,7 @@ server <- function(input, output, session) {
                   // --- colors for gradient & loops ---
                   var col = { S1:'#F6C54E', S2:'#7A7A7A', S3:'#4DA3FF' };
                 
-                  // --- state→state tweak table (control offset + trim) ---
+                  // --- state to state tweak table (control offset + trim) ---
                   var s_width = Math.max(1.0, 2 * scaleFactor);
                   var T = {
                     'S1->S2': {dx:0,  dy:-20*scaleFactor, t0:0.10, t1:0.85, w:s_width},
@@ -1657,7 +1657,7 @@ server <- function(input, output, session) {
                           dy: ((dy ?? -5) * scaleFactor),    // vertical shift of loop center
                           r: r,                    // loop radius
                           a0:210,                   // start angle (degrees)
-                          a1:450,                   // end angle (degrees) → controls how “round” it is
+                          a1:450,                   // end angle (degrees)  to  controls how “round” it is
                           w: Math.max(1.0, 2 * scaleFactor),                   // stroke width
                           tipBackPx: (9 * scaleFactor),        // how far back the loop stops before arrowhead
                           ang: (ang || 0)          // small manual rotation of arrowhead direction
@@ -1736,7 +1736,7 @@ server <- function(input, output, session) {
                   var pos = net.getPositions();
                   var all = net.body.data.edges.get();
                 
-                  // state→state gradient shafts + heads
+                  // state to state gradient shafts + heads
                   all.forEach(function(e){
                     var sf=['S1','S2','S3'].indexOf(e.from)>=0, st=['S1','S2','S3'].indexOf(e.to)>=0;
                     if(!sf || !st || e.from===e.to) return;
@@ -2223,7 +2223,7 @@ server <- function(input, output, session) {
         true_data <- Map(function(t, cl) mkpt(t, yTrue, cl), dd$t, cols_state[as.character(dd$z)])
         dec_data  <- Map(function(t, cl) mkpt(t, yDec, cl),  dd$t, cols_state[as.character(dd$zh)])
         
-        # MODIFICATION: decode errors → red × adjusted for size and vertical alignment
+        # MODIFICATION: decode errors  to  red × adjusted for size and vertical alignment
         wrong <- which(as.character(dd$z) != as.character(dd$zh))
         err_data <- lapply(dd$t[wrong], function(t) {
             list(x = t, y = yDec,
@@ -2495,28 +2495,34 @@ server <- function(input, output, session) {
         p(no_state_selected)
     })
     
-    # 1) Place your SVG in ./www (name without spaces is simpler):
-    svg_file <- "HMM_Diagram.svg"  # e.g., rename "HMM Diagram.svg" -> "HMM_Diagram.svg"
+    svg_file <- "HMM_Diagram.svg"
     
-    # 2) Define overlay points in PERCENT of the wrapper (responsive).
-    #    Adjust left/top to put labels near the arrows. Add as many as you want.
-    overlays0 <- tibble::tribble(
-        ~id,   ~group,  ~left, ~top, ~label,  ~info_html,
-        # π (initial)
-        "pi1", "pi",      12,    18,  "π₁",   "<b>π₁</b>: P(start in state 1). Typical init prior.",
-        "pi2", "pi",      50,    10,  "π₂",   "<b>π₂</b>: P(start in state 2). Adjust from data or prior.",
-        "pi3", "pi",      85,    22,  "π₃",   "<b>π₃</b>: P(start in state 3). Often small if rare start.",
-        
-        # A (transitions)
-        "a12", "trans",   35,    35,  "A₁₂",  "<b>A₁₂</b>: P(Sₜ=2 | Sₜ₋₁=1). Forward edge 1→2.",
-        "a23", "trans",   68,    40,  "A₂₃",  "<b>A₂₃</b>: P(Sₜ=3 | Sₜ₋₁=2). Escalation transition.",
-        "a31", "trans",   40,    72,  "A₃₁",  "<b>A₃₁</b>: P(Sₜ=1 | Sₜ₋₁=3). Recovery/reversion.",
-        
-        # B (emissions)
-        "b1",  "emit",    20,    65,  "B₁(o)", "<b>B₁(o)</b>: P(observation=o | state=1). Emission model.",
-        "b2",  "emit",    54,    78,  "B₂(o)", "<b>B₂(o)</b>: P(o | 2). Often Gaussian/logit by feature.",
-        "b3",  "emit",    82,    63,  "B₃(o)", "<b>B₃(o)</b>: P(o | 3). Tune via MLE/EM."
+       # Define overlay points in PERCENT of the wrapper (responsive).
+       # Adjust left/top to put labels near the arrows. Add as many as you want.
+    overlays0 <- tibble::tibble(
+        id    = c("pi_sun","pi_rain","p11","p12","p21","p22","b11","b12","b21","b22"),
+        group = c("pi","pi","trans","trans","trans","trans","emit","emit","emit","emit"),
+        left  = c(45,55,32,50,50,68,38,55,45,62),
+        top   = c(30,30,57,44,70,57,75,83,83,75),
+        label = c(
+            "π(Sunny)","π(Rainy)",
+            "P(Sunny to Sunny)","P(Sunny to Rainy)","P(Rainy to Sunny)","P(Rainy to Rainy)",
+            "Pr(Humid|Sunny)","Pr(Arid|Sunny)","Pr(Humid|Rainy)","Pr(Arid|Rainy)"
+        ),
+        info_html = c(
+            "<b>π(Sunny)</b> = Pr(start in Sunny)",
+            "<b>π(Rainy)</b> = Pr(start in Rainy)",
+            "<b>P(Sunny to Sunny)</b> = Pr(next = Sunny | current = Sunny)",
+            "<b>P(Sunny to Rainy)</b> = Pr(next = Rainy | current = Sunny)",
+            "<b>P(Rainy to Sunny)</b> = Pr(next = Sunny | current = Rainy)",
+            "<b>P(Rainy to Rainy)</b> = Pr(next = Rainy | current = Rainy)",
+            "<b>Pr(Humid | Sunny)</b> = probability of Humid given Sunny",
+            "<b>Pr(Arid | Sunny)</b> = probability of Arid given Sunny",
+            "<b>Pr(Humid | Rainy)</b> = probability of Humid given Rainy",
+            "<b>Pr(Arid | Rainy)</b> = probability of Arid given Rainy"
+        )
     )
+    
     
     overlays <- reactiveVal(overlays0)
     
@@ -2529,7 +2535,7 @@ server <- function(input, output, session) {
         df[ keep_pi | keep_tr | keep_em, , drop = FALSE ]
     })
     
-    # 3) Render the SVG + overlay DOM widgets
+    # Render the SVG + overlay DOM widgets
     output$hmm_overlay <- renderUI({
         df <- visible_df()
         
@@ -2540,6 +2546,7 @@ server <- function(input, output, session) {
             id = "hmmwrap",
             # Base SVG (vector, scales with container)
             tags$img(src = svg_file, class = "base-svg", alt = "HMM diagram"),
+            style = "--maxh: 120px; --ar: 3/2;",
             
             # Hotspots (generated from data)
             lapply(seq_len(nrow(df)), function(i){
