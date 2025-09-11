@@ -22,6 +22,7 @@ library(shinyjs)
 library(here)
 library(rhandsontable)
 library(shinyjs)
+library(reactable)
 
 library(ggplot2)
 library(depmixS4)
@@ -335,35 +336,6 @@ hmm_training  <- HTML(
 </div>"
 )
 
-emissions_mat <- '
-<div style="font-size:250%; text-align:center;">
-  $$\n\\begin{bmatrix}
-     b_{1}(hot) & b_{2}(hot) & b_{3}(hot) \\\\\n
-     b_{1}(mild) & b_{2}(mild) & b_{3}(mild) \\\\\n
-     b_{1}(cold) & b_{2}(cold) & b_{3}(cold)
-   \\end{bmatrix}
-  $$ 
-  <table class="matrix-overlay" style="position:absolute; top:50%; left:50%;
-                                        transform: translate(-50%, -50%);
-                                        border:0; border-spacing:0;">
-    <tr>
-      <td><span id="b1hot" class="matrix-cell"></span></td>
-      <td><span id="b2hot" class="matrix-cell"></span></td>
-      <td><span id="b3hot" class="matrix-cell"></span></td>
-    </tr>
-    <tr>
-      <td><span id="b1mild" class="matrix-cell"></span></td>
-      <td><span id="b2mild" class="matrix-cell"></span></td>
-      <td><span id="b3mild" class="matrix-cell"></span></td>
-    </tr>
-    <tr>
-      <td><span id="b1cold" class="matrix-cell"></span></td>
-      <td><span id="b2cold" class="matrix-cell"></span></td>
-      <td><span id="b3cold" class="matrix-cell"></span></td>
-    </tr>
-  </table>
-</div>'
-
 # --- Model Analysis Info
 
 model_result_info <- HTML(
@@ -457,6 +429,7 @@ ui <- bs4DashPage(
         tags$head(
             
             #THIS IS MAKING THE PILL STYLE TAB COLOR THE SAME COLOR AS THE THEME
+            # Custom CSS/JS
             
             tags$style(HTML("
             /* Sidebar background */
@@ -547,12 +520,43 @@ ui <- bs4DashPage(
             .hs.pi    .tag { background: rgba(46,134,222,.75); }   /* π */
             .hs.trans .tag { background: rgba(231,76,60,.75); }    /* A */
             .hs.emit  .tag { background: rgba(39,174,96,.75); }    /* B */
+            
+            /* Frame draws [  ] around the table */
+            .mx-frame{
+              position:relative; display:inline-block; padding:12px 18px; margin:8px 0;
+            }
+            .mx-frame::before, .mx-frame::after{
+              content:''; position:absolute; top:4px; bottom:4px; width:12px;
+              border-top:3px solid #222; border-bottom:3px solid #222;
+            }
+            .mx-frame::before{ left:0;  border-left:3px solid #222;  border-right:none;  border-radius:4px 0 0 4px; }
+            .mx-frame::after { right:0; border-right:3px solid #222; border-left:none;  border-radius:0 4px 4px 0; }
+            
+            /* Handsontable → matrix vibe */
+            .mx-table .htCore td, .mx-table .htCore th{ 
+              border-color: rgba(0,0,0,.12);
+            }
+            .mx-table .htCore th{ 
+              background: transparent; 
+              font-weight:600; 
+              font-family: 'Times New Roman', Georgia, serif; 
+              font-style: italic;
+            }
+            /* center numbers and make them serif/italic like math */
+            .mx-table .htCore td{ 
+              text-align:center; 
+              vertical-align:middle; 
+              font-family:'Times New Roman', Georgia, serif; 
+              font-style:italic; 
+              font-size:1.05rem;
+            }
+            /* strong separators (like the line after headers and before row labels) */
+            .mx-table .ht_clone_top .htCore th{ border-bottom:2px solid #222; }
+            .mx-table .ht_clone_left .htCore th{ border-right:2px solid #222; }
           "))
         ),
 
         tags$script(src="https://cdn.jsdelivr.net/npm/mathjax@2/MathJax.js?config=TeX-AMS-MML_HTMLorMML"),
-        
-        # Custom CSS/JS
         
         bs4TabItems(
             bs4TabItem(
@@ -676,71 +680,81 @@ ui <- bs4DashPage(
                 tabPanel("Emission Probability", value = "emission_prob", 
                          div(style = "height:636px;",
                              emission_prob,
-                             uiOutput("emissions_prob_mat"))
+                             uiOutput("emissions_mat"))
                         )
                     )
                 )
             ),
             
-            
-            column(
-                width = 7,
+            bs4Card(
+                collapsible = FALSE, closable = FALSE,
+                title = "State Plot", width = 7, status = "success", solidHeader = TRUE,
+                
                 div(
-                    style = "flex: 2; display: flex; justify-content: center;",
-                    bs4Card(
-                        collapsible = FALSE,
-                        closable = FALSE,
-                        title = "Model Diagram",
-                        width = 12,
-                        status = "success",
-                        solidHeader = TRUE,
-                        
-                        # Display the HMM Diagram if on the Intro or Training tab
-                        conditionalPanel(
-                            condition = "input.hmm_info_tabs == 'hmm_intro' || input.hmm_info_tabs == 'hmm_train_exp'",
-                            uiOutput("hmm_area")
-                        ),
-                        
-                        # Display the diagram AND the respective matrix on Transition/Emission tabs
-                        conditionalPanel(
-                            condition = "input.hmm_info_tabs == 'trans_prob' || input.hmm_info_tabs == 'emission_prob'",
-                            fluidRow(
-                                column(
-                                    width = 6,
-                                    # Conditional panel for the Transition Probability table
-                                    conditionalPanel(
-                                        condition = "input.hmm_info_tabs == 'trans_prob'",
-                                        rHandsontableOutput("A_tbl", height = 180)
-                                    ),
-                                    
-                                    # Conditional panel for the Emission Probability table
-                                    conditionalPanel(
-                                        condition = "input.hmm_info_tabs == 'emission_prob'",
-                                        rHandsontableOutput("B_tbl", height = 180)
-                                    )
-                                ),
-                                
-                                column(
-                                    width = 6,
-                                    uiOutput("hmm_area")
+                    id = "sim_shell",
+                    
+                    fluidRow(
+                        # LEFT column: matrix (conditional) + controls + chart + more button
+                        column(
+                            width = 7,
+                            # Matrix on top: show A for transition tab, B for emission tab
+                            conditionalPanel(
+                                condition = "input.hmm_info_tabs == 'trans_prob'",
+                                div(style = "display: flex; justify-content: space-between;",
+                                    "Edit the transition matrix below and see how it affects the simulation",
+                                    rHandsontableOutput("A_tbl", height = "120%")
+                                )
+                            ),
+                            conditionalPanel(
+                                condition = "input.hmm_info_tabs == 'emission_prob'",
+                                rHandsontableOutput("B_tbl", height = 180)
+                            ),
+                            
+                            # Controls + chart only for transition/emission tabs
+                            conditionalPanel(
+                                condition = "input.hmm_info_tabs == 'trans_prob' || input.hmm_info_tabs == 'emission_prob'",
+                                div(class = "mt-2",
+                                    sliderInput("hmm_T", "Sequence length", min = 15, max = 30, value = 20, step = 1),
+                                    actionButton("hmm_run_demo", "Run Simulation", class = "btn btn-success btn-block"),
+                                    highcharter::highchartOutput("hmm_demo_timeline", height = "40vh"),
+                                    uiOutput("more_btn")  # appears after first run
                                 )
                             )
                         ),
-                        # Conditional panel for the Simulation
-                        conditionalPanel(
-                            condition = "input.hmm_info_tabs == 'trans_prob' || input.hmm_info_tabs == 'emission_prob'",
-                            sliderInput("hmm_T", "Sequence length", min = 15, max = 45, value = 20, step = 1),
-                            actionButton("hmm_run_demo", "Run Simulation", class = "btn btn-success btn-block"),
-                            highchartOutput("hmm_demo_timeline", height = 280),
-                            tableOutput("hmm_demo_metrics")
-                        )
+                        
+                        # RIGHT column: diagram (choose per tab)
+                        column(
+                            width = 5,
+                            conditionalPanel(
+                                condition = "input.hmm_info_tabs == 'trans_prob'",
+                                uiOutput("hmm_overlay_trans", inline = TRUE)
+                            ),
+                            conditionalPanel(
+                                condition = "input.hmm_info_tabs == 'emission_prob'",
+                                uiOutput("hmm_overlay_emit", inline = TRUE)
+                            ),
+                            conditionalPanel(
+                                condition = "input.hmm_info_tabs == 'hmm_intro' || input.hmm_info_tabs == 'hmm_train_exp'",
+                                uiOutput("hmm_overlay_pi", inline = TRUE)
+                            )
+                            # (If there are other tabs, nothing is shown on the right by default)
                         )
                     )
+                ),
+                
+                # --- DETAILS VIEW (full width) ---
+                shinyjs::hidden(
+                    div(
+                        id = "details_shell",
+                        reactable::reactableOutput("hmm_detail_table", height = "60vh"),
+                        div(style = "margin-top:.5rem; display:flex; justify-content:flex-end;",
+                            actionButton("back_to_chart", "Back", icon = icon("arrow-left")))
+                    )
                 )
-                )
-            ),
-            
-            # Model Analysis Tab
+            )
+        )
+    ),
+             # Model Analysis Tab
             bs4TabItem(
                 tabName = "model_analysis",
                 
@@ -800,8 +814,8 @@ ui <- bs4DashPage(
                         column(4, checkboxInput("initial_tab", "Show initial probabilities (π)", TRUE)),
                         column(4, checkboxInput("transition_prob", "Show transition probabilities (A)", TRUE)),
                         column(4, checkboxInput("emission_prob", "Show emission probabilities (B)", TRUE))
-                    ),
-                    uiOutput("hmm_overlay", inline = TRUE, height = "150px")
+                    )#,
+                    #uiOutput("hmm_overlay", inline = TRUE)
                 )
             )
         )
@@ -829,9 +843,8 @@ server <- function(input, output, session) {
         )
     })
     
-    
+    #link hyperlink blue prelim analysis text to tab
     onclick("prelim_analysis", {
-        print("Link inside HTML was clicked!")
         updateTabsetPanel(session, "dashboard_tabs", selected = "preliminary_analysis")
     })
     
@@ -850,8 +863,6 @@ server <- function(input, output, session) {
     # CONSUMER SENTIMENT PLOT, PAGE 1
     scaled_data = readRDS(here("scaled_dataset.rds"))
     full_dataset = readRDS(here("full_dataset.rds"))
-    
-    print("1")
     output$consumer_sentiment_plot <- renderHighchart({
         
         cs_data <- data.frame(
@@ -1124,7 +1135,6 @@ server <- function(input, output, session) {
     initial_cat  <- isolate(input$select1)
     initial_inds <- category_map[[ initial_cat ]]
     
-    print("2")
     output$category_plot_hc <- renderHighchart({
         
         # 1) Pivot both data sets long
@@ -1347,7 +1357,6 @@ server <- function(input, output, session) {
     })
     
     #create bar chart of r values
-    print(3)
     output$pearsons_plot_hc <- renderHighchart({
         cor_df <- cor_df_reactive()
         inactive_alpha <- 0.3
@@ -1430,53 +1439,7 @@ server <- function(input, output, session) {
     #SERVER CODE FOR PRELIMINARY ANALYSIS ABOVE, HMM BELOW
     
     #-----------------------------------------------------------------------------
-    
-    pre_rendered_matrix <- '
-<div style="font-size:250%; text-align:center;">
-  $$\n\\begin{bmatrix}
-     P_{11} & P_{12} & P_{13} \\\\\n
-     P_{21} & P_{22} & P_{23} \\\\\n
-     P_{31} & P_{32} & P_{33}
-   \\end{bmatrix}
-  $$ 
-  <table class="matrix-overlay" style="position:absolute; top:50%; left:50%;
-                                        transform: translate(-50%, -50%);
-                                        border:0; border-spacing:0;">
-    <tr>
-      <td><span id="P11" class="matrix-cell"></span></td>
-      <td><span id="P12" class="matrix-cell"></span></td>
-      <td><span id="P13" class="matrix-cell"></span></td>
-    </tr>
-    <tr>
-      <td><span id="P21" class="matrix-cell"></span></td>
-      <td><span id="P22" class="matrix-cell"></span></td>
-      <td><span id="P23" class="matrix-cell"></span></td>
-    </tr>
-    <tr>
-      <td><span id="P31" class="matrix-cell"></span></td>
-      <td><span id="P32" class="matrix-cell"></span></td>
-      <td><span id="P33" class="matrix-cell"></span></td>
-    </tr>
-  </table>
-</div>'
-    
-    unicode_subs <- c("₀","₁","₂","₃","₄","₅","₆","₇","₈","₉")
-    ascii_subs   <- c("0","1","2","3","4","5","6","7","8","9")
-    
-    convert_label_to_id <- function(lbl) {
-        # e.g. "P₁₂" -> "P12"
-        chartr(paste0(unicode_subs, collapse=""),
-               paste0(ascii_subs,   collapse=""),
-               lbl)
-    }
-    
-    observeEvent(input$hmm_info_tabs, ignoreInit = TRUE, {
-        t_prob <- identical(input$hmm_info_tabs, "trans_prob")
-        e_prob <- identical(input$hmm_info_tabs, "emission_prob")
-        session$sendCustomMessage("hmmFlags", list(t_prob = t_prob, e_prob = e_prob))
-        session$sendCustomMessage("redrawNet", list())
-    })
-    
+
     nodes <- data.frame(
         id   = c("Initial","S1","S2","S3"),
         label= c("Initial State","Sunny","Cloudy","Rainy"),
@@ -1985,251 +1948,143 @@ server <- function(input, output, session) {
             visInteraction(dragNodes = FALSE, dragView = FALSE, zoomView = FALSE)
     })
     
-    
-    output$hmm_area <- renderUI({
-        tab <- input$hmm_info_tabs
-        if (tab %in% c("hmm_intro", "hmm_train_exp")) {
-            # big, full-width diagram only
-            fluidRow(
-                column(
-                    width = 12,
-                    div(style = "height:700px;", visNetworkOutput("hmm_vis", height = "100%"))
-                )
-            )
-        } else if (tab %in% c("trans_prob", "emission_prob")) {
-            # two-column layout: matrix + small diagram
-            fluidRow(
-                column(
-                    width = 6,
-                    if (tab == "trans_prob")  rHandsontableOutput("A_tbl", height = 180),
-                    if (tab == "emission_prob") rHandsontableOutput("B_tbl", height = 180)
-                ),
-                column(
-                    width = 6,
-                    div(style = "height:400px;", visNetworkOutput("hmm_vis", height = "100%"))
-                )
-            )
-        } else {
-            NULL
-        }
+    # Transition probabilities matrix
+    output$matrix_ui <- renderUI({
+        withMathJax(HTML('
+          <div id="trans-mx" class="mx" style="font-size:220%; text-align:center;">
+            \\[
+              \\left[
+              \\begin{array}{c|cc}
+                  & ☀ & 🌧 \\\\ \\hline
+                ☀  & P_{SS} & P_{SR} \\\\
+                🌧 & P_{RS} & P_{RR}
+              \\end{array}
+              \\right]
+            \\]
+          </div>
+          '))
     })
 
-    # helper to produce HTML matrix with specified highlights
-    
-    
-    render_matrix <- function(highlight_cells) {
-        mat <- matrix(paste0("P", rep(1:3, each=3), rep(1:3, times=3)), 3, 3, byrow=TRUE)
-        html <- "$$ \\begin{bmatrix} "
-        for (r in 1:3) {
-            for (c in 1:3) {
-                cell <- mat[r,c]
-                if (cell %in% highlight_cells) {
-                    html <- paste0(html, "\\color{red}{", cell, "}")
-                } else {
-                    html <- paste0(html, cell)
-                }
-                if (c < 3) html <- paste0(html, " & ")
-            }
-            if (r < 3) html <- paste0(html, " \\\\ ")
-        }
-        html <- paste0(html, " \\end{bmatrix} $$")
-        html
-    }
-    
-    output$matrix_ui <- renderUI({
-        withMathJax(
-            div(
-                HTML("<h4 style='text-align:center;
-                         padding: 0px;
-                         height: 0px;'>Transition Matrix</h4>"),
-                div(
-                    style = "
-                            display: flex;
-                            justify-content: center;
-                            align-items: flex-start;   /* or center */
-                            height: 100px;             /* adjust container height */
-                            //padding-top: 10px;         /* optional: add some top padding */
-                          ",
-                    HTML(pre_rendered_matrix)
-                )
-            )
-        )
-    })
-    
-    output$emissions_prob_mat <- renderUI({
-        withMathJax(
-            div(
-                HTML("<h4 style='text-align:center;
-                         padding: 0px;
-                         height: 0px;'>Transition Matrix</h4>"),
-                div(
-                    style = "
-                            display: flex;
-                            justify-content: center;
-                            align-items: flex-start;   /* or center */
-                            height: 100px;             /* adjust container height */
-                            //padding-top: 10px;         /* optional: add some top padding */
-                          ",
-                    HTML(emissions_mat)
-                )
-            )
-        )
-    })
-    
-    
-    
-    observeEvent(list(input$hmm_vis_selected, input$hmm_vis_selectedEdges), {
-        highlights <- character(0)
-        
-        if (!is.null(input$hmm_vis_selected) && input$hmm_vis_selected %in% c("S1","S2","S3")) {
-            i <- substr(input$hmm_vis_selected, 2, 2) # "1", "2", "3"
-            row_highlights <- paste0("P", i, 1:3)
-            col_highlights <- paste0("P", 1:3, i)
-            highlights <- unique(c(row_highlights, col_highlights))
-        }
-        
-        if (!is.null(input$hmm_vis_selectedEdges) && length(input$hmm_vis_selectedEdges) > 0) {
-            edge_label <- edges$label[match(input$hmm_vis_selectedEdges, edges$id)]
-            if (!is.na(edge_label)) highlights <- edge_label
-        }
-        html_str <- render_matrix(highlights)
-        
-        session$sendCustomMessage("highlight-cells", highlights)
-        
-        message <- highlights
-        cat("⚙️  [R] sending highlight-cells:", paste(message, collapse = ","), "\n")
-        session$sendCustomMessage("highlight-cells", message)
+    output$emissions_mat <- renderUI({
+        withMathJax(HTML('
+          <div id="trans-mx" class="mx" style="font-size:220%; text-align:center;">
+            \\[
+              \\left[
+              \\begin{array}{c|cc}
+                  & ☀ & 🌧 \\\\ \\hline
+                ☀  & B_{SS} & B_{SR} \\\\
+                🌧 & B_{RS} & B_{RR}
+              \\end{array}
+              \\right]
+            \\]
+          </div>
+          '))
     })
     
     `%||%` <- function(x, y) if (is.null(x)) y else x
-    .norm  <- function(v) { s <- sum(v); if (!is.finite(s) || s<=0) rep(1/length(v), length(v)) else v/s }
+    .norm  <- function(v){ s <- sum(v, na.rm=TRUE); if(!is.finite(s) || s<=0) rep(1/length(v), length(v)) else v/s }
     
-    # defaults (tweak if you like)
-    pi0 <- c(0.6, 0.3, 0.1)
-    A0  <- matrix(c(0.75,0.20,0.05,
-                    0.20,0.65,0.15,
-                    0.10,0.20,0.70), 3, byrow=TRUE)
-    B0  <- matrix(c(0.70,0.20,0.10,   # S1 -> Hot/Mild/Cold
-                    0.20,0.60,0.20,   # S2 -> …
-                    0.10,0.25,0.65), 3, byrow=TRUE)
+    # --- defaults (now 2-state) ---------------------------------------------------
+    pi0 <- c(0.6, 0.4)                                    
+    A0  <- matrix(c(0.75,0.25,
+                    0.20,0.80), 2, byrow=TRUE)          
+    B0  <- matrix(c(0.70,0.30,
+                    0.40,0.60), 2, byrow=TRUE)           
     
-    # reactives with safe fallbacks
+    # --- inputs -> reactives (2 entries only) -------------------------------------
     R_pi <- reactive({
-        .norm(c(input$hmm_pi1 %||% pi0[1],
-                input$hmm_pi2 %||% pi0[2],
-                input$hmm_pi3 %||% pi0[3]))
+        .norm(c(input$hmm_pi1 %||% pi0[1],                 
+                input$hmm_pi2 %||% pi0[2]))
     })
-    
-    .norm <- function(v){ s <- sum(v, na.rm=TRUE); if(!is.finite(s) || s<=0) rep(1/length(v), length(v)) else v/s }
     
     make_mat_df <- function(M, rowlabs, collabs){
         df <- as.data.frame(M); names(df) <- collabs; rownames(df) <- rowlabs; df
     }
     
-    # initial values you already have (A0, B0)
     output$A_tbl <- renderRHandsontable({
-        rhandsontable(round(make_mat_df(A0, c("S1","S2","S3"), c("S1","S2","S3")), 2),
-                      rowHeaders = TRUE, stretchH = "all") %>%
-            hot_validate_numeric(cols = 1:3, min = 0, max = 1, allowInvalid = TRUE) %>%
+        dfA <- round(make_mat_df(A0, c('☀','🌧'), c('☀','🌧')), 2)
+        rhandsontable(dfA, rowHeaders = TRUE, stretchH = "all") %>%
+            hot_table(className = "mx-table htCenter htMiddle", rowHeaderWidth = 80) %>%
+            hot_validate_numeric(cols = 1:2, min = 0, max = 1, allowInvalid = FALSE) %>% 
             hot_cols(format = "0.00")
     })
     
     output$B_tbl <- renderRHandsontable({
-        rhandsontable(round(make_mat_df(B0, c("S1","S2","S3"), c("Hot","Mild","Cold")), 2),
-                      rowHeaders = TRUE, stretchH = "all") %>%
-            hot_validate_numeric(cols = 1:3, min = 0, max = 1, allowInvalid = TRUE) %>%
+        dfB <- round(make_mat_df(B0, c('☀','🌧'), c('Humid','Arid')), 2)            
+        rhandsontable(dfB, rowHeaders = TRUE, stretchH = "all") %>%
+            hot_table(className = "mx-table htCenter htMiddle", rowHeaderWidth = 80) %>%
+            hot_validate_numeric(cols = 1:2, min = 0, max = 1, allowInvalid = FALSE) %>% 
             hot_cols(format = "0.00")
     })
     
     A_values <- reactiveVal(A0)
     B_values <- reactiveVal(B0)
+    observeEvent(input$A_tbl, { M <- as.matrix(hot_to_r(input$A_tbl)); M[is.na(M)] <- 0; A_values(t(apply(M, 1, .norm))) })
+    observeEvent(input$B_tbl, { M <- as.matrix(hot_to_r(input$B_tbl)); M[is.na(M)] <- 0; B_values(t(apply(M, 1, .norm))) })
     
-    observeEvent(input$A_tbl, {
-        M <- as.matrix(hot_to_r(input$A_tbl))
-        M[is.na(M)] <- 0
-        A_values(t(apply(M, 1, .norm)))
-    })
-    
-    observeEvent(input$B_tbl, {
-        M <- as.matrix(hot_to_r(input$B_tbl))
-        M[is.na(M)] <- 0
-        B_values(t(apply(M, 1, .norm)))
-    })
-    
-    # Plug these into your HMM reactives:
     R_A <- reactive(A_values())
     R_B <- reactive(B_values())
-    
     draw_cat <- function(p) sample.int(length(p), 1L, prob = p)
     
+    # --- SIMULATE + FIT (2 states, 2 obs) ----------------------------------------
     demo_data <- eventReactive(input$hmm_run_demo, {
-        # Use your existing parameter sources
-        pi <- R_pi()     # numeric length 3
-        A  <- R_A()      # 3x3 transition matrix
-        B  <- R_B()      # 3x3 emission matrix (rows=states; cols=Hot/Mild/Cold)
+        pi <- R_pi()          # length 2
+        A  <- R_A()           # 2x2
+        B  <- R_B()           # 2x2 (rows=states; cols=observations)
         
         Tn <- input$hmm_T
-        states <- c("S1","S2","S3")
-        obs_lv  <- c("Hot","Mild","Cold")
+        states <- c("S1","S2")                              
+        obs_lv <- c("Humid","Arid")                          
         
         # simulate from HMM
         z <- x <- integer(Tn)
-        z[1] <- draw_cat(pi); x[1] <- draw_cat(B[z[1],])
-        for (t in 2:Tn) {
-            z[t] <- draw_cat(A[z[t-1],])
-            x[t] <- draw_cat(B[z[t],])
-        }
+        z[1] <- draw_cat(pi);      x[1] <- draw_cat(B[z[1],])
+        for (t in 2:Tn) { z[t] <- draw_cat(A[z[t-1],]); x[t] <- draw_cat(B[z[t],]) }
         
-        # fit with depmixS4
+        # fit with depmixS4 (2-state multinomial over 2 categories)
         df  <- data.frame(obs = factor(obs_lv[x], levels = obs_lv))
-        mod <- depmix(obs ~ 1, data = df, nstates = 3, family = multinomial("identity"))
-        fit <- fit(mod, verbose = FALSE)
-        zh  <- posterior(fit)$state
+        mod <- depmixS4::depmix(obs ~ 1, data = df, nstates = 2,                    
+                                family = depmixS4::multinomial("identity"))
+        fit <- depmixS4::fit(mod, verbose = FALSE)
+        zh  <- depmixS4::posterior(fit)$state
         
         list(
             t  = seq_len(Tn),
-            x  = factor(obs_lv[x],     levels = obs_lv),
-            z  = factor(states[z],     levels = states),
-            zh = factor(states[zh],    levels = states)
+            x  = factor(obs_lv[x],  levels = obs_lv),
+            z  = factor(states[z],  levels = states),
+            zh = factor(states[zh], levels = states)
         )
     }, ignoreInit = TRUE)
     
-    
+    # --- PLOT SIMULATED RESULTS
     output$hmm_demo_timeline <- renderHighchart({
         dd <- demo_data(); req(dd)
-        library(highcharter)
         
-        # MODIFICATION: New color palettes for states and observations
-        cols_state <- c(S1="#F6C54E", S2="#A9A9A9", S3="#4DA3FF")       # Sunny, Cloudy, Rainy
-        cols_obs   <- c(Hot="#FF7F50", Mild="#9ACD32", Cold="#778899")  # Hot, Mild, Cold
+        cols_state <- c(S1 = "#F6C54E", S2 = "#4DA3FF")      
+        cols_obs   <- c(Humid = "#808080", Arid = "#D35400") 
         
         n <- length(dd$t)
-        
-        # MODIFICATION: Scale marker and cross size. Increased cross multiplier for size.
         dot   <- max(6, min(18, 150 / n))
-        cross <- round(dot * 3.0)      # font px for ×, larger to extend past circle
+        cross <- round(dot * 4.0)
         
-        # y rows (use categories)
         cats <- c("Observation","True state","Decoded")
         yObs <- 0; yTrue <- 1; yDec <- 2
         
-        # helper to build point objects
         mkpt <- function(x, y, fill)
             list(x = x, y = y,
                  marker = list(radius = dot, symbol = "circle",
                                fillColor = fill, lineColor = "#222", lineWidth = 1))
         
-        obs_data  <- Map(function(t, cl) mkpt(t, yObs, cl),  dd$t, cols_obs[as.character(dd$x)])
+        obs_data  <- Map(function(t, cl) mkpt(t, yObs,  cl), dd$t, cols_obs[as.character(dd$x)])
         true_data <- Map(function(t, cl) mkpt(t, yTrue, cl), dd$t, cols_state[as.character(dd$z)])
-        dec_data  <- Map(function(t, cl) mkpt(t, yDec, cl),  dd$t, cols_state[as.character(dd$zh)])
+        dec_data  <- Map(function(t, cl) mkpt(t, yDec,  cl), dd$t, cols_state[as.character(dd$zh)])
         
-        # MODIFICATION: decode errors  to  red × adjusted for size and vertical alignment
         wrong <- which(as.character(dd$z) != as.character(dd$zh))
         err_data <- lapply(dd$t[wrong], function(t) {
             list(x = t, y = yDec,
                  dataLabels = list(enabled = TRUE, useHTML = TRUE, crop = FALSE, overflow = "none",
                                    align = "center", verticalAlign = "middle",
-                                   y = round(cross * -0.05), # Nudge down to center large X
+                                   y = round(cross * -0.05),
                                    style = list(color = "#cc0000", fontWeight = "900",
                                                 fontFamily = "Arial, sans-serif",
                                                 fontSize = paste0(cross, "px"),
@@ -2238,8 +2093,7 @@ server <- function(input, output, session) {
                  marker = list(enabled = FALSE))
         })
         
-        # MODIFICATION: Hardcoded HTML legend
-        legend_html <- paste0(
+        legend_html <- paste0(                                                    
             '<div style="font-size: 13px; font-family: sans-serif;">',
             '  <style>',
             '    .legend-table td { padding: 2px 0; }',
@@ -2251,15 +2105,11 @@ server <- function(input, output, session) {
             '    <tr><td colspan="2" style="font-weight: bold;">States</td><td colspan="2" style="padding-left: 20px; font-weight: bold;">Observations</td></tr>',
             '    <tr>',
             '      <td><span class="legend-swatch" style="background-color:', cols_state["S1"], ';"></span></td><td class="legend-label">Sunny</td>',
-            '      <td style="padding-left: 20px;"><span class="legend-swatch" style="background-color:', cols_obs["Hot"], ';"></span></td><td class="legend-label">Hot</td>',
+            '      <td style="padding-left: 20px;"><span class="legend-swatch" style="background-color:', cols_obs["Humid"], ';"></span></td><td class="legend-label">Humid</td>',
             '    </tr>',
             '    <tr>',
-            '      <td><span class="legend-swatch" style="background-color:', cols_state["S2"], ';"></span></td><td class="legend-label">Cloudy</td>',
-            '      <td style="padding-left: 20px;"><span class="legend-swatch" style="background-color:', cols_obs["Mild"], ';"></span></td><td class="legend-label">Mild</td>',
-            '    </tr>',
-            '    <tr>',
-            '      <td><span class="legend-swatch" style="background-color:', cols_state["S3"], ';"></span></td><td class="legend-label">Rainy</td>',
-            '      <td style="padding-left: 20px;"><span class="legend-swatch" style="background-color:', cols_obs["Cold"], ';"></span></td><td class="legend-label">Cold</td>',
+            '      <td><span class="legend-swatch" style="background-color:', cols_state["S2"], ';"></span></td><td class="legend-label">Rainy</td>',
+            '      <td style="padding-left: 20px;"><span class="legend-swatch" style="background-color:', cols_obs["Arid"], ';"></span></td><td class="legend-label">Arid</td>',
             '    </tr>',
             '    <tr>',
             '      <td><div class="legend-x">&times;</div></td><td class="legend-label">Decode Error</td>',
@@ -2269,21 +2119,55 @@ server <- function(input, output, session) {
             '</div>'
         )
         
-        # MODIFICATION: Chart construction with custom HTML legend
         hc <- highchart() %>%
             hc_chart(
                 type = "scatter",
-                spacingRight = 260, # Increased space for the new legend
-                spacingLeft = 0,
+                spacingLeft = 8, spacingRight = 8,
+                spacingBottom = 140,                      # room for legend below the plot
                 events = list(
-                    # Render the custom HTML legend on chart load
                     load = JS(sprintf(
-                        "function() { this.renderer.html('%s', this.chartWidth - 205, 60).add(); }",
-                        gsub("'", "\\\\'", legend_html) # Escape quotes for JS
-                    ))
+                        "function(){
+          var html = '%s';
+          var L = this.renderer.html(html, 0, 0).add();
+          this.customLegend = L;
+
+          // helper to place legend centered under the plot area
+          var place = function(){
+            var node = L.element.firstChild;               // outer <div> of your legend
+            var W = node ? node.getBoundingClientRect().width  : 260;
+            var H = node ? node.getBoundingClientRect().height : 60;
+
+            // ensure enough bottom spacing for the measured legend height
+            var need = H + 22;                              // legend height + breathing room
+            if (this.options.chart.spacingBottom < need) {
+              this.update({ chart: { spacingBottom: need } }, false);
+            }
+
+            // center under the plot box (not the whole chart)
+            var x = this.plotLeft + (this.plotWidth  - W) / 2;
+            var y = this.plotTop  +  this.plotHeight + 10;  // a bit under the axis line
+            L.attr({ x: x, y: y });
+          }.bind(this);
+
+          place();
+        }",
+                        gsub("'", "\\\\'", legend_html)
+                    )),
+                    render = JS("
+        function(){
+          if (!this.customLegend) return;
+          var L = this.customLegend;
+          var node = L.element.firstChild;
+          var W = node ? node.getBoundingClientRect().width  : 260;
+          var H = node ? node.getBoundingClientRect().height : 60;
+
+          var x = this.plotLeft + (this.plotWidth  - W) / 2;
+          var y = this.plotTop  +  this.plotHeight + 50;
+          L.attr({ x: x, y: y });
+        }
+      ")
                 )
             ) %>%
-            #hc_title(text = "Simulation") %>%
             hc_xAxis(title = list(text = "Time"), min = 1, max = n, tickInterval = 1) %>%
             hc_yAxis(categories = cats, tickPositions = list(yObs, yTrue, yDec),
                      min = -0.5, max = 2.5, gridLineWidth = 0, title = list(text = NULL)) %>%
@@ -2297,10 +2181,7 @@ server <- function(input, output, session) {
                                        showInLegend = FALSE, enableMouseTracking = FALSE)
         }
         
-        # MODIFICATION: Removed old legend series and hc_legend call
-        hc %>%
-            hc_tooltip(enabled = FALSE) %>%
-            hc_credits(enabled = FALSE)
+        hc %>% hc_tooltip(enabled = FALSE) %>% hc_credits(enabled = FALSE)
     })
     
     
@@ -2512,49 +2393,36 @@ server <- function(input, output, session) {
         info_html = c(
             "<b>π(Sunny)</b> = Pr(start in Sunny)",
             "<b>π(Rainy)</b> = Pr(start in Rainy)",
-            "<b>P(Sunny to Sunny)</b> = Pr(next = Sunny | current = Sunny)",
-            "<b>P(Sunny to Rainy)</b> = Pr(next = Rainy | current = Sunny)",
-            "<b>P(Rainy to Sunny)</b> = Pr(next = Sunny | current = Rainy)",
-            "<b>P(Rainy to Rainy)</b> = Pr(next = Rainy | current = Rainy)",
-            "<b>Pr(Humid | Sunny)</b> = probability of Humid given Sunny",
-            "<b>Pr(Arid | Sunny)</b> = probability of Arid given Sunny",
-            "<b>Pr(Humid | Rainy)</b> = probability of Humid given Rainy",
-            "<b>Pr(Arid | Rainy)</b> = probability of Arid given Rainy"
+            "<b>P(Sunny to Sunny)</b> = The probability it will be Sunny tomorrow given that it is Sunny today",
+            "<b>P(Sunny to Rainy)</b> = The probability it will be Rainy tomorrow given that is is Sunny today",
+            "<b>P(Rainy to Sunny)</b> = The probability it will be Sunny tomorrow given that is is Rainy today",
+            "<b>P(Rainy to Rainy)</b> = The probability it will be Rainy tomorrow given that is is Rainy today",
+            "<b>Pr(Humid | Sunny)</b> = The probability the air will be humid given that is is sunny (usually unlikely)",
+            "<b>Pr(Arid | Sunny)</b> = The probability the air will be arid given that is is sunny (likely)",
+            "<b>Pr(Humid | Rainy)</b> = The probability the air will be humid given that it is rainy (likely)",
+            "<b>Pr(Arid | Rainy)</b> = The probability the air will be arid given that it is rainy (usually unlikely)"
         )
     )
     
     
     overlays <- reactiveVal(overlays0)
     
-    # Helper: visible rows based on toggles (booleans)
-    visible_df <- reactive({
+    #render labels for initial state
+    output$hmm_overlay_pi <- renderUI({
         df <- overlays()
-        keep_pi   <- if (isTRUE(input$initial_tab))       df$group == "pi"   else rep(FALSE, nrow(df))
-        keep_tr   <- if (isTRUE(input$transition_prob))    df$group == "trans"else rep(FALSE, nrow(df))
-        keep_em   <- if (isTRUE(input$emission_prob))      df$group == "emit" else rep(FALSE, nrow(df))
-        df[ keep_pi | keep_tr | keep_em, , drop = FALSE ]
-    })
-    
-    # Render the SVG + overlay DOM widgets
-    output$hmm_overlay <- renderUI({
-        df <- visible_df()
-        
-        # NOTE: if you already maintain booleans server-side, you can skip the checkboxes
-        # and directly set input$initial_tab / $transition_prob / $emission_prob via updateCheckboxInput.
+        df <- df[df$group == "pi", , drop = FALSE]
         
         div(
-            id = "hmmwrap",
-            # Base SVG (vector, scales with container)
-            tags$img(src = svg_file, class = "base-svg", alt = "HMM diagram"),
-            style = "--maxh: 120px; --ar: 3/2;",
-            
-            # Hotspots (generated from data)
+            id = "hmmwrap_pi",
+            tags$img(src = svg_file, class = "base-svg",
+                     alt = "HMM diagram", style = "width:100%; height:60dvh; display:block;"),
+            # Labels
             lapply(seq_len(nrow(df)), function(i){
                 hs <- df[i, ]
                 div(
-                    id = hs$id,
-                    class = paste("hs", ifelse(hs$group == "pi", "pi", ifelse(hs$group=="trans","trans","emit"))),
-                    tabindex = "0",  # focusable for keyboard users
+                    id = paste0("pi_", hs$id),               # unique DOM id
+                    class = "hs pi",
+                    tabindex = "0",
                     style = sprintf("left:%s%%; top:%s%%;", hs$left, hs$top),
                     span(class = "tag", hs$label),
                     div(class = "callout", HTML(hs$info_html))
@@ -2562,6 +2430,259 @@ server <- function(input, output, session) {
             })
         )
     })
+    
+    #render labels for transmission probability and ping matrix
+    output$hmm_overlay_trans <- renderUI({
+        df <- overlays()
+        df <- df[df$group == "trans", , drop = FALSE]
+        
+        tagList(
+            div(
+                id = "hmmwrap_trans",
+                tags$img(src = svg_file, class = "base-svg",
+                         alt = "HMM diagram", style = "width:100%; height:60dvh; display:block;"),
+                lapply(seq_len(nrow(df)), function(i){
+                    hs <- df[i, ]
+                    i_idx <- suppressWarnings(as.integer(substr(hs$id, 2, 2)))
+                    j_idx <- suppressWarnings(as.integer(substr(hs$id, 3, 3)))
+                    div(
+                        id = paste0("tr_", hs$id),             # unique DOM id
+                        class = "hs trans",
+                        tabindex = "0",
+                        "data-i" = i_idx, "data-j" = j_idx,    # used by JS for the ping
+                        style = sprintf("left:%s%%; top:%s%%;", hs$left, hs$top),
+                        span(class = "tag", hs$label),
+                        div(class = "callout", HTML(hs$info_html))
+                    )
+                })
+            ),
+            # Delegated hover -> Shiny.setInputValue('trans_hover_ping', ...)
+            tags$script(HTML(
+                            "(function(){
+              var root = document.getElementById('hmmwrap_trans');
+              if(!root) return;
+            
+              root.addEventListener('mouseover', function(ev){
+                var tag = ev.target.closest('.hs.trans .tag');
+                if(!tag || !root.contains(tag)) return;
+                var fromInside = ev.relatedTarget && tag.contains(ev.relatedTarget);
+                if(fromInside) return;  // ignore internal moves
+                var hs = tag.parentElement;
+                var payload = {
+                  id: hs.id,
+                  i: Number(hs.dataset.i) || null,
+                  j: Number(hs.dataset.j) || null,
+                  on: true,
+                  ts: Date.now()
+                };
+                if(window.Shiny) Shiny.setInputValue('trans_hover_ping', payload, {priority:'event'});
+              });
+            
+              root.addEventListener('mouseout', function(ev){
+                var tag = ev.target.closest('.hs.trans .tag');
+                if(!tag || !root.contains(tag)) return;
+                var toInside = ev.relatedTarget && tag.contains(ev.relatedTarget);
+                if(toInside) return;  // ignore internal moves
+                var hs = tag.parentElement;
+                if(window.Shiny) Shiny.setInputValue('trans_hover_ping',
+                  {id: hs.id, on:false, ts: Date.now()},
+                  {priority:'event'});
+              });
+            })();"
+            ))
+        )
+    })
+    
+    #highlight cell
+    observeEvent(input$trans_hover_ping, ignoreInit = TRUE, {
+        v <- input$trans_hover_ping
+        if (isTRUE(v$on) && !is.null(v$i) && !is.null(v$j)) {
+            session$sendCustomMessage("highlight-matrix", list(
+                scope = "#trans-matrix",
+                clear = TRUE,
+                ids = list(sprintf("P%d%d", v$i, v$j))
+            ))
+        } else {
+            session$sendCustomMessage("highlight-matrix", list(
+                scope = "#trans-matrix",
+                clear = TRUE,
+                ids = list()
+            ))
+        }
+    })
+    
+    
+    #render labels for emissions probability and ping matrix
+    output$hmm_overlay_emit <- renderUI({
+        df <- overlays()
+        df <- df[df$group == "emit", , drop = FALSE]
+        
+        tagList(
+            div(
+                id = "hmmwrap_emit",
+                tags$img(src = svg_file, class = "base-svg",
+                         alt = "HMM diagram", style = "width:100%; height:60dvh; display:block;"),
+                lapply(seq_len(nrow(df)), function(i){
+                    hs <- df[i, ]
+                    s_idx <- suppressWarnings(as.integer(substr(hs$id, 2, 2)))
+                    o_idx <- suppressWarnings(as.integer(substr(hs$id, 3, 3)))
+                    div(
+                        id = paste0("em_", hs$id),              # unique DOM id
+                        class = "hs emit",
+                        tabindex = "0",
+                        "data-s" = s_idx, "data-o" = o_idx,     # used by JS for the ping
+                        style = sprintf("left:%s%%; top:%s%%;", hs$left, hs$top),
+                        span(class = "tag", hs$label),
+                        div(class = "callout", HTML(hs$info_html))
+                    )
+                })
+            ),
+            # Delegated hover -> Shiny.setInputValue('emit_hover_ping', ...)
+            tags$script(HTML(
+                            "(function(){
+              var root = document.getElementById('hmmwrap_emit');
+              if(!root) return;
+            
+              root.addEventListener('mouseover', function(ev){
+                var tag = ev.target.closest('.hs.emit .tag');
+                if(!tag || !root.contains(tag)) return;
+                var fromInside = ev.relatedTarget && tag.contains(ev.relatedTarget);
+                if(fromInside) return;
+                var hs = tag.parentElement;
+                var payload = {
+                  id: hs.id,
+                  s: Number(hs.dataset.s) || null,
+                  o: Number(hs.dataset.o) || null,
+                  on: true,
+                  ts: Date.now()
+                };
+                if(window.Shiny) Shiny.setInputValue('emit_hover_ping', payload, {priority:'event'});
+              });
+            
+              root.addEventListener('mouseout', function(ev){
+                var tag = ev.target.closest('.hs.emit .tag');
+                if(!tag || !root.contains(tag)) return;
+                var toInside = ev.relatedTarget && tag.contains(ev.relatedTarget);
+                if(toInside) return;
+                var hs = tag.parentElement;
+                if(window.Shiny) Shiny.setInputValue('emit_hover_ping',
+                  {id: hs.id, on:false, ts: Date.now()},
+                  {priority:'event'});
+              });
+            })();"
+            ))
+        )
+    })
+    
+    observeEvent(input$emit_hover_ping, ignoreInit = TRUE, {
+        v <- input$emit_hover_ping
+        if (isTRUE(v$on) && !is.null(v$s) && !is.null(v$o)) {
+            session$sendCustomMessage("highlight-matrix", list(
+                scope = "#emit-matrix",
+                clear = TRUE,
+                ids = list(sprintf("B%d%d", v$s, v$o))
+            ))
+        } else {
+            session$sendCustomMessage("highlight-matrix", list(
+                scope = "#emit-matrix",
+                clear = TRUE,
+                ids = list()
+            ))
+        }
+    })
+    
+    state_name <- c(S1 = "Sunny", S2 = "Rainy")
+    state_sym  <- c(S1 = "☀",     S2 = "🌧")
+    obs_name   <- c(Humid = "Humid", Arid = "Arid")
+    
+    prob_style <- function(p) {
+        if (is.na(p)) return(list())
+        col <- if (p < 0.33) "#fdecea" else if (p < 0.66) "#fff6e5" else "#eaf7ef"  # bg
+        bar <- if (p < 0.33) "#E74C3C" else if (p < 0.66) "#F39C12" else "#2ECC71"  # left bar
+        list(background = col, borderLeft = paste0("6px solid ", bar))
+    }
+    
+    detail_df <- reactive({
+        dd <- demo_data(); req(dd)
+        A  <- R_A(); B <- R_B()
+        
+        n     <- length(dd$t)
+        z_chr <- as.character(dd$z)   # "S1" / "S2"
+        x_chr <- as.character(dd$x)   # "Humid" / "Arid"
+        zh_chr<- as.character(dd$zh)
+        
+        z_i <- as.integer(dd$z)       # 1/2
+        x_i <- as.integer(dd$x)       # 1/2
+        
+        trans_prob <- c(NA, vapply(2:n, function(t) A[z_i[t-1], z_i[t]], numeric(1)))
+        emit_prob  <- vapply(1:n, function(t) B[z_i[t], x_i[t]], numeric(1))
+        
+        data.frame(
+            Time        = dd$t,
+            Transition  = c("—", paste0(state_sym[z_chr[-n]], " → ", state_sym[z_chr[-1]])),
+            A_prob      = round(trans_prob, 3),
+            Observation = paste0(obs_name[x_chr], " | ", state_name[z_chr]),
+            B_prob      = round(emit_prob, 3),
+            True        = state_name[z_chr],
+            Decoded     = state_name[zh_chr],
+            Error       = ifelse(z_chr != zh_chr, "✗", ""),
+            check.names = FALSE
+        )
+    })
+    
+    output$hmm_detail_table <- reactable::renderReactable({
+        df <- detail_df()
+
+        reactable(
+            df,
+            pagination = FALSE,
+            bordered = TRUE,
+            striped  = TRUE,
+            highlight = TRUE,
+            defaultColDef = colDef(align = "center"),
+            columns = list(
+                Transition  = colDef(header = "z(t-1) \u2192 z(t)"),
+                A_prob      = colDef(name = "A[z(t-1),z(t)]",
+                                     style = function(value) prob_style(value),
+                                     format = colFormat(digits = 3)),
+                Observation = colDef(header = "x(t) | z(t)"),
+                B_prob      = colDef(name = "B[z(t),x(t)]",
+                                     style = function(value) prob_style(value),
+                                     format = colFormat(digits = 3)),
+                Error       = colDef(html = TRUE,
+                                     cell = function(value) if (nzchar(value)) htmltools::tags$span(style="color:#cc0000;font-weight:900;", "\u00D7") )
+            ),
+            columnGroups = list(
+                colGroup(name = "Transition", columns = c("Transition","A_prob")),
+                colGroup(name = "Emission",   columns = c("Observation","B_prob"))
+            ),
+            theme = reactableTheme(
+                borderColor = "#ddd",
+                stripedColor = "#fafafa",
+                highlightColor = "#f5f9ff"
+            )
+        )
+    })
+    
+    output$more_btn <- renderUI({
+        req(demo_data())  # eventReactive is NULL until Run is clicked
+        div(
+            actionButton("show_details", "More details", icon = icon("table")),
+            style = "margin-top:.5rem; display:flex; justify-content:flex-end;"
+        )
+    })
+    
+    # Swap views WITHOUT rebuilding anything
+    observeEvent(input$show_details, {
+        shinyjs::hide("sim_shell")      # hides matrix + slider + run + chart + svg
+        shinyjs::show("details_shell")  # shows full-width table + Back
+    })
+    
+    observeEvent(input$back_to_chart, {
+        shinyjs::show("sim_shell")
+        shinyjs::hide("details_shell")
+    })
+    
     
     
 }
