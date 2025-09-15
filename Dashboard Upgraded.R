@@ -29,18 +29,17 @@ library(depmixS4)
 
 # SHOULD NOT BE NEEDED
 
-mint_theme <- bs_theme(
-    bootswatch = "flatly",  # clean base
-    primary = "#98FF98",    # mint green base
-    secondary = "#2E8B57",  # optional darker green accent
-    base_font = font_google("Nunito Sans"),
-    heading_font = font_google("Quicksand")
-)
+# mint_theme <- bs_theme(
+#     bootswatch = "flatly",  # clean base
+#     primary = "#98FF98",    # mint green base
+#     secondary = "#2E8B57",  # optional darker green accent
+#     base_font = font_google("Nunito Sans"),
+#     heading_font = font_google("Quicksand")
+# )
 
 
-# HTML STRINGS FOR EACH TAB
-
-# --- Consumer Sentiment Plot Info ---
+# All Text Used in Dashboard ----
+#
 
 summary_string <- HTML(
     "<p>Consumer sentiment plays a critical role in the growth of the economy. The average consumer's opinion on the state of the economy can manifest directly in changes in spending, saving, investment, and the flow of capital, directly shifting the flow of the economy.</p>
@@ -50,14 +49,14 @@ summary_string <- HTML(
 )
 
 consumer_sentiment_text <- HTML(
-    "<div style='font-size:15px; line-height:1.6;'>
+    "
      <p>The <strong>Consumer Sentiment Index</strong> is calculated by the University of Michigan every month using survey responses from citizens. Respondents are asked questions about their <em>current economic standing</em> and expectations for the <em>future of the economy</em>.</p>
      <p>Understanding consumer sentiment is vital to understanding the economy, as spending behavior directly reflects the health of the economy. Consumption accounts for over two-thirds of GDP. When sentiment improves, people are more likely to spend and invest, boosting economic activity. When sentiment falls, they tend to save more and cut back on purchases, slowing growth.</p>
-  </div>"
+  "
 )
 
 cs_methodology <- withMathJax(HTML('
-    <div style="font-size:15px; line-height:1.6;">
+    
   <p>Once a month, the University of Michigan surveys around 500 citizens on their outlook of current and future economic prospects. The questions investigate how consumers feel about their personal finances and the direction of the economy.</p>
   <ul>
     <li>How are your current personal finances compared to a year ago?</li>
@@ -74,12 +73,12 @@ cs_methodology <- withMathJax(HTML('
     Index_{i} = \\frac{\\text{Current period score}}{\\text{Base period score}}
   $$
   </p>
-</div>'))
+'))
 
 
 
 cs_data_collection<- HTML(
-    "<div style='font-size:15px; line-height:1.6;'>
+    "
   <p> The Federal Reserve of St. Louis uploads accurate, up to date, information on multiple sectors of the economy. </p>
   <p> For this analysis, a series of 20 macroeconomic indicators were collected from the year 1987 to 2024, as it provided a good balance between for the length of the dataset and the number of predictors.</p>
   <p> The indicators are categorized as the following:</p>
@@ -93,14 +92,14 @@ cs_data_collection<- HTML(
     </ul>
     
     <p> Detailed information about each category and their relationship to consumer sentiment is in <a href='javascript:void(0);' id='prelim_analysis'>Preliminary Analysis</a> </p>
-</div>"
+"
 )
 
 cs_interpretation <- HTML(
-    "<div style='font-size:15px; line-height:1.6;'>
+    "
   <p>The calculated value shows how consumers feel about the overall direction of the economy and their finances, relative to 1966. Values above 100 indicate sentiment stronger than in the base period, while values below 100 indicate weaker sentiment.</p>
   <p>When comparing the values between two separate periods, the index is still interpretable. If period 1 had a score of 85, and period 2 had a score of 87, then it can be concluded that consumer sentiment has improved relative to the earlier period.</p>
-</div>"
+"
 )
 
 # --- Preliminary Analysis Info ---
@@ -265,14 +264,9 @@ transition_prob  <- HTML(
   
   <p>
    These probabilities model the dynamics of the system. For instance, if the weather is sunny today, 
-   what is the probability that it will be cloudy tomorrow? That's a transition probability. A system 
-   often has inertia, meaning it's more likely to stay in its current state (e.g., Sunny to Sunny).
-  </p>
-  
-  <p>
-  These are learned from historical data by counting how often each state follows another. For example, 
-  the model would count how many times a sunny day was followed by a rainy day in the dataset to calculate 
-  that specific probability.
+   what is the probability that it will be cloudy tomorrow? These are learned from historical data by counting how 
+   often each state follows another. For example, the model would count how many times a sunny day was followed 
+   by a rainy day in the dataset to calculate that specific probability.
   </p>
   
   <p>
@@ -325,15 +319,17 @@ model_result_info <- HTML(
   
 </div>"
 )
+  
 
-# --- defaults (now 2-state) ---------------------------------------------------
-pi0 <- c(0.6, 0.4)                                    
+# Matrices for HMM tab
+
 A0  <- matrix(c(0.75,0.25,
-                0.20,0.80), 2, byrow=TRUE)          
+                0.20,0.80), 2, byrow = TRUE)
 B0  <- matrix(c(0.70,0.30,
-                0.40,0.60), 2, byrow=TRUE)   
+                0.40,0.60), 2, byrow = TRUE)
 
-# --- Dashboard Theming
+
+# Dashboard Construction ----
 
 mint_dark_theme <- create_theme(
     theme = "superhero",  # matches your preset
@@ -351,13 +347,10 @@ mint_dark_theme <- create_theme(
     )
 )
 
-# ----- UI: bs4DashPage with vertical sidebar navigation -----
 ui <- bs4DashPage(
     freshTheme = mint_dark_theme,
     title = "An Analysis of Consumer Sentiment States with a Hidden Markov Model",
     controlbar = NULL,
-    #footer = dashboardFooter(disable = TRUE),
-    #footer = "test",
     
     # Header/navbar
     header = bs4DashNavbar(
@@ -369,7 +362,7 @@ ui <- bs4DashPage(
         border = TRUE
     ),
     
-    # Sidebar with vertical menu
+    ## Sidebar with vertical menu ----
     sidebar = bs4DashSidebar(
         id   = "sidebar", # ID of the sidebar object (not the tabs)
         skin = "light",
@@ -387,7 +380,7 @@ ui <- bs4DashPage(
         )
     ),
     
-    # Body with tab items
+    ## Custom CSS Adjustments ----
     body = bs4DashBody(
         useShinyjs(),
         tags$head(
@@ -522,95 +515,75 @@ ui <- bs4DashPage(
             .mx-lead { text-align:center; font-weight:600; }
             
             <style>
-  /* Center a label + the matrix side by side */
-  .mx-row { display:flex; align-items:center; justify-content:center; gap:.75rem; width:100%; }
-
-  /* The bracketed matrix container */
-  .mx-mat {
-    position: relative; display:inline-grid; grid-template-columns: repeat(2, 90px);
-    gap: 10px; padding: 10px 14px; margin: 6px 0;
-  }
-  /* Draw [   ] brackets with pseudo elements */
-  .mx-mat::before, .mx-mat::after {
-    content:''; position:absolute; top:0; bottom:0; width:10px;
-    border-top:3px solid #222; border-bottom:3px solid #222;
-  }
-  .mx-mat::before { left:-12px;  border-left:3px solid #222;  border-radius:6px 0 0 6px; }
-  .mx-mat::after  { right:-12px; border-right:3px solid #222; border-radius:0 6px 6px 0; }
-
-  /* Tighten Shiny form-group spacing inside the grid */
-  .mx-mat .form-group { margin:0; }
-
-  /* Inputs look mathy, centered */
-  .mx-mat input.form-control {
-    width: 90px; height: 2.2rem; text-align:center;
-    font-family: 'Times New Roman', Georgia, serif; font-style: italic; font-size: 1.1rem;
-    padding: .25rem .5rem;
-  }
-  /* Remove number spinners */
-  .mx-mat input[type=number]::-webkit-outer-spin-button,
-  .mx-mat input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-  .mx-mat input[type=number] { -moz-appearance: textfield; }
-
-  .mx-lead { text-align:center; font-weight:600; }
-</style>
+              /* Center a label + the matrix side by side */
+              .mx-row { display:flex; align-items:center; justify-content:center; gap:.75rem; width:100%; }
+            
+              /* The bracketed matrix container */
+              .mx-mat {
+                position: relative; display:inline-grid; grid-template-columns: repeat(2, 90px);
+                gap: 10px; padding: 10px 14px; margin: 6px 0;
+              }
+              /* Draw [   ] brackets with pseudo elements */
+              .mx-mat::before, .mx-mat::after {
+                content:''; position:absolute; top:0; bottom:0; width:10px;
+                border-top:3px solid #222; border-bottom:3px solid #222;
+              }
+              .mx-mat::before { left:-12px;  border-left:3px solid #222;  border-radius:6px 0 0 6px; }
+              .mx-mat::after  { right:-12px; border-right:3px solid #222; border-radius:0 6px 6px 0; }
+            
+              /* Tighten Shiny form-group spacing inside the grid */
+              .mx-mat .form-group { margin:0; }
+            
+              /* Inputs look mathy, centered */
+              .mx-mat input.form-control {
+                width: 90px; height: 2.2rem; text-align:center;
+                font-family: 'Times New Roman', Georgia, serif; font-style: italic; font-size: 1.1rem;
+                padding: .25rem .5rem;
+              }
+              /* Remove number spinners */
+              .mx-mat input[type=number]::-webkit-outer-spin-button,
+              .mx-mat input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+              .mx-mat input[type=number] { -moz-appearance: textfield; }
+            
+              .mx-lead { text-align:center; font-weight:600; }
+            </style>
           "))
         ),
 
         tags$script(src="https://cdn.jsdelivr.net/npm/mathjax@2/MathJax.js?config=TeX-AMS-MML_HTMLorMML"),
         
+        ## All Tab Content ----
+        
+        ### Introduction ----
         bs4TabItems(
             bs4TabItem(
                 tabName = "overview",
-                fluidRow(
-                    # Box 1: Introduction Text
-                    bs4Card(
-                        collapsible = FALSE,   # removes collapse toggle
-                        closable = FALSE,      # removes close icon
-                        title = "Introduction",
-                        width = 12,
-                        status = "success",
-                        solidHeader = TRUE,
-                        div(
-                            style = "font-size:16px; font-family:Times-New-Roman, Helvetica; line-height:1.5;",
-                            summary_string
-                        )
-                    )
-                ),
                 fluidRow(
                     # Box 2: Consumer Sentiment Over Time
                     bs4Card(
                         collapsible = FALSE,   # removes collapse toggle
                         closable = FALSE,      # removes close icon
-                        title = HTML('<span style="margin-left: 300px;">Consumer Sentiment Over Time</span>'),
+                        title = HTML('<span style="margin-left: 0%;
+                                     ">An Analysis of Consumer Sentiment Using Hidden Markov Model Regimes</span>'),
                         width = 12,
                         status = "success",
                         #solidHeader = TRUE,
-                        style = "height: 425px;",
                         fluidRow(
-                            column(width = 6, highchartOutput("consumer_sentiment_plot")),
                             column(width = 6,
-                                   bs4Dash::tabsetPanel(
-                                       id = "consumer_sent_tabs",
-                                       type = "pills",
-                                       tabPanel("About",
-                                                div(style = "padding:10px; font-size:16px; line-height:1.5; height:398.5px; overflow-y:auto;",
-                                                    consumer_sentiment_text)
-                                       ),
-                                       tabPanel("Methodology",
-                                                div(style = "padding:10px; font-size:16px; line-height:1.5; height:398.5px; overflow-y:auto;",
-                                                    cs_methodology)
-                                       ),
-                                       tabPanel("Interpretation",
-                                                div(style = "padding:10px; font-size:16px; line-height:1.5; height:398.5px; overflow-y:auto;",
-                                                    cs_interpretation)
-                                       ),
-                                       tabPanel("Data Collection",
-                                                div(style = "padding:10px; font-size:16px; line-height:1.5; height:398.5px; overflow-y:auto;",
-                                                    cs_data_collection)
+                                   div(style = "height: 75vh; font-size:18px; line-height:1.5; overflow-y:auto;",
+                                       
+                                       bs4Dash::tabsetPanel(
+                                           id = "consumer_sent_tabs",
+                                           type = "pills",
+                                           tabPanel("Introduction", summary_string),
+                                           tabPanel("About", consumer_sentiment_text),
+                                           tabPanel("Methodology", cs_methodology),
+                                           tabPanel("Interpretation", cs_interpretation),
+                                           tabPanel("Data Collection", cs_data_collection)
                                        )
                                    )
-                            )
+                                ),
+                            column(width = 6, highchartOutput("consumer_sentiment_plot", height = "75vh"))
                         )
                     )
                 )
@@ -618,7 +591,7 @@ ui <- bs4DashPage(
         
         
             
-            # Preliminary Analysis Tab
+            ### Preliminary Analysis Tab ----
             bs4TabItem(
                 tabName = "preliminary_analysis",
                 #id = "analysis",
@@ -647,7 +620,7 @@ ui <- bs4DashPage(
                 )
             ),
             
-            # Hidden Markov Model Tab
+            ### Hidden Markov Model Tab ----
             bs4TabItem(
                 tabName = "model_intro",
 
@@ -723,7 +696,7 @@ ui <- bs4DashPage(
                                 conditionalPanel(
                                     condition = "input.hmm_info_tabs == 'trans_prob'",
                                     div(class = "mx-row",
-                                        div(class = "mx-lead", "Edit the transition matrix below and see how it affects the simulation:"),
+                                        div(class = "mx-lead", "Edit the transition matrix to change the state probabilities in the simulation:"),
                                         div(class = "mx-mat",
                                             numericInput("A11", NULL, value = round(A0[1,1], 2), min = 0, max = 1, step = 0.01, width = "90px"),
                                             numericInput("A12", NULL, value = round(A0[1,2], 2), min = 0, max = 1, step = 0.01, width = "90px"),
@@ -736,7 +709,7 @@ ui <- bs4DashPage(
                                 conditionalPanel(
                                     condition = "input.hmm_info_tabs == 'emission_prob'",
                                     div(class = "mx-row",
-                                        div(class = "mx-lead", "Edit the emission matrix below and see how it affects observations"),
+                                        div(class = "mx-lead", "Edit the emission matrix and to change the observation probabilities in the simulation"),
                                         div(class = "mx-mat",
                                             numericInput("B11", NULL, value = round(B0[1,1], 2), min = 0, max = 1, step = 0.01, width = "90px"),
                                             numericInput("B12", NULL, value = round(B0[1,2], 2), min = 0, max = 1, step = 0.01, width = "90px"),
@@ -750,7 +723,7 @@ ui <- bs4DashPage(
                                     condition = "input.hmm_info_tabs == 'trans_prob' || input.hmm_info_tabs == 'emission_prob'",
                                     div(class = "mt-2",
                                         sliderInput("hmm_T", "Sequence length", min = 15, max = 45, value = 20, step = 1),
-                                        actionButton("hmm_run_demo", "Run Simulation", class = "btn btn-success btn-block"),
+                                        actionButton("hmm_run_demo", "Simulate Hidden Markov Model", class = "btn btn-success btn-block"),
                                         highcharter::highchartOutput("hmm_demo_timeline", height = "40vh"),
                                         uiOutput("more_btn")
                                     )
@@ -773,7 +746,7 @@ ui <- bs4DashPage(
                 )
             ),
             
-             # Model Analysis Tab
+            ### Model Analysis Tab ----
             bs4TabItem(
                 tabName = "model_analysis",
                 
@@ -823,6 +796,7 @@ ui <- bs4DashPage(
                 ),
             ),
             
+            ### Model Conclusion ----
             bs4TabItem(
                 tabName = "model_conclusion",
                 bs4Card(
@@ -842,28 +816,13 @@ ui <- bs4DashPage(
         )
 
 
+# Server function ----
+
 server <- function(input, output, session) {
-    #---------------------------------------------------------------------------------------------------------
-    output$category_summary <- renderUI({
-        summary_text <- switch(input$select1,
-                               
-                               # Text displayed based on selected predictor type in combo box
-                               
-                               "Output" = output_analysis,
-                               "Labor Market" = labor_analysis,
-                               "Price Levels" = price_analysis,
-                               "Monetary and Fiscal" = monetary_analysis,
-                               "Housing and Construction" = housing_analysis,
-                               "Trade" = trade_analysis
-                               )
-        
-        div(
-            style = "font-size:15px; font-family:Segoe UI, sans-serif; line-height:1.6;",
-            summary_text
-        )
-    })
     
-    #link hyperlink blue prelim analysis text to tab
+    ## Overview Code ----
+    
+    # link hyperlink blue prelim analysis text to tab
     onclick("prelim_analysis", {
         updateTabsetPanel(session, "dashboard_tabs", selected = "preliminary_analysis")
     })
@@ -878,9 +837,7 @@ server <- function(input, output, session) {
     )
     
     
-    #-------------------------------------------------------------------------------
-    
-    # CONSUMER SENTIMENT PLOT, PAGE 1
+    ### Consumer Sentiment TS Plot ----
     scaled_data = readRDS(here("scaled_dataset.rds"))
     full_dataset = readRDS(here("full_dataset.rds"))
     output$consumer_sentiment_plot <- renderHighchart({
@@ -963,7 +920,7 @@ server <- function(input, output, session) {
                 color = "red",
                 marker = list(symbol = "circle", radius = 5)
             ) %>%
-            #hc_title(text = "Consumer Sentiment Over Time") %>%
+            hc_title(text = "Consumer Sentiment Over Time") %>%
             hc_tooltip(formatter = JS(
                 sprintf(
                     "
@@ -991,8 +948,27 @@ server <- function(input, output, session) {
         
     })
     
-    #-----------------------------------------------------------------------------
-    # Set up code for indicators plot
+    ## Preliminary Analysis Code ----
+    
+    ### Preliminary Analysis Switching Functionality ----
+    output$category_summary <- renderUI({
+        summary_text <- switch(input$select1,
+                               
+                               # Text displayed based on selected predictor type in combo box
+                               
+                               "Output" = output_analysis,
+                               "Labor Market" = labor_analysis,
+                               "Price Levels" = price_analysis,
+                               "Monetary and Fiscal" = monetary_analysis,
+                               "Housing and Construction" = housing_analysis,
+                               "Trade" = trade_analysis
+        )
+        
+        div(
+            style = "font-size:15px; font-family:Segoe UI, sans-serif; line-height:1.6;",
+            summary_text
+        )
+    })
     
     output$recession_name <- renderText({
         range <- input$consumer_sentiment_plot_date_window  # provided by dygraph
@@ -1088,7 +1064,7 @@ server <- function(input, output, session) {
         consumer_sentiment = ""
     )
     
-    #- your map from raw names to pretty labels:
+    # map from raw names to pretty labels:
     nice_names <- c(
         consumer_sentiment = "Consumer Sentiment",
         nominal_GDP        = "Nominal GDP",
@@ -1155,6 +1131,7 @@ server <- function(input, output, session) {
     initial_cat  <- isolate(input$select1)
     initial_inds <- category_map[[ initial_cat ]]
     
+    #### Selected Indicators over Time Plot ----
     output$category_plot_hc <- renderHighchart({
         
         # 1) Pivot both data sets long
@@ -1175,14 +1152,7 @@ server <- function(input, output, session) {
         # 3) Series order: everything except CS first, then CS last
         all_inds     <- unique(plot_df$Indicator)
         ordered_inds <- c(setdiff(all_inds, "consumer_sentiment"), "consumer_sentiment")
-        
-        # selected_raw <- category_map[[input$select1]]
-        # ordered_inds <- c(
-        #     intersect(setdiff(selected_raw, "consumer_sentiment"), selected_raw),
-        #     "consumer_sentiment"
-        # )
-        
-        # 5) Build the highcharter series list
+
         series_list <- map(ordered_inds, function(ind) {
             df_i <- filter(plot_df, Indicator == ind)
             r0 <- NA_real_
@@ -1204,7 +1174,6 @@ server <- function(input, output, session) {
         
         default_cat <- isolate(input$select1)
         
-        # 6) Assemble the chart
         highchart() %>%
             hc_chart(
                 type    = "line",
@@ -1285,6 +1254,8 @@ server <- function(input, output, session) {
             )
     })
     
+    
+        #### Summary Table ----
     
     summary_table_data <- reactive({
         selected_category <- input$select1
@@ -1376,7 +1347,7 @@ server <- function(input, output, session) {
             )
     })
     
-    #create bar chart of r values
+    #### Pearson's R Bar Chart ----
     output$pearsons_plot_hc <- renderHighchart({
         cor_df <- cor_df_reactive()
         inactive_alpha <- 0.3
@@ -1456,9 +1427,9 @@ server <- function(input, output, session) {
         })
     })
     
-    #SERVER CODE FOR PRELIMINARY ANALYSIS ABOVE, HMM BELOW
+    ## Hidden Markov Model Code ----
     
-    #-----------------------------------------------------------------------------
+    ### Algorithm VisNetwork Diagram
     
     nodes <- data.frame( 
         id   = c("init","estep","mstep","ll","check","done"), 
@@ -1580,6 +1551,8 @@ server <- function(input, output, session) {
         withMathJax(HTML(em_text[[id]]))
     })
     
+    ### Probability Matrices ----
+    
     # Transition probabilities matrix
     output$matrix_ui <- renderUI({
         withMathJax(HTML('
@@ -1613,13 +1586,14 @@ server <- function(input, output, session) {
           '))
     })
     
-    pi0 <- c(0.5, 0.5)  # equal π as requested
+    ### HMM Simulation Code
+    
+    pi0 <- c(0.5, 0.5)  
     A0  <- matrix(c(0.75,0.25,
                     0.20,0.80), 2, byrow = TRUE)
     B0  <- matrix(c(0.70,0.30,
                     0.40,0.60), 2, byrow = TRUE)
     
-    # ---------- helpers ----------
     `%||%` <- function(x, y) if (is.null(x)) y else x
     
     .draw_cat <- function(prob) {
@@ -1630,7 +1604,7 @@ server <- function(input, output, session) {
         sample.int(length(p), 1L, prob = p)
     }
     
-    # validate a 2x2 probability matrix (no normalization)
+    # error checking for probability matrices
     .validate_matrix <- function(M, name, tol = 1e-8) {
         errs <- character(0)
         if (any(!is.finite(M)))            errs <- c(errs, sprintf("%s has non-finite entries.", name))
@@ -1722,7 +1696,8 @@ server <- function(input, output, session) {
         )
     }, ignoreInit = TRUE)
     
-    # --- PLOT SIMULATED RESULTS
+    ### Simulation Plot ----
+    
     output$hmm_demo_timeline <- renderHighchart({
         dd <- demo_data(); req(dd)
         
@@ -1850,6 +1825,7 @@ server <- function(input, output, session) {
         hc %>% hc_tooltip(enabled = FALSE) %>% hc_credits(enabled = FALSE)
     })
     
+    ### HMM Diagram with labels ----
     
     svg_file <- "HMM_Diagram.svg"
     output$hmm_overlay_pi <- renderUI({
@@ -1912,165 +1888,7 @@ server <- function(input, output, session) {
         )
     })
     
-    #render labels for transmission probability and ping matrix
-    output$hmm_overlay_trans <- renderUI({
-        df <- overlays()
-        df <- df[df$group == "trans", , drop = FALSE]
-        
-        tagList(
-            div(
-                id = "hmmwrap_trans",
-                tags$img(src = svg_file, class = "base-svg",
-                         alt = "HMM diagram", style = "width:100%; height:60dvh; display:block;"),
-                lapply(seq_len(nrow(df)), function(i){
-                    hs <- df[i, ]
-                    i_idx <- suppressWarnings(as.integer(substr(hs$id, 2, 2)))
-                    j_idx <- suppressWarnings(as.integer(substr(hs$id, 3, 3)))
-                    div(
-                        id = paste0("tr_", hs$id),             # unique DOM id
-                        class = "hs trans",
-                        tabindex = "0",
-                        "data-i" = i_idx, "data-j" = j_idx,    # used by JS for the ping
-                        style = sprintf("left:%s%%; top:%s%%;", hs$left, hs$top),
-                        span(class = "tag", hs$label),
-                        div(class = "callout", HTML(hs$info_html))
-                    )
-                })
-            ),
-            # Delegated hover -> Shiny.setInputValue('trans_hover_ping', ...)
-            tags$script(HTML(
-                "(function(){
-              var root = document.getElementById('hmmwrap_trans');
-              if(!root) return;
-            
-              root.addEventListener('mouseover', function(ev){
-                var tag = ev.target.closest('.hs.trans .tag');
-                if(!tag || !root.contains(tag)) return;
-                var fromInside = ev.relatedTarget && tag.contains(ev.relatedTarget);
-                if(fromInside) return;  // ignore internal moves
-                var hs = tag.parentElement;
-                var payload = {
-                  id: hs.id,
-                  i: Number(hs.dataset.i) || null,
-                  j: Number(hs.dataset.j) || null,
-                  on: true,
-                  ts: Date.now()
-                };
-                if(window.Shiny) Shiny.setInputValue('trans_hover_ping', payload, {priority:'event'});
-              });
-            
-              root.addEventListener('mouseout', function(ev){
-                var tag = ev.target.closest('.hs.trans .tag');
-                if(!tag || !root.contains(tag)) return;
-                var toInside = ev.relatedTarget && tag.contains(ev.relatedTarget);
-                if(toInside) return;  // ignore internal moves
-                var hs = tag.parentElement;
-                if(window.Shiny) Shiny.setInputValue('trans_hover_ping',
-                  {id: hs.id, on:false, ts: Date.now()},
-                  {priority:'event'});
-              });
-            })();"
-            ))
-        )
-    })
-    
-    #highlight cell
-    observeEvent(input$trans_hover_ping, ignoreInit = TRUE, {
-        v <- input$trans_hover_ping
-        if (isTRUE(v$on) && !is.null(v$i) && !is.null(v$j)) {
-            session$sendCustomMessage("highlight-matrix", list(
-                scope = "#trans-matrix",
-                clear = TRUE,
-                ids = list(sprintf("P%d%d", v$i, v$j))
-            ))
-        } else {
-            session$sendCustomMessage("highlight-matrix", list(
-                scope = "#trans-matrix",
-                clear = TRUE,
-                ids = list()
-            ))
-        }
-    })
-    
-    
-    #render labels for emissions probability and ping matrix
-    output$hmm_overlay_emit <- renderUI({
-        df <- overlays()
-        df <- df[df$group == "emit", , drop = FALSE]
-        
-        tagList(
-            div(
-                id = "hmmwrap_emit",
-                tags$img(src = svg_file, class = "base-svg",
-                         alt = "HMM diagram", style = "width:100%; height:60dvh; display:block;"),
-                lapply(seq_len(nrow(df)), function(i){
-                    hs <- df[i, ]
-                    s_idx <- suppressWarnings(as.integer(substr(hs$id, 2, 2)))
-                    o_idx <- suppressWarnings(as.integer(substr(hs$id, 3, 3)))
-                    div(
-                        id = paste0("em_", hs$id),              # unique DOM id
-                        class = "hs emit",
-                        tabindex = "0",
-                        "data-s" = s_idx, "data-o" = o_idx,     # used by JS for the ping
-                        style = sprintf("left:%s%%; top:%s%%;", hs$left, hs$top),
-                        span(class = "tag", hs$label),
-                        div(class = "callout", HTML(hs$info_html))
-                    )
-                })
-            ),
-            # Delegated hover -> Shiny.setInputValue('emit_hover_ping', ...)
-            tags$script(HTML(
-                "(function(){
-              var root = document.getElementById('hmmwrap_emit');
-              if(!root) return;
-            
-              root.addEventListener('mouseover', function(ev){
-                var tag = ev.target.closest('.hs.emit .tag');
-                if(!tag || !root.contains(tag)) return;
-                var fromInside = ev.relatedTarget && tag.contains(ev.relatedTarget);
-                if(fromInside) return;
-                var hs = tag.parentElement;
-                var payload = {
-                  id: hs.id,
-                  s: Number(hs.dataset.s) || null,
-                  o: Number(hs.dataset.o) || null,
-                  on: true,
-                  ts: Date.now()
-                };
-                if(window.Shiny) Shiny.setInputValue('emit_hover_ping', payload, {priority:'event'});
-              });
-            
-              root.addEventListener('mouseout', function(ev){
-                var tag = ev.target.closest('.hs.emit .tag');
-                if(!tag || !root.contains(tag)) return;
-                var toInside = ev.relatedTarget && tag.contains(ev.relatedTarget);
-                if(toInside) return;
-                var hs = tag.parentElement;
-                if(window.Shiny) Shiny.setInputValue('emit_hover_ping',
-                  {id: hs.id, on:false, ts: Date.now()},
-                  {priority:'event'});
-              });
-            })();"
-            ))
-        )
-    })
-    
-    observeEvent(input$emit_hover_ping, ignoreInit = TRUE, {
-        v <- input$emit_hover_ping
-        if (isTRUE(v$on) && !is.null(v$s) && !is.null(v$o)) {
-            session$sendCustomMessage("highlight-matrix", list(
-                scope = "#emit-matrix",
-                clear = TRUE,
-                ids = list(sprintf("B%d%d", v$s, v$o))
-            ))
-        } else {
-            session$sendCustomMessage("highlight-matrix", list(
-                scope = "#emit-matrix",
-                clear = TRUE,
-                ids = list()
-            ))
-        }
-    })
+    ### Detailed Simulation Table ----
     
     state_name <- c(S1 = "Sunny", S2 = "Rainy")
     state_sym  <- c(S1 = "☀",     S2 = "🌧")
@@ -2180,10 +1998,9 @@ server <- function(input, output, session) {
     
     
     
-    #SERVER CODE FOR HMM ABOVE, ANALYSIS BELOW
-    #-----------------------------------------------------------------------------
+    ## Analysis Code ----
     
-    #3D TSNE PLOT
+    ### 3D TSNE PLOT ----
     output$state_plot <- renderHighchart({
         
         # reading in data (no need to recalculate)
@@ -2298,7 +2115,7 @@ server <- function(input, output, session) {
         
     })
     
-    # Transition matrix
+    ### True Transition matrix ----
     true_transition_matrix <- '
         <div style="font-size:250%; text-align:center;">
           $$\n\\begin{bmatrix}
