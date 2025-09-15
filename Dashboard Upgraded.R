@@ -56,8 +56,8 @@ consumer_sentiment_text <- HTML(
   </div>"
 )
 
-cs_methodology <- withMathJax(HTML(
-    "<div style='font-size:15px; line-height:1.6;'>
+cs_methodology <- withMathJax(HTML('
+    <div style="font-size:15px; line-height:1.6;">
   <p>Once a month, the University of Michigan surveys around 500 citizens on their outlook of current and future economic prospects. The questions investigate how consumers feel about their personal finances and the direction of the economy.</p>
   <ul>
     <li>How are your current personal finances compared to a year ago?</li>
@@ -66,10 +66,17 @@ cs_methodology <- withMathJax(HTML(
     <li>Do you expect business conditions to improve or worsen in the next year?</li>
     <li>Over the next 5 years, do you think the economy will have good times or bad times?</li>
   </ul>
-  <p>Responses are categorized as <strong>positive</strong>, <strong>neutral</strong>, or <strong>negative</strong>. For each question, the net value (percent positive minus percent negative) is calculated and used to compute the index:</p>
-  <p>\\[ \text{Index}_{i} = \frac{\text{Current period score}}{\text{Base period score}} \times 100 \\]</p>
-</div>"
-))
+  <p>Responses are categorized as <strong>positive</strong>, <strong>neutral</strong>, or <strong>negative</strong>. 
+  For each question, the net value (percent positive minus percent negative) is calculated and used to compute the index:</p>
+  
+  <p>
+  $$
+    Index_{i} = \\frac{\\text{Current period score}}{\\text{Base period score}}
+  $$
+  </p>
+</div>'))
+
+
 
 cs_data_collection<- HTML(
     "<div style='font-size:15px; line-height:1.6;'>
@@ -224,27 +231,6 @@ intro_hmm_text <- HTML(
     </div>"
 )
 
-initial_state_selected <- HTML(
-    "<div style='font-size:17px; line-height:1.6;'>
-  <p>
-   The <b> Initial State </b> represents the starting point of the model. It defines the probability of the system being in 
-   each of the hidden states at the very beginning (at time zero), before any observations have been made.
-  </p>
-  
-  <p>
-  It answers the question: \"Without any other information, what is the likelihood of today's weather being Sunny, Cloudy, or Rainy?\" 
-  For example, if you live in a desert, the initial probability for Sunny would be very high.
-  </p>
-  
-  <p>
-  In the diagram, the Initial State node points to each weather state. 
-  The probabilities associated with these arrows (....) represent the chances that our very first hidden state is Sunny, Cloudy, or Rainy, 
-  respectively. These probabilities must always add up to 1 (or 100%).
-  </p>
-  
-</div>"
-)
-
 emission_prob <- HTML(
     "<div style='font-size:17px; line-height:1.6;'>
   <p>
@@ -280,7 +266,7 @@ transition_prob  <- HTML(
   <p>
    These probabilities model the dynamics of the system. For instance, if the weather is sunny today, 
    what is the probability that it will be cloudy tomorrow? That's a transition probability. A system 
-   often has inertia, meaning it's more likely to stay in its current state (e.g., Sunny -> Sunny).
+   often has inertia, meaning it's more likely to stay in its current state (e.g., Sunny to Sunny).
   </p>
   
   <p>
@@ -298,41 +284,14 @@ transition_prob  <- HTML(
 )
 
 hmm_training  <- HTML(
-    "<div style='font-size:16px; line-height:1.6;'>
-  <p>
-  The model is trained to find the set of internal probabilities that best explains the sequence of observations provided. 
-  The goal of the training process is to maximize a value called the <b> log-likelihood.</b> This is a statistical measure of how well the 
-  model's parameters (its initial state, transition, and emission probabilities) explain the observed data. A higher log-likelihood 
-  score means the model provides a more plausible explanation for the data sequence provided. The model adjusts its internal probabilities 
-  until this score is as high as it can be.
-  </p>
-  
-  <p>
-  To achieve this, the model uses a powerful algorithm called Expectation-Maximization (EM), which for HMMs is known as the Baum-Welch algorithm. 
-  It's designed to solve a classic \"chicken-and-egg\" problem: to know the right probabilities, we need to know the sequence of hidden states, 
-  but to know the hidden states, we need the right probabilities. The EM algorithm solves this by starting with a random guess and then 
-  repeating a two-step process to gradually improve its solution.
-  </p>
-  
-  <ol>
-    <li> <b> The E-Step (Expectation): </b> First, using its current (initially random) set of probabilities, the model analyzes the data and calculates 
-    the expected probability of being in each hidden state (e.g., Sunny, Cloudy) at every point in time. It doesn't decide the state was 
-    definitely Sunny; instead, it might assign a 70% chance of it being sunny and a 30% chance of it being cloudy. This creates a complete 
-    probabilistic map of the hidden states. </li>
-    
-    <li> <b> The M-Step (Maximization): </b> Next, using this new probabilistic map of the hidden states, the model updates its transition and 
-    emission probabilities to maximize the likelihood of that map. For example, it will adjust the Sunny to Cloudy transition probability 
-    based on the weighted likelihood of all such transitions occurring in the data. This newly calculated set of probabilities is guaranteed 
-    to be a better fit for your data.</li>
-  </ol>
-  
-  <p>
-  The model repeats this E-Step and M-Step cycle over and over. With each cycle, the log-likelihood score improves, 
-  and the model's parameters get closer to the optimal solution. The process stops when the improvement between cycles becomes very small, 
-  a state known as convergence. At this point, the model has found a stable and mathematically optimized set of probabilities 
-  that best describes the underlying patterns in the data.
-  </p>
-  
+    "<div style='font-size:17px; line-height:1.6;'>
+<p>
+<b> Model training </b> is the process of finding the internal probabilities (initial state, transition, and emission) that best explain a sequence of observations. The goal is to maximize the <b>log-likelihood</b>, a statistical measure of how well the model's parameters account for the data. A higher log-likelihood score means the model provides a more plausible explanation for the sequence.
+</p>
+
+<p>
+To achieve this, the model uses an iterative algorithm called <b>Expectation-Maximization (EM)</b>, known as the Baum-Welch algorithm in this context. It begins with an initial guess for the parameters and then repeatedly applies a two-step process to incrementally improve them. The <b>E-Step (Expectation)</b> calculates the probability of being in each hidden state at every point in time, and the <b>M-Step (Maximization)</b> uses these probabilities to update the model's parameters to a new, better-fitting set. This cycle repeats until the improvements become negligible, a state known as <b>convergence</b>, resulting in an optimized model.
+</p>
 </div>"
 )
 
@@ -367,6 +326,13 @@ model_result_info <- HTML(
 </div>"
 )
 
+# --- defaults (now 2-state) ---------------------------------------------------
+pi0 <- c(0.6, 0.4)                                    
+A0  <- matrix(c(0.75,0.25,
+                0.20,0.80), 2, byrow=TRUE)          
+B0  <- matrix(c(0.70,0.30,
+                0.40,0.60), 2, byrow=TRUE)   
+
 # --- Dashboard Theming
 
 mint_dark_theme <- create_theme(
@@ -384,8 +350,6 @@ mint_dark_theme <- create_theme(
         text_light = "#ffffff"
     )
 )
-
-hmm_vis_ui <- visNetworkOutput("hmm_vis", width = "100%", height = "100%")
 
 # ----- UI: bs4DashPage with vertical sidebar navigation -----
 ui <- bs4DashPage(
@@ -553,6 +517,43 @@ ui <- bs4DashPage(
             /* strong separators (like the line after headers and before row labels) */
             .mx-table .ht_clone_top .htCore th{ border-bottom:2px solid #222; }
             .mx-table .ht_clone_left .htCore th{ border-right:2px solid #222; }
+            
+            .mx-row { display:flex; align-items:center; justify-content:center; gap:.75rem; width:100%; }
+            .mx-lead { text-align:center; font-weight:600; }
+            
+            <style>
+  /* Center a label + the matrix side by side */
+  .mx-row { display:flex; align-items:center; justify-content:center; gap:.75rem; width:100%; }
+
+  /* The bracketed matrix container */
+  .mx-mat {
+    position: relative; display:inline-grid; grid-template-columns: repeat(2, 90px);
+    gap: 10px; padding: 10px 14px; margin: 6px 0;
+  }
+  /* Draw [   ] brackets with pseudo elements */
+  .mx-mat::before, .mx-mat::after {
+    content:''; position:absolute; top:0; bottom:0; width:10px;
+    border-top:3px solid #222; border-bottom:3px solid #222;
+  }
+  .mx-mat::before { left:-12px;  border-left:3px solid #222;  border-radius:6px 0 0 6px; }
+  .mx-mat::after  { right:-12px; border-right:3px solid #222; border-radius:0 6px 6px 0; }
+
+  /* Tighten Shiny form-group spacing inside the grid */
+  .mx-mat .form-group { margin:0; }
+
+  /* Inputs look mathy, centered */
+  .mx-mat input.form-control {
+    width: 90px; height: 2.2rem; text-align:center;
+    font-family: 'Times New Roman', Georgia, serif; font-style: italic; font-size: 1.1rem;
+    padding: .25rem .5rem;
+  }
+  /* Remove number spinners */
+  .mx-mat input[type=number]::-webkit-outer-spin-button,
+  .mx-mat input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .mx-mat input[type=number] { -moz-appearance: textfield; }
+
+  .mx-lead { text-align:center; font-weight:600; }
+</style>
           "))
         ),
 
@@ -693,56 +694,73 @@ ui <- bs4DashPage(
                 div(
                     id = "sim_shell",
                     
-                    fluidRow(
-                        # LEFT column: matrix (conditional) + controls + chart + more button
-                        column(
-                            width = 7,
-                            # Matrix on top: show A for transition tab, B for emission tab
-                            conditionalPanel(
-                                condition = "input.hmm_info_tabs == 'trans_prob'",
-                                div(style = "display: flex; justify-content: space-between;",
-                                    "Edit the transition matrix below and see how it affects the simulation",
-                                    rHandsontableOutput("A_tbl", height = "120%")
-                                )
-                            ),
-                            conditionalPanel(
-                                condition = "input.hmm_info_tabs == 'emission_prob'",
-                                rHandsontableOutput("B_tbl", height = 180)
-                            ),
-                            
-                            # Controls + chart only for transition/emission tabs
-                            conditionalPanel(
-                                condition = "input.hmm_info_tabs == 'trans_prob' || input.hmm_info_tabs == 'emission_prob'",
-                                div(class = "mt-2",
-                                    sliderInput("hmm_T", "Sequence length", min = 15, max = 30, value = 20, step = 1),
-                                    actionButton("hmm_run_demo", "Run Simulation", class = "btn btn-success btn-block"),
-                                    highcharter::highchartOutput("hmm_demo_timeline", height = "40vh"),
-                                    uiOutput("more_btn")  # appears after first run
+                    conditionalPanel(
+                        condition = "input.hmm_info_tabs == 'hmm_intro'",
+                        uiOutput("hmm_overlay_pi")                 
+                    ),
+                    
+                    conditionalPanel(
+                        condition = "input.hmm_info_tabs == 'hmm_train_exp'",
+                        fluidRow(
+                            column(
+                                width = 12,
+                                div(class = "p-2",
+                                    visNetworkOutput("em_flow", height = "10vh", width = "100%"),
+                                    uiOutput("em_step_details")
                                 )
                             )
-                        ),
-                        
-                        # RIGHT column: diagram (choose per tab)
-                        column(
-                            width = 5,
-                            conditionalPanel(
-                                condition = "input.hmm_info_tabs == 'trans_prob'",
-                                uiOutput("hmm_overlay_trans", inline = TRUE)
-                            ),
-                            conditionalPanel(
-                                condition = "input.hmm_info_tabs == 'emission_prob'",
-                                uiOutput("hmm_overlay_emit", inline = TRUE)
-                            ),
-                            conditionalPanel(
-                                condition = "input.hmm_info_tabs == 'hmm_intro' || input.hmm_info_tabs == 'hmm_train_exp'",
-                                uiOutput("hmm_overlay_pi", inline = TRUE)
+                        )
+                    ),
+                    
+                    # B) TWO-COLUMN LAYOUT for other tabs
+                    conditionalPanel(
+                        condition = "input.hmm_info_tabs != 'hmm_train_exp'",
+                        fluidRow(
+                            # LEFT column
+                            column(
+                                width = 12,
+                                
+                                conditionalPanel(
+                                    condition = "input.hmm_info_tabs == 'trans_prob'",
+                                    div(class = "mx-row",
+                                        div(class = "mx-lead", "Edit the transition matrix below and see how it affects the simulation:"),
+                                        div(class = "mx-mat",
+                                            numericInput("A11", NULL, value = round(A0[1,1], 2), min = 0, max = 1, step = 0.01, width = "90px"),
+                                            numericInput("A12", NULL, value = round(A0[1,2], 2), min = 0, max = 1, step = 0.01, width = "90px"),
+                                            numericInput("A21", NULL, value = round(A0[2,1], 2), min = 0, max = 1, step = 0.01, width = "90px"),
+                                            numericInput("A22", NULL, value = round(A0[2,2], 2), min = 0, max = 1, step = 0.01, width = "90px")
+                                        )
+                                    )
+                                ),
+                                
+                                conditionalPanel(
+                                    condition = "input.hmm_info_tabs == 'emission_prob'",
+                                    div(class = "mx-row",
+                                        div(class = "mx-lead", "Edit the emission matrix below and see how it affects observations"),
+                                        div(class = "mx-mat",
+                                            numericInput("B11", NULL, value = round(B0[1,1], 2), min = 0, max = 1, step = 0.01, width = "90px"),
+                                            numericInput("B12", NULL, value = round(B0[1,2], 2), min = 0, max = 1, step = 0.01, width = "90px"),
+                                            numericInput("B21", NULL, value = round(B0[2,1], 2), min = 0, max = 1, step = 0.01, width = "90px"),
+                                            numericInput("B22", NULL, value = round(B0[2,2], 2), min = 0, max = 1, step = 0.01, width = "90px")
+                                        )
+                                    )
+                                ),
+                                
+                                conditionalPanel(
+                                    condition = "input.hmm_info_tabs == 'trans_prob' || input.hmm_info_tabs == 'emission_prob'",
+                                    div(class = "mt-2",
+                                        sliderInput("hmm_T", "Sequence length", min = 15, max = 45, value = 20, step = 1),
+                                        actionButton("hmm_run_demo", "Run Simulation", class = "btn btn-success btn-block"),
+                                        highcharter::highchartOutput("hmm_demo_timeline", height = "40vh"),
+                                        uiOutput("more_btn")
+                                    )
+                                )
                             )
-                            # (If there are other tabs, nothing is shown on the right by default)
                         )
                     )
                 ),
                 
-                # --- DETAILS VIEW (full width) ---
+                # DETAILS VIEW (full width)
                 shinyjs::hidden(
                     div(
                         id = "details_shell",
@@ -752,8 +770,9 @@ ui <- bs4DashPage(
                     )
                 )
             )
-        )
-    ),
+                )
+            ),
+            
              # Model Analysis Tab
             bs4TabItem(
                 tabName = "model_analysis",
@@ -820,7 +839,8 @@ ui <- bs4DashPage(
             )
         )
     )
-)
+        )
+
 
 server <- function(input, output, session) {
     #---------------------------------------------------------------------------------------------------------
@@ -1439,513 +1459,125 @@ server <- function(input, output, session) {
     #SERVER CODE FOR PRELIMINARY ANALYSIS ABOVE, HMM BELOW
     
     #-----------------------------------------------------------------------------
-
-    nodes <- data.frame(
-        id   = c("Initial","S1","S2","S3"),
-        label= c("Initial State","Sunny","Cloudy","Rainy"),
-        shape= c("circle","icon","icon","icon"),
-        x    = c(   0, -300,   0,  300),
-        y    = c(-275,  -50, -50,  -50),
-        size = c(110,   NA,  NA,   NA),
-        font.size = 18,
-        color = "#3EB489",              # initial circle border
-        title = "Hidden Markov Model Diagram",
-        stringsAsFactors = FALSE,
-        font.size = 28,                # makes the box bigger because text is bigger
-        margin    = NA                # padding inside the box (increase box size)
-    )
     
-    # Font Awesome icons (FA5)
-    fa_codes <- c(S1 = "f185", S2 = "f0c2", S3 = "f73d")  # sun, cloud, cloud-rain
-    mask <- nodes$id %in% names(fa_codes)
+    nodes <- data.frame( 
+        id   = c("init","estep","mstep","ll","check","done"), 
+        label = enc2utf8(c( 
+            "Initialize\nθ⁽⁰⁾",     # θ⁽⁰⁾ 
+            "E-step\n(expectation)", 
+            "M-step\n(maximization)", 
+            "Compute\nlog-likelihood", 
+            "Convergence?", # ΔL, ε 
+            "Done") 
+        ), 
+        #level = 0:5, 
+        title = c( 
+            "Choose starting parameters theta^(0)", 
+            "Compute responsibilities (posterior of hidden variables)", 
+            "Maximize expected complete log-likelihood", 
+            "Evaluate L(theta) = sum log sum p(x,z | theta)", 
+            "Stop if converged; otherwise continue", 
+            "Algorithm terminates" 
+        ), 
+        stringsAsFactors = FALSE 
+    ) 
     
-    nodes$icon.face  <- NA; nodes$icon.code  <- NA
-    nodes$icon.size  <- NA; nodes$icon.color <- NA; nodes$icon.weight <- NA
+    edges <- data.frame( 
+        from  = c("init","estep","mstep","ll","check","check"), 
+        to   = c("estep","mstep","ll","check","estep","done"), 
+        label  = c("","","","","No","Yes"), 
+        arrows = "to", 
+        smooth = c(FALSE,FALSE,FALSE,FALSE,TRUE,FALSE), 
+        stringsAsFactors = FALSE 
+    ) 
     
-    nodes$icon.face[mask]   <- "'Font Awesome 5 Free'"
-    nodes$icon.code[mask]   <- unname(fa_codes[nodes$id[mask]])
-    nodes$icon.weight[mask] <- 900
-    
-    # tuned icon sizes and colors
-    nodes$icon.size[nodes$id=="S1"]  <- 96
-    nodes$icon.size[nodes$id=="S2"]  <- 86
-    nodes$icon.size[nodes$id=="S3"]  <- 100
-    
-    state_colors <- c(S1="#F6C54E", S2="#7A7A7A", S3="#4DA3FF")
-    
-    nodes$icon.color[nodes$id=="S1"] <- state_colors["S1"]  # sun (yellow)
-    nodes$icon.color[nodes$id=="S2"] <- state_colors["S2"]  # cloud (grey)
-    nodes$icon.color[nodes$id=="S3"] <- state_colors["S3"]  # rain (blue)
-    
-    # Nodes
-    S <- c("S1","S2","S3")
-    O <- c("O_hot","O_mild","O_cold")
-    
-    from_tr  <- c(rep("Initial", length(S)), rep(S, each = length(S)))
-    to_tr    <- c(S,                        rep(S, times = length(S)))
-    label_tr <- c("P₁","P₂","P₃",
-                  "P₁₁","P₁₂","P₁₃",
-                  "P₂₁","P₂₂","P₂₃",
-                  "P₃₁","P₃₂","P₃₃")
-    
-    ## emissions: 9 (every S* -> every O_*)
-    from_em <- rep(S, each = length(O))
-    to_em   <- rep(O, times = length(S))
-    
-    from  <- c(from_tr, from_em)
-    to    <- c(to_tr,   to_em)                  
-    label <- c(label_tr, rep(NA_character_, length(from_em)))
-    
-    is_emission <- to %in% O
-    is_initial  <- from == "Initial"
-    
-    ## Per edge attributes
-    arrows    <- rep("to", length(from))
-    dashes    <- is_emission    
-    color <- ifelse(
-        is_initial, 
-        "#000000", 
-        ifelse(
-            is_emission, 
-            state_colors[from],   # assumes `col` is your mapping: e.g., col <- c(S1="#F6C54E", S2="#7A7A7A", S3="#4DA3FF")
-            NA_character_
-        )
-    )
-    width     <- rep(2, length(from))
-    font.size <- ifelse(is_emission, 14, NA_real_)
-    
-    ## ---- smooth list-col (single pass) ----
-    smooth_rule <- function(f, t) {
-        if (t %in% O || f == "Initial") return(FALSE)                               # straight
-        if (f == t)                         return(list(enabled=TRUE,type="curvedCW",roundness=0.30))
-        if (f == "S3" && t == "S1")         return(list(enabled=TRUE,type="curvedCW",roundness=0.25))
-        return(list(enabled=TRUE,type="curvedCW",roundness=0.20))
-    }
-    smooth <- mapply(smooth_rule, from, to, SIMPLIFY = FALSE)
-    
-    edges <- data.frame(
-        id        = paste0(from, "->", to),
-        from      = from,
-        to        = to,
-        label     = label,
-        arrows    = arrows,
-        dashes    = dashes,
-        color     = color,
-        width     = width,
-        font.size = font.size,
-        stringsAsFactors = FALSE
-    )
-    edges$smooth <- smooth
-    
-    edges$endPointOffset <- vector("list", nrow(edges))
-    edges$endPointOffset[edges$id == "Initial->S1"] <- list(list(from=14L, to=18L))
-    edges$endPointOffset[edges$id == "Initial->S2"] <- list(list(from=14L, to=20L))
-    edges$endPointOffset[edges$id == "Initial->S3"] <- list(list(from=14L, to=18L))
-    
-    
-    #temp disable edge labels
-    edges$label <- NULL
-    
-    # Observation nodes
-    obs_nodes <- data.frame(
-        id         = c("O_hot","O_mild","O_cold"),
-        label      = c("Hot","Mild","Cold"),
-        size       = 100,
-        font.size  = 16,
-        shape      = "box",
-        x          = c(-300,   0,  300), 
-        y          = c(100,   100, 100),
-        color      = "#666666",
-        title      = NA_character_,
-        stringsAsFactors = FALSE,
-        font.size = 28,                # makes the box bigger because text is bigger
-        margin    = 20                # padding inside the box (increase box size)
-    )
-    
-    fa_obs <- c(O_sun="f185", O_cloud="f0c2", O_rain="f73d")
-    obs_nodes$icon.face   <- "'Font Awesome 5 Free'"
-    obs_nodes$icon.code   <- unname(fa_obs[obs_nodes$id])
-    obs_nodes$icon.weight <- 900
-    obs_nodes$icon.size   <- 80
-    obs_nodes$icon.color  <- c("#F6C54E","#7A7A7A","#4DA3FF")
-    
-    nodes <- rbind(nodes, obs_nodes)
-    
-    # Big and small visnetwork for display purposes
-    
-    
-    output$hmm_vis <- renderVisNetwork({
-        visNetwork(nodes, edges) %>%
-            addFontAwesome(version = "5.13.0") %>%
-            visPhysics(enabled = FALSE) %>%
-            visEdges(
-                color  = list(color="rgba(0,0,0,0)",      # invisible by default; per-edge overrides show
-                              hover="rgba(0,0,0,0)",
-                              highlight="rgba(0,0,0,0)"),
-                smooth = list(enabled=TRUE),
-                arrowStrikethrough = FALSE,
-                endPointOffset = list(from=0, to=10),
-                selfReference   = list(size=30, angle=0.35, renderBehindTheNode=TRUE),
-                font = list(size=20, background="rgba(255,255,255,0.96)", strokeWidth=0, vadjust=-6),
-                dashes = T
-            ) %>%
-            # generate all gradient arrows
-            visEvents(beforeDrawing = htmlwidgets::JS("
-                function(ctx){
-                  var net = this;
-                  var scaleFactor = ctx.canvas.height / 1000.0;
-                
-                  // --- colors for gradient & loops ---
-                  var col = { S1:'#F6C54E', S2:'#7A7A7A', S3:'#4DA3FF' };
-                
-                  // --- state to state tweak table (control offset + trim) ---
-                  var s_width = Math.max(1.0, 2 * scaleFactor);
-                  var T = {
-                    'S1->S2': {dx:0,  dy:-20*scaleFactor, t0:0.10, t1:0.85, w:s_width},
-                    'S2->S1': {dx:0,  dy:30*scaleFactor,  t0:0.08, t1:0.80, w:s_width},
-                    'S1->S3': {dx:30*scaleFactor, dy:-150*scaleFactor, t0:0.05, t1:0.90, w:s_width},
-                    
-                    'S3->S1': {dx:10*scaleFactor, dy:70*scaleFactor,  t0:0.0, t1:0.91, w:s_width},
-                    'S2->S3': {dx:0,  dy:-20*scaleFactor, t0:0.10, t1:0.82, w:s_width},
-                    'S3->S2': {dx:0,  dy:30*scaleFactor,  t0:0.0, t1:0.8, w:s_width}
-                  };
-                
-                    function mkLoop(id, dy, ang){
-                      var nd = net.body.nodes[id];
-                      var sz = ((nd && nd.options && nd.options.icon && nd.options.icon.size) ? nd.options.icon.size : 90) * scaleFactor;
-                      var r  = sz/2 + 0;      // radius ~ icon radius + margin
-                      var dx = sz/2 + (8 * scaleFactor);    // loop center to the right of node
-                        return { 
-                          dx: dx,                  // horizontal shift of loop center
-                          dy: ((dy ?? -5) * scaleFactor),    // vertical shift of loop center
-                          r: r,                    // loop radius
-                          a0:210,                   // start angle (degrees)
-                          a1:450,                   // end angle (degrees)  to  controls how “round” it is
-                          w: Math.max(1.0, 2 * scaleFactor),                   // stroke width
-                          tipBackPx: (9 * scaleFactor),        // how far back the loop stops before arrowhead
-                          ang: (ang || 0)          // small manual rotation of arrowhead direction
-                        };
+    # ---- Graph ---- 
+    output$em_flow <- renderVisNetwork({ 
+        visNetwork(nodes, edges, height = "420px", width = "100%") %>% 
+            visHierarchicalLayout( 
+                direction    = "LR", 
+                levelSeparation = 280,  # pushes columns apart (horizontal) 
+                nodeSpacing   = 140,  # vertical spacing within a column 
+                treeSpacing   = 240,  # spacing between branches 
+                blockShifting  = FALSE  # keeps columns from drifting 
+            ) %>% 
+            visNodes( 
+                shape = "box",  
+                margin = list(top = 14, right = 18, bottom = 14, left = 18), 
+                widthConstraint = list(minimum = 140, maximum = 220), 
+                color = list( 
+                    background = "#f8f9fa", border = "#6c757d", 
+                    highlight  = list(background = "#d4edda", border = "#28a745") 
+                ), 
+                font = list(size = 30, face = "Helvetica", align = "center") 
+            ) %>% 
+            visEdges(color = list(color = "#6c757d"), 
+                     font  = list(size = 28, align = "horizontal")) %>% 
+            visInteraction(dragNodes = FALSE, dragView = TRUE, zoomView = TRUE, hover = TRUE)  %>%
+            visEvents(
+                selectNode = "function(p){
+                    if(window.Shiny && p.nodes && p.nodes.length){
+                      Shiny.setInputValue('em_node_selected', p.nodes[0], {priority:'event'});
                     }
-                  var Lp = {
-                    'S1->S1': mkLoop('S1', -5, -5),  // rotate ~1.2° clockwise
-                    'S2->S2': mkLoop('S2', -5,  -5),  // rotate ~0.8° CCW
-                    'S3->S3': mkLoop('S3', -5,  -5)
-                  };
-                
-                  // --- nudge the label anchor for P13 (move vis's underlying via) ---
-                  var labelNudge = { 'S1->S3': {dx: 4*scaleFactor, dy: -4*scaleFactor} };
-                  var esData = net.body.data.edges.get();
-                  window.__baseVia = window.__baseVia || {};
-                  esData.forEach(function(e){
-                    var nud = labelNudge[e.id]; if(!nud) return;
-                    var eo = net.body.edges[e.id]; if(!eo) return;
-                
-                    if(!window.__baseVia[e.id]){
-                      if(eo.via){
-                        window.__baseVia[e.id] = {x:eo.via.x, y:eo.via.y};
-                      } else {
-                        var p = net.getPositions([e.from,e.to]), p0=p[e.from], p2=p[e.to];
-                        window.__baseVia[e.id] = {x:(p0.x+p2.x)/2, y:(p0.y+p2.y)/2 - 0.001};
-                        eo.options.smooth = {enabled:true,type:'curvedCW',roundness:0.001};
-                      }
-                    }
-                    var b = window.__baseVia[e.id];
-                    eo.via = {x:b.x+(nud.dx||0), y:b.y+(nud.dy||0)};
-                  });
-                
-                  // --- helpers (minimal) ---
-                  function B(t,p0,p1,p2){ var mt=1-t; return {
-                    x: mt*mt*p0.x + 2*mt*t*p1.x + t*t*p2.x,
-                    y: mt*mt*p0.y + 2*mt*t*p1.y + t*t*p2.y
-                  }; }
-                  function ctrl(p0,p2,opt){
-                    var dx=p2.x-p0.x, dy=p2.y-p0.y, L=Math.hypot(dx,dy)||1, ux=dx/L, uy=dy/L;
-                    var mx=(p0.x+p2.x)/2, my=(p0.y+p2.y)/2;
-                    var depth = 0.60*L * ((opt&&opt.roundness)?opt.roundness:0.20);
-                    var sgn   = (opt&&opt.type==='curvedCCW') ? 1 : -1;
-                    return { x: mx + sgn*depth*(-uy), y: my + sgn*depth*(ux) };
-                  }
-                  function gradAtTip(p0,p2,tip,c0,c1){
-                    function H(h){h=h.replace('#',''); if(h.length===3) h=h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
-                      var n=parseInt(h,16); return {r:(n>>16)&255,g:(n>>8)&255,b:n&255};}
-                    function X(r,g,b){var z=x=>('0'+x.toString(16)).slice(-2); return '#'+z(r)+z(g)+z(b);}
-                    var dx=p2.x-p0.x, dy=p2.y-p0.y, den=dx*dx+dy*dy||1;
-                    var t=((tip.x-p0.x)*dx + (tip.y-p0.y)*dy)/den; t=Math.max(0,Math.min(1,t));
-                    var a=H(c0), b=H(c1);
-                    return X(Math.round(a.r+(b.r-a.r)*t), Math.round(a.g+(b.g-a.g)*t), Math.round(a.b+(b.b-a.b)*t));
-                  }
-                  function drawHead(ctx, tip, dir, fill, w){
-                    var len=16*scaleFactor, bw=12*scaleFactor, round=-0.70, oCol='#000', oW=1.0, baseSeg=Math.max(5*scaleFactor, 0.5*w);
-                    var L=Math.hypot(dir.x,dir.y)||1, ux=dir.x/L, uy=dir.y/L, nx=-uy, ny=ux;
-                    var bx=tip.x-ux*len, by=tip.y-uy*len, hw=bw/2;
-                    var Lp={x:bx-nx*hw, y:by-ny*hw}, Rp={x:bx+nx*hw, y:by+ny*hw}, Cp={x:bx-ux*(round*hw), y:by-uy*(round*hw)};
-                    
-                    // fill
-                    ctx.beginPath(); ctx.moveTo(tip.x, tip.y);
-                    ctx.lineTo(Lp.x, Lp.y); ctx.quadraticCurveTo(Cp.x, Cp.y, Rp.x, Rp.y); ctx.closePath();
-                    ctx.fillStyle=fill; ctx.fill();
-                    
-                    // side outlines + short base hints (no seam over shaft)
-                    ctx.save(); ctx.lineJoin='round'; ctx.miterLimit=2; ctx.strokeStyle=oCol; ctx.lineWidth=oW;
-                    ctx.beginPath(); ctx.moveTo(tip.x, tip.y); ctx.lineTo(Lp.x, Lp.y); ctx.stroke();
-                    ctx.beginPath(); ctx.moveTo(tip.x, tip.y); ctx.lineTo(Rp.x, Rp.y); ctx.stroke();
-                    function shortSeg(P0,P1,lenPx){ var vx=P1.x-P0.x, vy=P1.y-P0.y, L=Math.hypot(vx,vy)||1, ux=vx/L, uy=vy/L;
-                      ctx.beginPath(); ctx.moveTo(P0.x,P0.y); ctx.lineTo(P0.x+ux*lenPx, P0.y+uy*lenPx); ctx.stroke(); }
-                    shortSeg(Lp, {x:Cp.x,y:Cp.y}, baseSeg); shortSeg(Rp, {x:Cp.x,y:Cp.y}, baseSeg);
-                    ctx.restore();
-                  }
-                
-                  // --- draw gradients & loops BEFORE labels so labels stay on top ---
-                  var pos = net.getPositions();
-                  var all = net.body.data.edges.get();
-                
-                  // state to state gradient shafts + heads
-                  all.forEach(function(e){
-                    var sf=['S1','S2','S3'].indexOf(e.from)>=0, st=['S1','S2','S3'].indexOf(e.to)>=0;
-                    if(!sf || !st || e.from===e.to) return;
-                    var p0=pos[e.from], p2=pos[e.to]; if(!p0||!p2) return;
-                    var eo=net.body.edges[e.id];
-                    var via=(eo&&eo.via)?{x:eo.via.x,y:eo.via.y}:ctrl(p0,p2,e.smooth);
-                    var tw=T[e.id]||{dx:0,dy:0,t0:0.08,t1:0.92,w:3*scaleFactor};
-                    via.x+=(tw.dx||0); via.y+=(tw.dy||0);
-                
-                    var t0=tw.t0, t1=tw.t1, W=tw.w, steps=48, dt=(t1-t0)/steps;
-                
-                    // path
-                    var p=B(t0,p0,via,p2); ctx.beginPath(); ctx.moveTo(p.x,p.y);
-                    for(var tt=t0+dt; tt<=t1+1e-6; tt+=dt){ p=B(tt,p0,via,p2); ctx.lineTo(p.x,p.y); }
-                
-                    // outline then gradient stroke
-                    ctx.save(); ctx.lineCap='round'; ctx.lineJoin='round';
-                    ctx.strokeStyle='#000'; ctx.lineWidth=W+Math.max(0.8, 1.7*scaleFactor); ctx.stroke();
-                    var g=ctx.createLinearGradient(p0.x,p0.y,p2.x,p2.y);
-                    g.addColorStop(0, col[e.from]||'#3EB489'); g.addColorStop(1, col[e.to]||'#3EB489');
-                    ctx.strokeStyle=g; ctx.lineWidth=W; ctx.stroke(); ctx.restore();
-                
-                    // --- head at tip ---
-                    var dtBack = Math.min(0.12, 6 / (Math.hypot(p2.x - p0.x, p2.y - p0.y) || 1));  // ~6px in t-space
-                    var tBack  = Math.max(t0 + 1e-3, t1 - dtBack);
-                    
-                    var back = B(tBack, p0, via, p2);
-                    var tip  = B(t1,    p0, via, p2);
-                    
-                    var dirx = tip.x - back.x, diry = tip.y - back.y;
-                    
-                    // nudge the head a couple of pixels forward so it kisses the stroke end
-                    var len  = Math.hypot(dirx, diry) || 1;
-                    var shiftPx = 5 * scaleFactor;       // tweak 1.5–3.0 if needed
-                    tip.x += shiftPx * (dirx / len);
-                    tip.y += shiftPx * (diry / len);
-                    
-                    // fill = gradient color at the (shifted) tip
-                    var fill = gradAtTip(p0, p2, tip, col[e.from] || '#3EB489', col[e.to] || '#3EB489');
-                    
-                    drawHead(ctx, tip, {x: dirx, y: diry}, fill, W);
-
-                  });
-                
-                  // self-loops (size-aware) with back-off so heads sit on the arc
-                  ['S1','S2','S3'].forEach(function(s){
-                    var p=pos[s]; if(!p) return;
-                    var t=Lp[s+'->'+s]; var cx=p.x+t.dx, cy=p.y+t.dy, r=t.r, lw=t.w;
-                    var a0=t.a0*Math.PI/180, a1=t.a1*Math.PI/180;
-                    var back = Math.min(0.5, (t.tipBackPx||(9*scaleFactor))/r);  // radians
-                    var aEnd = a1 - back;
-                
-                    ctx.save(); ctx.lineCap='round';
-                    ctx.beginPath(); ctx.arc(cx,cy,r,a0,aEnd,false);
-                    ctx.strokeStyle='#000'; ctx.lineWidth=lw+Math.max(0.8, 1.7*scaleFactor); ctx.stroke();
-                    ctx.strokeStyle=col[s]||'#3EB489'; ctx.lineWidth=lw; ctx.stroke();
-                    ctx.restore();
-                
-                    // head at end angle
-                    var tip = { x: cx + r*Math.cos(a1), y: cy + r*Math.sin(a1) };
-                    
-                    // tangent at a1
-                    var tx = -Math.sin(a1), ty = Math.cos(a1);
-                    
-                    // optional per-loop micro-rotation (degrees)
-                    var key = s + '->' + s;
-                    var angDeg = (Lp[key] && Lp[key].ang) || 0;
-                    if (angDeg) {
-                      var a = angDeg * Math.PI / 180, ca = Math.cos(a), sa = Math.sin(a);
-                      var rx = tx*ca - ty*sa, ry = tx*sa + ty*ca;
-                      tx = rx; ty = ry;
-                    }
-
-                    // draw head with rotated direction
-                    drawHead(ctx, tip, { x: tx, y: ty }, col[s] || '#3EB489', lw);
-                    
-                    
-                    //var tip={x:cx+r*Math.cos(a1), y:cy+r*Math.sin(a1)};
-                    //var dir={x:-Math.sin(a1), y: Math.cos(a1)};
-                    //drawHead(ctx, tip, dir, col[s]||'#3EB489', lw);
-                  });
-                }
-            ")) %>%
-            
-            # Drawing labels and slightly adjusting vis canvas placement
-            visEvents(afterDrawing = htmlwidgets::JS("
-                function(ctx){
-                  var net = this;
-                
-                  // expose network for redraws
-                  window.__vn = this;
-                
-                  // one-time wiring for flag-driven redraw
-                  if (!window.__hmmFlagsWired){
-                    window.__hmmFlagsWired = true;
-                    window.hmmFlags = { t_prob:false, e_prob:false };
-                
-                    Shiny.addCustomMessageHandler('hmmFlags', function(flags){
-                      window.hmmFlags = flags || { t_prob:false, e_prob:false };
-                      if (window.__vn && typeof window.__vn.redraw === 'function') window.__vn.redraw();
-                    });
-                
-                    Shiny.addCustomMessageHandler('redrawNet', function(){
-                      if (window.__vn && typeof window.__vn.redraw === 'function') window.__vn.redraw();
-                    });
-                  }
-                
-                  if (!this.__movedOnce) {
-                    this.__movedOnce = true;
-                    var scaleFactor = ctx.canvas.height / 700.0;
-                    this.moveTo({ position: { x: 0, y: -60 * scaleFactor }, scale: 1.05, animation: false });
-                  }
-                
-                  // ---- CUSTOM EDGE LABELS (manual placement) ----
-                  (function(){
-                    var net  = this;
-                    var ctx  = arguments[0];
-                    var pos  = net.getPositions();
-                    var edges= net.body.data.edges.get();
-                    var scaleFactor = ctx.canvas.height / 700.0;
-                
-                    // helpers
-                    function roundRect(ctx, x, y, w, h, r){
-                      var rr = Math.min(r, Math.min(w, h)/2);
-                      ctx.beginPath();
-                      ctx.moveTo(x+rr, y);
-                      ctx.arcTo(x+w, y,   x+w, y+h, rr);
-                      ctx.arcTo(x+w, y+h, x,   y+h, rr);
-                      ctx.arcTo(x,   y+h, x,   y,   rr);
-                      ctx.arcTo(x,   y,   x+w, y,   rr);
-                      ctx.closePath();
-                    }
-                    function B(t,p0,p1,p2){ var mt=1-t; return {
-                      x: mt*mt*p0.x + 2*mt*t*p1.x + t*t*p2.x,
-                      y: mt*mt*p0.y + 2*mt*t*p1.y + t*t*p2.y
-                    }; }
-                    function controlPoint(p0,p2,opt){
-                      var dx=p2.x-p0.x, dy=p2.y-p0.y, L=Math.hypot(dx,dy)||1, ux=dx/L, uy=dy/L;
-                      var mx=(p0.x+p2.x)/2, my=(p0.y+p2.y)/2;
-                      var depth = 0.60*L * ((opt&&opt.roundness)?opt.roundness:0.20);
-                      var sgn   = (opt&&opt.type==='curvedCCW') ? 1 : -1;
-                      return { x: mx + sgn*depth*(-uy), y: my + sgn*depth*(ux) };
-                    }
-                    function drawLabel(x, y, txt, opt){
-                      opt = opt || {};
-                      var fs = (opt.size || 18) * scaleFactor;
-                      ctx.save();
-                      ctx.font = (opt.bold?'600 ':'') + fs + 'px Helvetica, Arial';
-                      ctx.textAlign = 'center';
-                      ctx.textBaseline = 'middle';
-                      var pad = (opt.pad!=null?opt.pad:4) * scaleFactor, rad = (opt.radius!=null?opt.radius:4) * scaleFactor;
-                      var w = ctx.measureText(txt).width + 2*pad;
-                      var h = fs*1.15 + 2*pad;
-                      var bx = x - w/2, by = y - h/2;
-                      ctx.fillStyle    = opt.bg    || 'rgba(255,255,255,0.98)';
-                      ctx.strokeStyle = opt.border|| 'rgba(0,0,0,0)';
-                      ctx.lineWidth   = (opt.borderWidth || 0) * scaleFactor;
-                      roundRect(ctx, bx, by, w, h, rad);
-                      ctx.fill();
-                      if (ctx.lineWidth>0) ctx.stroke();
-                      ctx.fillStyle = opt.color || '#2b2b2b';
-                      ctx.fillText(txt, x, y);
-                      ctx.restore();
-                    }
-                
-                    // transition labels
-                    var edgeLabelsTrans = {
-                      'Initial->S1': { text: 'P₁',   t: 0.55, dx:  15*scaleFactor, dy: -35*scaleFactor },
-                      'Initial->S2': { text: 'P₂',   t: 0.55, dx: -10*scaleFactor, dy: -14*scaleFactor },
-                      'Initial->S3': { text: 'P₃',   t: 0.55, dx: -25*scaleFactor, dy:   5*scaleFactor },
-                
-                      'S1->S1':      { text: 'P₁₁',  x: pos.S1.x + 35*scaleFactor, y: pos.S1.y - 65*scaleFactor },
-                      'S1->S2':      { text: 'P₁₂',  t: 0.42, dx:  90*scaleFactor, dy: -10*scaleFactor },
-                      'S1->S3':      { text: 'P₁₃',  t: 0.50, dx: -40*scaleFactor, dy: -70*scaleFactor },
-                
-                      'S2->S1':      { text: 'P₂₁',  t: 0.55, dx:  80*scaleFactor, dy:  14*scaleFactor },
-                      'S2->S2':      { text: 'P₂₂',  x: pos.S2.x + 38*scaleFactor, y: pos.S2.y - 40*scaleFactor },
-                      'S2->S3':      { text: 'P₂₃',  t: 0.55, dx: -20*scaleFactor, dy: -10*scaleFactor },
-                
-                      'S3->S1':      { text: 'P₃₁',  t: 0.52, dx:  10*scaleFactor, dy:  38*scaleFactor },
-                      'S3->S2':      { text: 'P₃₂',  t: 0.52, dx:   0*scaleFactor, dy:  14*scaleFactor },
-                      'S3->S3':      { text: 'P₃₃',  x: pos.S3.x + 52*scaleFactor, y: pos.S3.y - 44*scaleFactor }
-                    };
-                
-                    // emission labels (example placeholders)
-                    var edgeLabelsEmit = {
-                      'S1->O_hot':   { text: 'b₁(hot)',  t: 0.50, dx: -10*scaleFactor, dy:  8*scaleFactor },
-                      'S1->O_mild':  { text: 'b₁(mild)', t: 0.50, dx:   0*scaleFactor, dy:  8*scaleFactor },
-                      'S1->O_cold':  { text: 'b₁(cold)', t: 0.50, dx:  10*scaleFactor, dy:  8*scaleFactor },
-                
-                      'S2->O_hot':   { text: 'b₂(hot)',  t: 0.50, dx: -10*scaleFactor, dy:  8*scaleFactor },
-                      'S2->O_mild':  { text: 'b₂(mild)', t: 0.50, dx:   0*scaleFactor, dy:  8*scaleFactor },
-                      'S2->O_cold':  { text: 'b₂(cold)', t: 0.50, dx:  10*scaleFactor, dy:  8*scaleFactor },
-                
-                      'S3->O_hot':   { text: 'b₃(hot)',  t: 0.50, dx: -10*scaleFactor, dy:  8*scaleFactor },
-                      'S3->O_mild':  { text: 'b₃(mild)', t: 0.50, dx:   0*scaleFactor, dy:  8*scaleFactor },
-                      'S3->O_cold':  { text: 'b₃(cold)', t: 0.50, dx:  10*scaleFactor, dy:  8*scaleFactor }
-                    };
-                
-                    // decide which set to draw
-                    var flags = window.hmmFlags || { t_prob:false, e_prob:false };
-                    if (!flags.t_prob && !flags.e_prob) return;
-                    var labelSet = flags.t_prob ? edgeLabelsTrans : edgeLabelsEmit;
-                
-                    // draw labels
-                    edges.forEach(function(e){
-                      var key = e.id || (e.from + '->' + e.to);
-                      var def = labelSet[key];
-                      if (!def) return;
-                
-                      var x, y;
-                      if (typeof def.x === 'number' && typeof def.y === 'number'){
-                        x = def.x; y = def.y;
-                      } else if (typeof def.t === 'number'){
-                        var p0 = pos[e.from], p2 = pos[e.to];
-                        if(!p0 || !p2) return;
-                        var eo  = net.body.edges[e.id];
-                        var via = (eo && eo.via) ? eo.via : controlPoint(p0,p2, e.smooth);
-                        var P   = B(Math.max(0, Math.min(1, def.t)), p0, via, p2);
-                        x = P.x + (def.dx||0);
-                        y = P.y + (def.dy||0);
-                      } else {
-                        return;
-                      }
-                
-                      drawLabel(x, y, def.text, {
-                        size: 15,
-                        bold: true,
-                        bg: 'rgba(255,255,255,0.98)',
-                        border: '#000000',
-                        borderWidth: 1.0
-                      });
-                    });
-                
-                    // console helper
-                    window.setEdgeLabel = function(id, obj){
-                      var target = ( (window.hmmFlags||{}).t_prob ? edgeLabelsTrans : edgeLabelsEmit );
-                      target[id] = Object.assign(target[id]||{}, obj||{});
-                      net.redraw();
-                    };
-                  }).apply(this, arguments);
-                }
-                ")) %>%
-            visNodes(fixed = TRUE) %>%
-            visOptions(highlightNearest = TRUE, nodesIdSelection = FALSE) %>%
-            visInteraction(dragNodes = FALSE, dragView = FALSE, zoomView = FALSE)
+                  }",
+                            deselectNode = "function(p){
+                    if(window.Shiny){ Shiny.setInputValue('em_node_selected', null, {priority:'event'}); }
+                  }"
+            )
+        })
+    
+    em_text <- lapply(list(
+        init = '
+    <h4>Step 1: Initialize Parameters</h4>
+    <p>
+      The algorithm begins by making an initial guess for the model\'s parameters, collectively known as \\(\\theta\\). These parameters define the model\'s starting beliefs about the system.
+      $$ \\theta = \\{\\pi, A, B \\} $$
+      This includes \\(\\pi\\), the probability of starting in each hidden state; <b>A</b>, the probability of transitioning between hidden states; and <b>B</b>, the probability of seeing an observation from a given hidden state. For our weather example, we might guess there\'s a 50% chance the first day is <em>Sunny</em> (\\(\\pi\\)), a 10% chance a <em>Sunny</em> day is followed by a <em>Rainy</em> one (in matrix A), and an 80% chance a <em>Sunny</em> day results in an <em>Arid</em> observation (in matrix B).
+    </p>',
+        
+        estep = '
+    <h4>Step 2: The E-Step (Expectation)</h4>
+    <p>
+      Using its current parameters, the model calculates the "responsibilities"—the probability of each hidden state being the true state for every point in our observed data sequence. It does this using a formula for \\(\\gamma_t(i)\\):
+      $$ \\gamma_t(i) = P(z_t=i | X, \\theta) $$
+      This equation calculates the probability that the hidden state \\(z\\) at time \\(t\\) was state \\(i\\) (e.g., <em>Sunny</em>), given the entire sequence of observations \\(X\\) (e.g., Arid, Humid, Humid...). Rather than making a hard decision, it creates a soft, probabilistic map. For a day we observed <em>Arid</em> conditions, this step might conclude there\'s an 85% probability the underlying state was <em>Sunny</em> and a 15% probability it was <em>Rainy</em>.
+    </p>',
+        
+        mstep = '
+    <h4>Step 3: The M-Step (Maximization)</h4>
+    <p>
+      With the probabilistic map from the E-step, the model updates its parameters to better explain the data. For example, the transition probabilities in matrix <b>A</b> are re-calculated based on the expected number of transitions that occurred.
+       $$ A_{ij} = \\frac{\\text{Expected # of transitions from state i to j}}{\\text{Expected # of transitions from state i}} $$
+      If the E-step frequently found that a high-probability <em>Sunny</em> day was followed by a high-probability <em>Rainy</em> day, this M-step will increase the value for the <em>Sunny</em> → <em>Rainy</em> transition. The same logic is applied to update the initial state (\\(\\pi\\)) and emission (<b>B</b>) probabilities, ensuring the new parameters are a better fit for the data.
+    </p>',
+        
+        ll = '
+    <h4>Step 4: Compute Log-Likelihood</h4>
+    <p>
+      After updating the parameters, the algorithm "scores" how well the new model explains the observed data by calculating the log-likelihood.
+      $$ L(\\theta) = \\log P(X|\\theta) $$
+      This value, \\(L(\\theta)\\), is the logarithm of the total probability of observing our specific sequence of data (e.g., Arid, Humid, Humid...) given the current model parameters. In a properly functioning EM algorithm, this score should increase with each iteration, signaling that the model is getting progressively better.
+    </p>',
+        
+        check = '
+    <h4>Step 5: Check for Convergence</h4>
+    <p>
+      The algorithm must decide whether to stop or perform another iteration. It stops if the improvement in the log-likelihood score becomes negligible, or if a maximum number of cycles is reached.
+      $$ \\Delta L < \\epsilon $$
+      This condition checks if the change in log-likelihood (\\(\\Delta L\\)) is less than a tiny tolerance value (\\(\\epsilon\\)). When the probabilities for <em>Sunny/Rainy</em> transitions and <em>Arid/Humid</em> emissions barely change from one cycle to the next, we can be confident the model has converged on a stable, locally optimal solution.
+    </p>',
+        
+        done = '
+    <h4>Step 6: Algorithm Complete</h4>
+    <p>
+      Once convergence is reached, the algorithm terminates. The final set of parameters, \\(\\theta^*\\), represents the fully trained model. These optimized probabilities capture the underlying structure of the training data. For example, the final model might have learned that a <em>Sunny</em> day has a 95% chance of being followed by another <em>Sunny</em> day, and an 85% chance of producing an <em>Arid</em> observation. This trained model can now be used for analysis or to predict hidden states from new data.
+    </p>'
+    ), HTML)
+    
+    output$em_step_details <- renderUI({
+        id <- input$em_node_selected
+        if (is.null(id)) return(div(style="color:#6c757d;", htmltools::tags$em("Click a step to see details.")))
+        withMathJax(HTML(em_text[[id]]))
     })
     
     # Transition probabilities matrix
@@ -1956,8 +1588,8 @@ server <- function(input, output, session) {
               \\left[
               \\begin{array}{c|cc}
                   & ☀ & 🌧 \\\\ \\hline
-                ☀  & P_{SS} & P_{SR} \\\\
-                🌧 & P_{RS} & P_{RR}
+                ☀  & P_{☀→☀} & P_{☀→🌧} \\\\
+                🌧 & P_{🌧→☀} & P_{🌧→🌧}
               \\end{array}
               \\right]
             \\]
@@ -1981,78 +1613,112 @@ server <- function(input, output, session) {
           '))
     })
     
-    `%||%` <- function(x, y) if (is.null(x)) y else x
-    .norm  <- function(v){ s <- sum(v, na.rm=TRUE); if(!is.finite(s) || s<=0) rep(1/length(v), length(v)) else v/s }
-    
-    # --- defaults (now 2-state) ---------------------------------------------------
-    pi0 <- c(0.6, 0.4)                                    
+    pi0 <- c(0.5, 0.5)  # equal π as requested
     A0  <- matrix(c(0.75,0.25,
-                    0.20,0.80), 2, byrow=TRUE)          
+                    0.20,0.80), 2, byrow = TRUE)
     B0  <- matrix(c(0.70,0.30,
-                    0.40,0.60), 2, byrow=TRUE)           
+                    0.40,0.60), 2, byrow = TRUE)
     
-    # --- inputs -> reactives (2 entries only) -------------------------------------
-    R_pi <- reactive({
-        .norm(c(input$hmm_pi1 %||% pi0[1],                 
-                input$hmm_pi2 %||% pi0[2]))
-    })
+    # ---------- helpers ----------
+    `%||%` <- function(x, y) if (is.null(x)) y else x
     
-    make_mat_df <- function(M, rowlabs, collabs){
-        df <- as.data.frame(M); names(df) <- collabs; rownames(df) <- rowlabs; df
+    .draw_cat <- function(prob) {
+        p <- as.numeric(prob)
+        p[!is.finite(p) | p < 0] <- 0
+        s <- sum(p)
+        if (s <= 0) p[] <- 1/length(p) else p <- p/s
+        sample.int(length(p), 1L, prob = p)
     }
     
-    output$A_tbl <- renderRHandsontable({
-        dfA <- round(make_mat_df(A0, c('☀','🌧'), c('☀','🌧')), 2)
-        rhandsontable(dfA, rowHeaders = TRUE, stretchH = "all") %>%
-            hot_table(className = "mx-table htCenter htMiddle", rowHeaderWidth = 80) %>%
-            hot_validate_numeric(cols = 1:2, min = 0, max = 1, allowInvalid = FALSE) %>% 
-            hot_cols(format = "0.00")
+    # validate a 2x2 probability matrix (no normalization)
+    .validate_matrix <- function(M, name, tol = 1e-8) {
+        errs <- character(0)
+        if (any(!is.finite(M)))            errs <- c(errs, sprintf("%s has non-finite entries.", name))
+        if (any(M < 0 | M > 1, na.rm=TRUE))errs <- c(errs, sprintf("%s entries must be in [0,1].", name))
+        rs <- rowSums(M)
+        bad <- which(abs(rs - 1) > tol)
+        if (length(bad)) errs <- c(errs, sprintf("%s row(s) %s must sum to 1 (got %s).",
+                                                 name, paste(bad, collapse=", "),
+                                                 paste(round(rs[bad], 4), collapse=", ")))
+        errs
+    }
+    
+    # ---------- reactives: read inputs (no normalization) ----------
+    A_input <- reactive({
+        matrix(as.numeric(c(
+            input$A11 %||% A0[1,1], input$A12 %||% A0[1,2],
+            input$A21 %||% A0[2,1], input$A22 %||% A0[2,2]
+        )), nrow = 2, byrow = TRUE)
+    })
+    B_input <- reactive({
+        matrix(as.numeric(c(
+            input$B11 %||% B0[1,1], input$B12 %||% B0[1,2],
+            input$B21 %||% B0[2,1], input$B22 %||% B0[2,2]
+        )), nrow = 2, byrow = TRUE)
     })
     
-    output$B_tbl <- renderRHandsontable({
-        dfB <- round(make_mat_df(B0, c('☀','🌧'), c('Humid','Arid')), 2)            
-        rhandsontable(dfB, rowHeaders = TRUE, stretchH = "all") %>%
-            hot_table(className = "mx-table htCenter htMiddle", rowHeaderWidth = 80) %>%
-            hot_validate_numeric(cols = 1:2, min = 0, max = 1, allowInvalid = FALSE) %>% 
-            hot_cols(format = "0.00")
+    # equal initial probabilities (no UI for π)
+    R_pi <- reactive(pi0)
+    
+    # central gatekeeper: check everything BEFORE sim
+    prob_errors <- reactive({
+        c(.validate_matrix(A_input(), "Transition (A)"),
+          .validate_matrix(B_input(), "Emission (B)"))
     })
     
-    A_values <- reactiveVal(A0)
-    B_values <- reactiveVal(B0)
-    observeEvent(input$A_tbl, { M <- as.matrix(hot_to_r(input$A_tbl)); M[is.na(M)] <- 0; A_values(t(apply(M, 1, .norm))) })
-    observeEvent(input$B_tbl, { M <- as.matrix(hot_to_r(input$B_tbl)); M[is.na(M)] <- 0; B_values(t(apply(M, 1, .norm))) })
-    
-    R_A <- reactive(A_values())
-    R_B <- reactive(B_values())
-    draw_cat <- function(p) sample.int(length(p), 1L, prob = p)
-    
-    # --- SIMULATE + FIT (2 states, 2 obs) ----------------------------------------
+    # ---------- simulate + fit ----------------------
     demo_data <- eventReactive(input$hmm_run_demo, {
-        pi <- R_pi()          # length 2
-        A  <- R_A()           # 2x2
-        B  <- R_B()           # 2x2 (rows=states; cols=observations)
+        errs <- prob_errors()
+        if (length(errs)) {
+            showNotification(HTML(paste(errs, collapse = "<br>")), type = "error", duration = 6)
+            return(NULL)
+        }
         
-        Tn <- input$hmm_T
-        states <- c("S1","S2")                              
-        obs_lv <- c("Humid","Arid")                          
+        pi <- R_pi()       # length 2 (0.5, 0.5)
+        A  <- A_input()    # 2x2, rows sum to 1 (validated)
+        B  <- B_input()    # 2x2, rows sum to 1 (validated)
         
-        # simulate from HMM
+        Tn     <- input$hmm_T
+        states <- c("S1","S2")
+        obs_lv <- c("Humid","Arid")
+        
+        # --- simulate HMM path ---
         z <- x <- integer(Tn)
-        z[1] <- draw_cat(pi);      x[1] <- draw_cat(B[z[1],])
-        for (t in 2:Tn) { z[t] <- draw_cat(A[z[t-1],]); x[t] <- draw_cat(B[z[t],]) }
+        z[1] <- .draw_cat(pi)
+        x[1] <- .draw_cat(B[z[1], ])
+        for (t in 2:Tn) {
+            z[t] <- .draw_cat(A[z[t - 1], ])
+            x[t] <- .draw_cat(B[z[t], ])
+        }
         
-        # fit with depmixS4 (2-state multinomial over 2 categories)
-        df  <- data.frame(obs = factor(obs_lv[x], levels = obs_lv))
-        mod <- depmixS4::depmix(obs ~ 1, data = df, nstates = 2,                    
-                                family = depmixS4::multinomial("identity"))
-        fit <- depmixS4::fit(mod, verbose = FALSE)
-        zh  <- depmixS4::posterior(fit)$state
+        # --- robust EM fit (avoid 'contrasts' crash) ---
+        df <- data.frame(obs = factor(obs_lv[x], levels = obs_lv))
+        
+        if (length(unique(df$obs)) < 2L) {
+            miss <- setdiff(obs_lv, as.character(unique(df$obs)))
+            df2  <- rbind(df, data.frame(obs = factor(miss[1], levels = obs_lv)))
+            nt   <- c(nrow(df), 1L)  # two sequences: main + 1 dummy row
+        } else {
+            df2 <- df
+            nt  <- nrow(df)
+        }
+        
+        mod <- depmixS4::depmix(
+            obs ~ 1, data = df2, nstates = 2,
+            family = depmixS4::multinomial("identity"),
+            ntimes = nt
+        )
+        fit  <- depmixS4::fit(mod, verbose = FALSE)
+        post <- depmixS4::posterior(fit)
+        zh   <- head(post$state, nrow(df))  # drop dummy row if it was added
         
         list(
             t  = seq_len(Tn),
             x  = factor(obs_lv[x],  levels = obs_lv),
             z  = factor(states[z],  levels = states),
-            zh = factor(states[zh], levels = states)
+            zh = factor(states[zh], levels = states),
+            A  = A,             
+            B  = B
         )
     }, ignoreInit = TRUE)
     
@@ -2185,7 +1851,332 @@ server <- function(input, output, session) {
     })
     
     
+    svg_file <- "HMM_Diagram.svg"
+    output$hmm_overlay_pi <- renderUI({
+        items <- list(
+            # initial π
+            list(id="pi_sun", cls="pi",   left=45, top=30,
+                 label="π(Sunny)", info="<b>π(Sunny)</b> = Pr(start in Sunny)"),
+            list(id="pi_rain", cls="pi",  left=55, top=30,
+                 label="π(Rainy)", info="<b>π(Rainy)</b> = Pr(start in Rainy)"),
+            
+            # transitions A
+            list(id="p11", cls="trans", left=32, top=57,
+                 label="P(Sunny → Sunny)",
+                 info="<b>P(Sunny → Sunny)</b> = Pr(Sunny tomorrow | Sunny today)"),
+            list(id="p12", cls="trans", left=50, top=44,
+                 label="P(Sunny → Rainy)",
+                 info="<b>P(Sunny → Rainy)</b> = Pr(Rainy tomorrow | Sunny today)"),
+            list(id="p21", cls="trans", left=50, top=70,
+                 label="P(Rainy → Sunny)",
+                 info="<b>P(Rainy → Sunny)</b> = Pr(Sunny tomorrow | Rainy today)"),
+            list(id="p22", cls="trans", left=68, top=57,
+                 label="P(Rainy → Rainy)",
+                 info="<b>P(Rainy → Rainy)</b> = Pr(Rainy tomorrow | Rainy today)"),
+            
+            # emissions B
+            list(id="b11", cls="emit", left=38, top=75,
+                 label="Pr(Humid | Sunny)",
+                 info="<b>Pr(Humid | Sunny)</b> = Likelihood air is humid given Sunny"),
+            list(id="b12", cls="emit", left=55, top=83,
+                 label="Pr(Arid | Sunny)",
+                 info="<b>Pr(Arid | Sunny)</b> = Likelihood air is arid given Sunny"),
+            list(id="b21", cls="emit", left=45, top=83,
+                 label="Pr(Humid | Rainy)",
+                 info="<b>Pr(Humid | Rainy)</b> = Likelihood air is humid given Rainy"),
+            list(id="b22", cls="emit", left=62, top=75,
+                 label="Pr(Arid | Rainy)",
+                 info="<b>Pr(Arid | Rainy)</b> = Likelihood air is arid given Rainy")
+        )
+        
+        tags$div(
+            id = "hmmwrap_all",
+            # Base SVG (responsive)
+            tags$img(
+                src = svg_file, class = "base-svg",
+                alt = "HMM diagram",
+                style = "width:100%; height:60dvh; display:block;"
+            ),
+            
+            # Labels
+            lapply(items, function(hs){
+                tags$div(
+                    id = paste0("hs_", hs$id),
+                    class = paste("hs", hs$cls),
+                    tabindex = "0",
+                    style = sprintf("left:%s%%; top:%s%%;", hs$left, hs$top),
+                    tags$span(class = "tag", hs$label),
+                    tags$div(class = "callout", HTML(hs$info))
+                )
+            })
+        )
+    })
     
+    #render labels for transmission probability and ping matrix
+    output$hmm_overlay_trans <- renderUI({
+        df <- overlays()
+        df <- df[df$group == "trans", , drop = FALSE]
+        
+        tagList(
+            div(
+                id = "hmmwrap_trans",
+                tags$img(src = svg_file, class = "base-svg",
+                         alt = "HMM diagram", style = "width:100%; height:60dvh; display:block;"),
+                lapply(seq_len(nrow(df)), function(i){
+                    hs <- df[i, ]
+                    i_idx <- suppressWarnings(as.integer(substr(hs$id, 2, 2)))
+                    j_idx <- suppressWarnings(as.integer(substr(hs$id, 3, 3)))
+                    div(
+                        id = paste0("tr_", hs$id),             # unique DOM id
+                        class = "hs trans",
+                        tabindex = "0",
+                        "data-i" = i_idx, "data-j" = j_idx,    # used by JS for the ping
+                        style = sprintf("left:%s%%; top:%s%%;", hs$left, hs$top),
+                        span(class = "tag", hs$label),
+                        div(class = "callout", HTML(hs$info_html))
+                    )
+                })
+            ),
+            # Delegated hover -> Shiny.setInputValue('trans_hover_ping', ...)
+            tags$script(HTML(
+                "(function(){
+              var root = document.getElementById('hmmwrap_trans');
+              if(!root) return;
+            
+              root.addEventListener('mouseover', function(ev){
+                var tag = ev.target.closest('.hs.trans .tag');
+                if(!tag || !root.contains(tag)) return;
+                var fromInside = ev.relatedTarget && tag.contains(ev.relatedTarget);
+                if(fromInside) return;  // ignore internal moves
+                var hs = tag.parentElement;
+                var payload = {
+                  id: hs.id,
+                  i: Number(hs.dataset.i) || null,
+                  j: Number(hs.dataset.j) || null,
+                  on: true,
+                  ts: Date.now()
+                };
+                if(window.Shiny) Shiny.setInputValue('trans_hover_ping', payload, {priority:'event'});
+              });
+            
+              root.addEventListener('mouseout', function(ev){
+                var tag = ev.target.closest('.hs.trans .tag');
+                if(!tag || !root.contains(tag)) return;
+                var toInside = ev.relatedTarget && tag.contains(ev.relatedTarget);
+                if(toInside) return;  // ignore internal moves
+                var hs = tag.parentElement;
+                if(window.Shiny) Shiny.setInputValue('trans_hover_ping',
+                  {id: hs.id, on:false, ts: Date.now()},
+                  {priority:'event'});
+              });
+            })();"
+            ))
+        )
+    })
+    
+    #highlight cell
+    observeEvent(input$trans_hover_ping, ignoreInit = TRUE, {
+        v <- input$trans_hover_ping
+        if (isTRUE(v$on) && !is.null(v$i) && !is.null(v$j)) {
+            session$sendCustomMessage("highlight-matrix", list(
+                scope = "#trans-matrix",
+                clear = TRUE,
+                ids = list(sprintf("P%d%d", v$i, v$j))
+            ))
+        } else {
+            session$sendCustomMessage("highlight-matrix", list(
+                scope = "#trans-matrix",
+                clear = TRUE,
+                ids = list()
+            ))
+        }
+    })
+    
+    
+    #render labels for emissions probability and ping matrix
+    output$hmm_overlay_emit <- renderUI({
+        df <- overlays()
+        df <- df[df$group == "emit", , drop = FALSE]
+        
+        tagList(
+            div(
+                id = "hmmwrap_emit",
+                tags$img(src = svg_file, class = "base-svg",
+                         alt = "HMM diagram", style = "width:100%; height:60dvh; display:block;"),
+                lapply(seq_len(nrow(df)), function(i){
+                    hs <- df[i, ]
+                    s_idx <- suppressWarnings(as.integer(substr(hs$id, 2, 2)))
+                    o_idx <- suppressWarnings(as.integer(substr(hs$id, 3, 3)))
+                    div(
+                        id = paste0("em_", hs$id),              # unique DOM id
+                        class = "hs emit",
+                        tabindex = "0",
+                        "data-s" = s_idx, "data-o" = o_idx,     # used by JS for the ping
+                        style = sprintf("left:%s%%; top:%s%%;", hs$left, hs$top),
+                        span(class = "tag", hs$label),
+                        div(class = "callout", HTML(hs$info_html))
+                    )
+                })
+            ),
+            # Delegated hover -> Shiny.setInputValue('emit_hover_ping', ...)
+            tags$script(HTML(
+                "(function(){
+              var root = document.getElementById('hmmwrap_emit');
+              if(!root) return;
+            
+              root.addEventListener('mouseover', function(ev){
+                var tag = ev.target.closest('.hs.emit .tag');
+                if(!tag || !root.contains(tag)) return;
+                var fromInside = ev.relatedTarget && tag.contains(ev.relatedTarget);
+                if(fromInside) return;
+                var hs = tag.parentElement;
+                var payload = {
+                  id: hs.id,
+                  s: Number(hs.dataset.s) || null,
+                  o: Number(hs.dataset.o) || null,
+                  on: true,
+                  ts: Date.now()
+                };
+                if(window.Shiny) Shiny.setInputValue('emit_hover_ping', payload, {priority:'event'});
+              });
+            
+              root.addEventListener('mouseout', function(ev){
+                var tag = ev.target.closest('.hs.emit .tag');
+                if(!tag || !root.contains(tag)) return;
+                var toInside = ev.relatedTarget && tag.contains(ev.relatedTarget);
+                if(toInside) return;
+                var hs = tag.parentElement;
+                if(window.Shiny) Shiny.setInputValue('emit_hover_ping',
+                  {id: hs.id, on:false, ts: Date.now()},
+                  {priority:'event'});
+              });
+            })();"
+            ))
+        )
+    })
+    
+    observeEvent(input$emit_hover_ping, ignoreInit = TRUE, {
+        v <- input$emit_hover_ping
+        if (isTRUE(v$on) && !is.null(v$s) && !is.null(v$o)) {
+            session$sendCustomMessage("highlight-matrix", list(
+                scope = "#emit-matrix",
+                clear = TRUE,
+                ids = list(sprintf("B%d%d", v$s, v$o))
+            ))
+        } else {
+            session$sendCustomMessage("highlight-matrix", list(
+                scope = "#emit-matrix",
+                clear = TRUE,
+                ids = list()
+            ))
+        }
+    })
+    
+    state_name <- c(S1 = "Sunny", S2 = "Rainy")
+    state_sym  <- c(S1 = "☀",     S2 = "🌧")
+    obs_name   <- c(Humid = "Humid", Arid = "Arid")
+    
+    prob_style <- function(value) {
+        if (is.na(value)) return(list())
+        bg <- if (value >= 0.8) "#e8f7e4" else if (value <= 0.2) "#fde8e8" else "transparent"
+        list(background = bg)
+    }
+    
+    detail_df <- reactive({
+        dd <- demo_data(); req(dd)
+        
+        A <- dd$A; B <- dd$B
+        n <- length(dd$t)
+        
+        # factor → strings/indices
+        z_chr  <- as.character(dd$z)     # "S1" / "S2"
+        x_chr  <- as.character(dd$x)     # "Humid" / "Arid"
+        zh_chr <- as.character(dd$zh)
+        
+        z_i <- as.integer(dd$z)          # 1 / 2
+        x_i <- as.integer(dd$x)          # 1 / 2
+        
+        # per-step probabilities actually used under A/B for the simulated path
+        trans_prob <- c(NA_real_, vapply(2:n, function(t) A[z_i[t-1], z_i[t]], numeric(1)))
+        emit_prob  <- vapply(1:n,  function(t) B[z_i[t],   x_i[t]],   numeric(1))
+        
+        # labels (adjust to your theme)
+        state_sym  <- c(S1 = "☀",  S2 = "🌧")
+        state_name <- c(S1 = "Sunny", S2 = "Rainy")
+        obs_name   <- c(Humid = "Humid", Arid = "Arid")
+        
+        data.frame(
+            Time        = dd$t,
+            Transition  = c("—", paste0(state_sym[z_chr[-n]], " → ", state_sym[z_chr[-1]])),
+            A_prob      = round(trans_prob, 3),
+            Observation = paste0(obs_name[x_chr], " | ", state_name[z_chr]),
+            B_prob      = round(emit_prob, 3),
+            True        = state_name[z_chr],
+            Decoded     = state_name[zh_chr],
+            Error       = ifelse(z_chr != zh_chr, "✗", ""),
+            check.names = FALSE
+        )
+    })
+    
+    output$hmm_detail_table <- reactable::renderReactable({
+        df <- detail_df(); req(df)
+        
+        reactable::reactable(
+            df,
+            pagination = FALSE,
+            bordered   = TRUE,
+            striped    = TRUE,
+            highlight  = TRUE,
+            defaultColDef = reactable::colDef(align = "center"),
+            columns = list(
+                Transition  = reactable::colDef(header = "z(t−1) → z(t)"),
+                A_prob      = reactable::colDef(
+                    name  = "A[z(t−1), z(t)]",
+                    style = function(value) prob_style(value),
+                    format = reactable::colFormat(digits = 3)
+                ),
+                Observation = reactable::colDef(header = "x(t) | z(t)"),
+                B_prob      = reactable::colDef(
+                    name  = "B[z(t), x(t)]",
+                    style = function(value) prob_style(value),
+                    format = reactable::colFormat(digits = 3)
+                ),
+                Error       = reactable::colDef(html = TRUE,
+                                                cell = function(value)
+                                                    if (nzchar(value))
+                                                        htmltools::tags$span(style="color:#cc0000;font-weight:900;", "\u00D7")
+                )
+            ),
+            columnGroups = list(
+                reactable::colGroup(name = "Transition", columns = c("Transition","A_prob")),
+                reactable::colGroup(name = "Emission",   columns = c("Observation","B_prob"))
+            ),
+            theme = reactable::reactableTheme(
+                borderColor    = "#ddd",
+                stripedColor   = "#fafafa",
+                highlightColor = "#f5f9ff"
+            )
+        )
+    })
+    
+    output$more_btn <- renderUI({
+        req(demo_data())  # eventReactive is NULL until Run is clicked
+        div(
+            actionButton("show_details", "More details", icon = icon("table")),
+            style = "margin-top:.5rem; display:flex; justify-content:flex-end;"
+        )
+    })
+    
+    # Swap views WITHOUT rebuilding anything
+    observeEvent(input$show_details, {
+        shinyjs::hide("sim_shell")      # hides matrix + slider + run + chart + svg
+        shinyjs::show("details_shell")  # shows full-width table + Back
+    })
+    
+    observeEvent(input$back_to_chart, {
+        shinyjs::show("sim_shell")
+        shinyjs::hide("details_shell")
+    })
     
     
     
@@ -2193,7 +2184,6 @@ server <- function(input, output, session) {
     #-----------------------------------------------------------------------------
     
     #3D TSNE PLOT
-    #library(depmixS4)
     output$state_plot <- renderHighchart({
         
         # reading in data (no need to recalculate)
@@ -2209,6 +2199,8 @@ server <- function(input, output, session) {
             z = tsne_result$Y[, 3],
             group = factor(predicted_states)
         )
+        
+        print(tsne_df)
         
         hc <- highchart() %>%
             hc_chart(
@@ -2356,332 +2348,8 @@ server <- function(input, output, session) {
         )
     })
     
-    output$card_content <- renderUI({
-        selected_node <- input$hmm_vis_selected
-        
-        #node selection text
-        if (!is.null(selected_node) && selected_node %in% c("S1", "S2", "S3", "Initial")) {
-            if (selected_node == "S1") {
-                return(emission_prob)
-            } else if (selected_node == "S2") {
-                return(transition_prob)
-            } else if (selected_node == "S3") {
-                return(p("This is the text for state S3."))
-            } else if (selected_node == "Initial") {
-                return(initial_state_selected)
-            }
-        }
-        
-        #Default text
-        p(no_state_selected)
-    })
-    
-    svg_file <- "HMM_Diagram.svg"
-    
-       # Define overlay points in PERCENT of the wrapper (responsive).
-       # Adjust left/top to put labels near the arrows. Add as many as you want.
-    overlays0 <- tibble::tibble(
-        id    = c("pi_sun","pi_rain","p11","p12","p21","p22","b11","b12","b21","b22"),
-        group = c("pi","pi","trans","trans","trans","trans","emit","emit","emit","emit"),
-        left  = c(45,55,32,50,50,68,38,55,45,62),
-        top   = c(30,30,57,44,70,57,75,83,83,75),
-        label = c(
-            "π(Sunny)","π(Rainy)",
-            "P(Sunny to Sunny)","P(Sunny to Rainy)","P(Rainy to Sunny)","P(Rainy to Rainy)",
-            "Pr(Humid|Sunny)","Pr(Arid|Sunny)","Pr(Humid|Rainy)","Pr(Arid|Rainy)"
-        ),
-        info_html = c(
-            "<b>π(Sunny)</b> = Pr(start in Sunny)",
-            "<b>π(Rainy)</b> = Pr(start in Rainy)",
-            "<b>P(Sunny to Sunny)</b> = The probability it will be Sunny tomorrow given that it is Sunny today",
-            "<b>P(Sunny to Rainy)</b> = The probability it will be Rainy tomorrow given that is is Sunny today",
-            "<b>P(Rainy to Sunny)</b> = The probability it will be Sunny tomorrow given that is is Rainy today",
-            "<b>P(Rainy to Rainy)</b> = The probability it will be Rainy tomorrow given that is is Rainy today",
-            "<b>Pr(Humid | Sunny)</b> = The probability the air will be humid given that is is sunny (usually unlikely)",
-            "<b>Pr(Arid | Sunny)</b> = The probability the air will be arid given that is is sunny (likely)",
-            "<b>Pr(Humid | Rainy)</b> = The probability the air will be humid given that it is rainy (likely)",
-            "<b>Pr(Arid | Rainy)</b> = The probability the air will be arid given that it is rainy (usually unlikely)"
-        )
-    )
     
     
-    overlays <- reactiveVal(overlays0)
-    
-    #render labels for initial state
-    output$hmm_overlay_pi <- renderUI({
-        df <- overlays()
-        df <- df[df$group == "pi", , drop = FALSE]
-        
-        div(
-            id = "hmmwrap_pi",
-            tags$img(src = svg_file, class = "base-svg",
-                     alt = "HMM diagram", style = "width:100%; height:60dvh; display:block;"),
-            # Labels
-            lapply(seq_len(nrow(df)), function(i){
-                hs <- df[i, ]
-                div(
-                    id = paste0("pi_", hs$id),               # unique DOM id
-                    class = "hs pi",
-                    tabindex = "0",
-                    style = sprintf("left:%s%%; top:%s%%;", hs$left, hs$top),
-                    span(class = "tag", hs$label),
-                    div(class = "callout", HTML(hs$info_html))
-                )
-            })
-        )
-    })
-    
-    #render labels for transmission probability and ping matrix
-    output$hmm_overlay_trans <- renderUI({
-        df <- overlays()
-        df <- df[df$group == "trans", , drop = FALSE]
-        
-        tagList(
-            div(
-                id = "hmmwrap_trans",
-                tags$img(src = svg_file, class = "base-svg",
-                         alt = "HMM diagram", style = "width:100%; height:60dvh; display:block;"),
-                lapply(seq_len(nrow(df)), function(i){
-                    hs <- df[i, ]
-                    i_idx <- suppressWarnings(as.integer(substr(hs$id, 2, 2)))
-                    j_idx <- suppressWarnings(as.integer(substr(hs$id, 3, 3)))
-                    div(
-                        id = paste0("tr_", hs$id),             # unique DOM id
-                        class = "hs trans",
-                        tabindex = "0",
-                        "data-i" = i_idx, "data-j" = j_idx,    # used by JS for the ping
-                        style = sprintf("left:%s%%; top:%s%%;", hs$left, hs$top),
-                        span(class = "tag", hs$label),
-                        div(class = "callout", HTML(hs$info_html))
-                    )
-                })
-            ),
-            # Delegated hover -> Shiny.setInputValue('trans_hover_ping', ...)
-            tags$script(HTML(
-                            "(function(){
-              var root = document.getElementById('hmmwrap_trans');
-              if(!root) return;
-            
-              root.addEventListener('mouseover', function(ev){
-                var tag = ev.target.closest('.hs.trans .tag');
-                if(!tag || !root.contains(tag)) return;
-                var fromInside = ev.relatedTarget && tag.contains(ev.relatedTarget);
-                if(fromInside) return;  // ignore internal moves
-                var hs = tag.parentElement;
-                var payload = {
-                  id: hs.id,
-                  i: Number(hs.dataset.i) || null,
-                  j: Number(hs.dataset.j) || null,
-                  on: true,
-                  ts: Date.now()
-                };
-                if(window.Shiny) Shiny.setInputValue('trans_hover_ping', payload, {priority:'event'});
-              });
-            
-              root.addEventListener('mouseout', function(ev){
-                var tag = ev.target.closest('.hs.trans .tag');
-                if(!tag || !root.contains(tag)) return;
-                var toInside = ev.relatedTarget && tag.contains(ev.relatedTarget);
-                if(toInside) return;  // ignore internal moves
-                var hs = tag.parentElement;
-                if(window.Shiny) Shiny.setInputValue('trans_hover_ping',
-                  {id: hs.id, on:false, ts: Date.now()},
-                  {priority:'event'});
-              });
-            })();"
-            ))
-        )
-    })
-    
-    #highlight cell
-    observeEvent(input$trans_hover_ping, ignoreInit = TRUE, {
-        v <- input$trans_hover_ping
-        if (isTRUE(v$on) && !is.null(v$i) && !is.null(v$j)) {
-            session$sendCustomMessage("highlight-matrix", list(
-                scope = "#trans-matrix",
-                clear = TRUE,
-                ids = list(sprintf("P%d%d", v$i, v$j))
-            ))
-        } else {
-            session$sendCustomMessage("highlight-matrix", list(
-                scope = "#trans-matrix",
-                clear = TRUE,
-                ids = list()
-            ))
-        }
-    })
-    
-    
-    #render labels for emissions probability and ping matrix
-    output$hmm_overlay_emit <- renderUI({
-        df <- overlays()
-        df <- df[df$group == "emit", , drop = FALSE]
-        
-        tagList(
-            div(
-                id = "hmmwrap_emit",
-                tags$img(src = svg_file, class = "base-svg",
-                         alt = "HMM diagram", style = "width:100%; height:60dvh; display:block;"),
-                lapply(seq_len(nrow(df)), function(i){
-                    hs <- df[i, ]
-                    s_idx <- suppressWarnings(as.integer(substr(hs$id, 2, 2)))
-                    o_idx <- suppressWarnings(as.integer(substr(hs$id, 3, 3)))
-                    div(
-                        id = paste0("em_", hs$id),              # unique DOM id
-                        class = "hs emit",
-                        tabindex = "0",
-                        "data-s" = s_idx, "data-o" = o_idx,     # used by JS for the ping
-                        style = sprintf("left:%s%%; top:%s%%;", hs$left, hs$top),
-                        span(class = "tag", hs$label),
-                        div(class = "callout", HTML(hs$info_html))
-                    )
-                })
-            ),
-            # Delegated hover -> Shiny.setInputValue('emit_hover_ping', ...)
-            tags$script(HTML(
-                            "(function(){
-              var root = document.getElementById('hmmwrap_emit');
-              if(!root) return;
-            
-              root.addEventListener('mouseover', function(ev){
-                var tag = ev.target.closest('.hs.emit .tag');
-                if(!tag || !root.contains(tag)) return;
-                var fromInside = ev.relatedTarget && tag.contains(ev.relatedTarget);
-                if(fromInside) return;
-                var hs = tag.parentElement;
-                var payload = {
-                  id: hs.id,
-                  s: Number(hs.dataset.s) || null,
-                  o: Number(hs.dataset.o) || null,
-                  on: true,
-                  ts: Date.now()
-                };
-                if(window.Shiny) Shiny.setInputValue('emit_hover_ping', payload, {priority:'event'});
-              });
-            
-              root.addEventListener('mouseout', function(ev){
-                var tag = ev.target.closest('.hs.emit .tag');
-                if(!tag || !root.contains(tag)) return;
-                var toInside = ev.relatedTarget && tag.contains(ev.relatedTarget);
-                if(toInside) return;
-                var hs = tag.parentElement;
-                if(window.Shiny) Shiny.setInputValue('emit_hover_ping',
-                  {id: hs.id, on:false, ts: Date.now()},
-                  {priority:'event'});
-              });
-            })();"
-            ))
-        )
-    })
-    
-    observeEvent(input$emit_hover_ping, ignoreInit = TRUE, {
-        v <- input$emit_hover_ping
-        if (isTRUE(v$on) && !is.null(v$s) && !is.null(v$o)) {
-            session$sendCustomMessage("highlight-matrix", list(
-                scope = "#emit-matrix",
-                clear = TRUE,
-                ids = list(sprintf("B%d%d", v$s, v$o))
-            ))
-        } else {
-            session$sendCustomMessage("highlight-matrix", list(
-                scope = "#emit-matrix",
-                clear = TRUE,
-                ids = list()
-            ))
-        }
-    })
-    
-    state_name <- c(S1 = "Sunny", S2 = "Rainy")
-    state_sym  <- c(S1 = "☀",     S2 = "🌧")
-    obs_name   <- c(Humid = "Humid", Arid = "Arid")
-    
-    prob_style <- function(p) {
-        if (is.na(p)) return(list())
-        col <- if (p < 0.33) "#fdecea" else if (p < 0.66) "#fff6e5" else "#eaf7ef"  # bg
-        bar <- if (p < 0.33) "#E74C3C" else if (p < 0.66) "#F39C12" else "#2ECC71"  # left bar
-        list(background = col, borderLeft = paste0("6px solid ", bar))
-    }
-    
-    detail_df <- reactive({
-        dd <- demo_data(); req(dd)
-        A  <- R_A(); B <- R_B()
-        
-        n     <- length(dd$t)
-        z_chr <- as.character(dd$z)   # "S1" / "S2"
-        x_chr <- as.character(dd$x)   # "Humid" / "Arid"
-        zh_chr<- as.character(dd$zh)
-        
-        z_i <- as.integer(dd$z)       # 1/2
-        x_i <- as.integer(dd$x)       # 1/2
-        
-        trans_prob <- c(NA, vapply(2:n, function(t) A[z_i[t-1], z_i[t]], numeric(1)))
-        emit_prob  <- vapply(1:n, function(t) B[z_i[t], x_i[t]], numeric(1))
-        
-        data.frame(
-            Time        = dd$t,
-            Transition  = c("—", paste0(state_sym[z_chr[-n]], " → ", state_sym[z_chr[-1]])),
-            A_prob      = round(trans_prob, 3),
-            Observation = paste0(obs_name[x_chr], " | ", state_name[z_chr]),
-            B_prob      = round(emit_prob, 3),
-            True        = state_name[z_chr],
-            Decoded     = state_name[zh_chr],
-            Error       = ifelse(z_chr != zh_chr, "✗", ""),
-            check.names = FALSE
-        )
-    })
-    
-    output$hmm_detail_table <- reactable::renderReactable({
-        df <- detail_df()
-
-        reactable(
-            df,
-            pagination = FALSE,
-            bordered = TRUE,
-            striped  = TRUE,
-            highlight = TRUE,
-            defaultColDef = colDef(align = "center"),
-            columns = list(
-                Transition  = colDef(header = "z(t-1) \u2192 z(t)"),
-                A_prob      = colDef(name = "A[z(t-1),z(t)]",
-                                     style = function(value) prob_style(value),
-                                     format = colFormat(digits = 3)),
-                Observation = colDef(header = "x(t) | z(t)"),
-                B_prob      = colDef(name = "B[z(t),x(t)]",
-                                     style = function(value) prob_style(value),
-                                     format = colFormat(digits = 3)),
-                Error       = colDef(html = TRUE,
-                                     cell = function(value) if (nzchar(value)) htmltools::tags$span(style="color:#cc0000;font-weight:900;", "\u00D7") )
-            ),
-            columnGroups = list(
-                colGroup(name = "Transition", columns = c("Transition","A_prob")),
-                colGroup(name = "Emission",   columns = c("Observation","B_prob"))
-            ),
-            theme = reactableTheme(
-                borderColor = "#ddd",
-                stripedColor = "#fafafa",
-                highlightColor = "#f5f9ff"
-            )
-        )
-    })
-    
-    output$more_btn <- renderUI({
-        req(demo_data())  # eventReactive is NULL until Run is clicked
-        div(
-            actionButton("show_details", "More details", icon = icon("table")),
-            style = "margin-top:.5rem; display:flex; justify-content:flex-end;"
-        )
-    })
-    
-    # Swap views WITHOUT rebuilding anything
-    observeEvent(input$show_details, {
-        shinyjs::hide("sim_shell")      # hides matrix + slider + run + chart + svg
-        shinyjs::show("details_shell")  # shows full-width table + Back
-    })
-    
-    observeEvent(input$back_to_chart, {
-        shinyjs::show("sim_shell")
-        shinyjs::hide("details_shell")
-    })
     
     
     
