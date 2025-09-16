@@ -39,70 +39,104 @@ library(depmixS4)
 
 
 # All Text Used in Dashboard ----
-#
 
-summary_string <- HTML(
-    "<p>Consumer sentiment plays a critical role in the growth of the economy. The average consumer's opinion on the state of the economy can manifest directly in changes in spending, saving, investment, and the flow of capital, directly shifting the flow of the economy.</p>
-  <p>However, consumer sentiment is noisy and serves as a response to economic conditions, so deeper potential relationships may not be fully captured by traditional time series analysis. This analysis serves as an alternate approach to identify these shifts in sentiment by applying a Hidden Markov Model (HMM) to categorize consumer sentiment into specific states, which can then be better understood using macroeconomic indicators.</p>
-  <p>Unlike linear models that assume constant relationships between variables or variable independence, HMMs excel in modeling <em>non-stationary time series data</em>. Through analyzing the data, the model is able to identify unobserved states in the data that dictate the probability of transitioning into another state.</p>
-  <p>By training the HMM on macroeconomic indicators, we can analyze which variables play the greatest role in shaping sentiment, estimate the likelihood of transitions between sentiment states, and predict future shifts more reliably than alternative models.</p>"
-)
+## Introduction Text ----
 
 consumer_sentiment_text <- HTML(
+    
+    "<p> 
+    <p>  </p>
+    <b> Consumer sentiment </b> plays a critical role in the growth of the economy, as the average consumer's opinion on the state of the 
+    economy can directly manifest in changes in spending, saving, investment, and the flow of capital. Understanding this sentiment is 
+    vital to understanding the economy, as consumption accounts for over two-thirds of GDP. When 
+    sentiment improves, people are more likely to spend and invest, boosting economic activity. When it falls, they tend to save more 
+    and cut back on purchases, slowing growth.</p>
+    
+     <p>However, this value is also is noisy, and serves as a response to economic conditions, so deeper potential relationships may not 
+    be fully captured by traditional time series analysis. This analysis serves as an alternate approach to identify these shifts in 
+    sentiment by applying a Hidden Markov Model (HMM) to categorize consumer sentiment into specific states, which can then be better 
+    understood using macroeconomic analysis.</p> 
+    
+     <p>Unlike linear models that assume constant relationships between variables or variable independence, 
+    HMMs excel in modeling non-stationary time series data. Through analyzing the data, the model can identify 
+    unobserved conditions that dictate the probability of transitioning into another state. By training the HMM on 
+    macroeconomic indicators, we can analyze which variables play the greatest role in shaping sentiment, 
+    estimate the likelihood of transitions between sentiment states, and predict future shifts more reliably than alternative models.</p>
+    
     "
-     <p>The <strong>Consumer Sentiment Index</strong> is calculated by the University of Michigan every month using survey responses from citizens. Respondents are asked questions about their <em>current economic standing</em> and expectations for the <em>future of the economy</em>.</p>
-     <p>Understanding consumer sentiment is vital to understanding the economy, as spending behavior directly reflects the health of the economy. Consumption accounts for over two-thirds of GDP. When sentiment improves, people are more likely to spend and invest, boosting economic activity. When sentiment falls, they tend to save more and cut back on purchases, slowing growth.</p>
-  "
 )
 
 cs_methodology <- withMathJax(HTML('
+<p>  </p>
     
-  <p>Once a month, the University of Michigan surveys around 500 citizens on their outlook of current and future economic prospects. The questions investigate how consumers feel about their personal finances and the direction of the economy.</p>
-  <ul>
-    <li>How are your current personal finances compared to a year ago?</li>
-    <li>Do you think business conditions in the country are good or bad at present?</li>
-    <li>Do you expect your personal finances to improve or worsen over the next year?</li>
-    <li>Do you expect business conditions to improve or worsen in the next year?</li>
-    <li>Over the next 5 years, do you think the economy will have good times or bad times?</li>
-  </ul>
-  <p>Responses are categorized as <strong>positive</strong>, <strong>neutral</strong>, or <strong>negative</strong>. 
-  For each question, the net value (percent positive minus percent negative) is calculated and used to compute the index:</p>
+<p>Once a month, the University of Michigan surveys around 800 citizens on their outlook of current and future economic prospects. 
+The questions investigate how consumers feel about their personal finances and the direction of the economy, including questions like:
+
+</p>
+   <ul> 
+   <li>How are your current personal finances compared to a year ago?</li> 
+   <li>Do you think business conditions in the country are good or bad at present?</li> 
+   <li>Do you expect your personal finances to improve or worsen over the next year?</li> 
+   <li>Do you expect business conditions to improve or worsen in the next year?</li> 
+   <li>Over the next 5 years, do you think the economy will have good times or bad times?</li> 
+   </ul> 
+   <p>Responses are categorized as positive, neutral, or negative. For each question, the net value (percent positive minus percent negative)
+  is calculated and used to compute the index:</p> 
   
-  <p>
+    <p>
   $$
-    Index_{i} = \\frac{\\text{Current period score}}{\\text{Base period score}}
+    \\text{Index}_{i} = \\frac{\\text{Current period score}}{\\text{Base period score}}
   $$
   </p>
+  
+   <p>The calculated values in the graph are averages over the entire year, showing how consumers feel about the overall direction of 
+   the economy and their finances, relative to 1966. 
+  <b> Values above 100 </b> indicate sentiment stronger than in the base period, while <b> values below 100 </b> indicate weaker sentiment. 
+  The index is still interpretable when comparing the values between two separate periods. For example, if period 1 had a score of 85 and 
+  period 2 had a score of 87, it can be concluded that consumer sentiment has improved relative to the earlier period.</p>
+  
+
 '))
-
-
 
 cs_data_collection<- HTML(
     "
-  <p> The Federal Reserve of St. Louis uploads accurate, up to date, information on multiple sectors of the economy. </p>
-  <p> For this analysis, a series of 20 macroeconomic indicators were collected from the year 1987 to 2024, as it provided a good balance between for the length of the dataset and the number of predictors.</p>
-  <p> The indicators are categorized as the following:</p>
-    <ul>
-      <li>Output</li>
-      <li>Labor Market</li>
-      <li>Price Levels</li>
-      <li>Monetary and Fiscal</li>
-      <li>Housing and Construction</li>
-      <li>Trade</li>
-    </ul>
+    <p> </p>
     
-    <p> Detailed information about each category and their relationship to consumer sentiment is in <a href='javascript:void(0);' id='prelim_analysis'>Preliminary Analysis</a> </p>
-"
+    <p>For this analysis, a series of 20 macroeconomic indicators were collected from 1987 to 2024 from the 
+    <strong>Federal Reserve of St. Louis (FRED)</strong>, a widely respected source for accurate, up-to-date economic data. 
+    This period provides a robust dataset for the Hidden Markov Model (HMM), offering a balance between the length of the time 
+    series and the number of economic sectors represented. The selection of indicators is critical as they serve as the 
+    <strong>observed variables</strong> in the HMM, providing the data to train the model and identify the complex, 
+    non-linear relationships and their effect on sentiment.</p>
+    
+    
+     <p>The indicators are categorized as the following:</p>
+     <ul>
+     <li><strong>Output</strong>: Measures of economic activity which reflect the overall health of the economy.</li>
+     
+     <li> <strong>Labor Market</strong>: Indicators measuring employment, which directly impact people's financial 
+     security and future outlook.
+     
+     </li>
+     
+     <li><strong>Price Levels</strong>: Inflation metrics which greatly affect purchasing power and consumer confidence.</li>
+     
+     <li><strong>Monetary and Fiscal</strong>: Data on interest rates and government spending, which 
+     shape the financial environment and economic policy.</li>
+     
+     <li><strong>Housing and Construction</strong>: Indicators such as housing starts and building permits, which serve as leading 
+     indicators of economic cycles and household confidence.</li>
+     
+     <li><strong>Trade</strong>: Metrics like the trade balance, which reflect the global economic position and can influence domestic 
+     economic conditions.</li>
+     
+     </ul>
+     <p>Detailed information about each category and their relationship to consumer sentiment is in 
+     <a href='javascript:void(0);' id='prelim_analysis'>Preliminary Analysis</a>.</p>
+     "
 )
 
-cs_interpretation <- HTML(
-    "
-  <p>The calculated value shows how consumers feel about the overall direction of the economy and their finances, relative to 1966. Values above 100 indicate sentiment stronger than in the base period, while values below 100 indicate weaker sentiment.</p>
-  <p>When comparing the values between two separate periods, the index is still interpretable. If period 1 had a score of 85, and period 2 had a score of 87, then it can be concluded that consumer sentiment has improved relative to the earlier period.</p>
-"
-)
-
-# --- Preliminary Analysis Info ---
+## Preliminary Analysis Text ----
 
 output_analysis <- HTML('
       <p><strong>Output indicators:</strong> variables that measure the U.S.\'s total economic production.</p>
@@ -195,11 +229,11 @@ trade_analysis <- HTML('
       Strong export growth often bolsters jobs and incomes, lifting sentiment, while widening trade deficits can raise questions about competitiveness and growth.</p>
     ')
 
-# --- Hidden Markov Model Information ---
+## Hidden Markov Model Text ----
 
 intro_hmm_text <- HTML(
-    "<div style='font-size:17px; line-height:1.6;'>
-    
+    "
+    <p> </p>
     <p>
     <b> A Hidden Markov Model (HMM) </b> is a statistical tool used to understand systems where you can't directly 
     observe the state of the system, but you can observe evidence or signals that are influenced by that state.
@@ -226,12 +260,11 @@ intro_hmm_text <- HTML(
     The model trains by analyzing a large set of historical data where both the states and observations are known. 
     It learns the probabilities that connect these states and observations, which are the core components of the model.
     </p>
-    
-    </div>"
+    "
 )
 
 emission_prob <- HTML(
-    "<div style='font-size:17px; line-height:1.6;'>
+    "
   <p>
     <b> Emission Probabilities </b> link the hidden states to the observations. They represent the probability of 
     seeing a particular observation given that the system is in a specific hidden state.
@@ -252,11 +285,11 @@ emission_prob <- HTML(
   In the diagram, these are the dashed arrows pointing from the hidden weather states down to the observed temperature states. The label (...)
   represents the probability of observing hot temperature when the hidden state is Sunny.
   </p>
-</div>"
+"
 )
 
 transition_prob  <- HTML(
-    "<div style='font-size:17px; line-height:1.6;'>
+    "
   <p>
     <b> Transition Probabilities </b> govern how the hidden states change over time. 
     They are the probabilities of moving from one hidden state to another in the next time step.
@@ -274,11 +307,11 @@ transition_prob  <- HTML(
   of transitioning from State 1 (Sunny) to State 2 (Cloudy). The probabilities in each row of the matrix below must sum to 1.
   </p>
   
-</div>"
+"
 )
 
 hmm_training  <- HTML(
-    "<div style='font-size:17px; line-height:1.6;'>
+    "
 <p>
 <b> Model training </b> is the process of finding the internal probabilities (initial state, transition, and emission) that best explain a sequence of observations. The goal is to maximize the <b>log-likelihood</b>, a statistical measure of how well the model's parameters account for the data. A higher log-likelihood score means the model provides a more plausible explanation for the sequence.
 </p>
@@ -286,10 +319,10 @@ hmm_training  <- HTML(
 <p>
 To achieve this, the model uses an iterative algorithm called <b>Expectation-Maximization (EM)</b>, known as the Baum-Welch algorithm in this context. It begins with an initial guess for the parameters and then repeatedly applies a two-step process to incrementally improve them. The <b>E-Step (Expectation)</b> calculates the probability of being in each hidden state at every point in time, and the <b>M-Step (Maximization)</b> uses these probabilities to update the model's parameters to a new, better-fitting set. This cycle repeats until the improvements become negligible, a state known as <b>convergence</b>, resulting in an optimized model.
 </p>
-</div>"
+"
 )
 
-# --- Model Analysis Info
+## Model Analysis Text ----
 
 model_result_info <- HTML(
     "<div style='font-size:18px; line-height:1.6;'>
@@ -349,14 +382,14 @@ mint_dark_theme <- create_theme(
 
 ui <- bs4DashPage(
     freshTheme = mint_dark_theme,
-    title = "An Analysis of Consumer Sentiment States with a Hidden Markov Model",
+    #title = "An Analysis of Consumer Sentiment States with a Hidden Markov Model",
     controlbar = NULL,
     
     # Header/navbar
     header = bs4DashNavbar(
-        title = bs4DashBrand(
-            title = "An Analysis of Consumer Sentiment States with a Hidden Markov Model",
-        ),
+        #title = bs4DashBrand(
+            #title = "An Analysis of Consumer Sentiment States with a Hidden Markov Model",
+        #),
         status = "success",
         #brandColor = "success",
         border = TRUE
@@ -514,6 +547,25 @@ ui <- bs4DashPage(
             .mx-row { display:flex; align-items:center; justify-content:center; gap:.75rem; width:100%; }
             .mx-lead { text-align:center; font-weight:600; }
             
+                /* Center card titles */
+              .card-header { position: relative; }
+              .card-header .card-title{
+                float: none !important;   /* undo AdminLTE's float */
+                width: 100%;
+                text-align: center;
+                margin: 0;
+                font-size: 36px;
+              }
+              /* Keep collapse/close tools on the right */
+              .card-header .card-tools{
+                position: absolute;
+                right: .75rem;
+                top: .5rem;
+              }
+            
+              /* Optional: center tab labels in tabbed headers/navs */
+              .nav-tabs{ justify-content: center; }
+            
             <style>
               /* Center a label + the matrix side by side */
               .mx-row { display:flex; align-items:center; justify-content:center; gap:.75rem; width:100%; }
@@ -547,6 +599,7 @@ ui <- bs4DashPage(
             
               .mx-lead { text-align:center; font-weight:600; }
             </style>
+            
           "))
         ),
 
@@ -563,27 +616,24 @@ ui <- bs4DashPage(
                     bs4Card(
                         collapsible = FALSE,   # removes collapse toggle
                         closable = FALSE,      # removes close icon
-                        title = HTML('<span style="margin-left: 0%;
-                                     ">An Analysis of Consumer Sentiment Using Hidden Markov Model Regimes</span>'),
+                        title = HTML("<b>Analysis of Consumer Sentiment Using Hidden Markov Model Regimes</b>"),
                         width = 12,
                         status = "success",
                         #solidHeader = TRUE,
                         fluidRow(
-                            column(width = 6,
-                                   div(style = "height: 75vh; font-size:18px; line-height:1.5; overflow-y:auto;",
+                            column(width = 5,
+                                   div(style = "height: 80vh; font-size:18px; line-height:1.5; overflow-y:auto;",
                                        
                                        bs4Dash::tabsetPanel(
                                            id = "consumer_sent_tabs",
                                            type = "pills",
-                                           tabPanel("Introduction", summary_string),
-                                           tabPanel("About", consumer_sentiment_text),
+                                           tabPanel("Introduction", consumer_sentiment_text),
                                            tabPanel("Methodology", cs_methodology),
-                                           tabPanel("Interpretation", cs_interpretation),
                                            tabPanel("Data Collection", cs_data_collection)
                                        )
                                    )
                                 ),
-                            column(width = 6, highchartOutput("consumer_sentiment_plot", height = "75vh"))
+                            column(width = 7, highchartOutput("consumer_sentiment_plot", height = "80vh"))
                         )
                     )
                 )
@@ -599,23 +649,49 @@ ui <- bs4DashPage(
                     bs4Card(
                         collapsible = FALSE,   # removes collapse toggle
                         closable = FALSE,      # removes close icon
-                        width = 6,
-                        status = "warning",
-                        div(style = "height:800px; font-size:16px; line-height:1.5; display:flex; flex-direction:column;",
-                            selectInput("select1", "Variable Category", choices = c(
+                        width = 5,
+                        status = "success",
+                        title = HTML('<span style="margin-left: 0%; font-size:36px
+                                     "> <b> Economic Indicator Preliminary Analysis </b> </span>'),
+                        div(
+                            style = "height:75vh; font-size:18px; line-height:1.5; display:flex; flex-direction:column;",
+                            
+                            # selector stays on top
+                            selectInput("select1", "Indicator Category", choices = c(
                                 "Output", "Labor Market", "Price Levels",
                                 "Monetary and Fiscal", "Housing and Construction", "Trade"
                             )),
-                            div(style = "flex:1 1 auto;", uiOutput("category_summary")),
-                            div(style = "margin-top:auto; width:100%;", DT::dataTableOutput("summary_table"))
+                            
+                            # TEXT SHELL (default)
+                            div(
+                                id = "cat_text_shell",
+                                style = "flex:1 1 auto; display:flex; flex-direction:column;",
+                                div(style = "flex:1 1 auto;", uiOutput("category_summary")),
+                                div(style = "margin-top:.5rem; display:flex; justify-content:flex-end;",
+                                    actionButton("show_summary_table", "More details", class = "btn btn-outline-success"))
+                            ),
+                            
+                            # TABLE SHELL (hidden until button click)
+                            shinyjs::hidden(
+                                div(
+                                    id = "cat_table_shell",
+                                    style = "flex:1 1 auto; display:flex; flex-direction:column;",
+                                    # let the table consume the space; DataTables will get a scrollY (below)
+                                    div(style = "flex:1 1 auto;", DT::dataTableOutput("summary_table")),
+                                    div(style = "margin-top:.5rem; display:flex; justify-content:flex-end;",
+                                        actionButton("back_to_summary", "Back", icon = icon("arrow-left")))
+                                )
+                            )
                         )
                     ),
                     column(
-                        collapsible = FALSE,   # removes collapse toggle
-                        closable = FALSE,      # removes close icon
-                        width = 6,
-                        highchartOutput("category_plot_hc", width = "100%", height = "450px"),
-                        highchartOutput("pearsons_plot_hc", width = "100%", height = "450px")
+                        #bs4Card(
+                            #collapsible = FALSE,   # removes collapse toggle
+                            #closable = FALSE,      # removes close icon
+                            width = 7,
+                            highchartOutput("category_plot_hc", width = "100%", height = "40vh"),
+                            highchartOutput("pearsons_plot_hc", width = "100%", height = "50vh")
+                        #)
                     )
                 )
             ),
@@ -635,115 +711,121 @@ ui <- bs4DashPage(
                             width = 12,
                             status = "success",
                             solidHeader = TRUE,
-                            #"",
-            bs4Dash::tabsetPanel(
-                id = "hmm_info_tabs",
-                type = "pills",
-                selected = "hmm_intro",
-                tabPanel("Introduction", value = "hmm_intro", intro_hmm_text),
-                tabPanel("Model Training", value = "hmm_train_exp", hmm_training),
-                # We may not want initial state in the model explanation, unecessary and not enough content
-                
-                #tabPanel("Initial State", value = "init_state", initial_state_selected),
-                tabPanel("Transition Probability", value = "trans_prob",
-                         div(style = "height:636px;",
-                            transition_prob,
-                            uiOutput("matrix_ui")
-                         )
-                ),
-                tabPanel("Emission Probability", value = "emission_prob", 
-                         div(style = "height:636px;",
-                             emission_prob,
-                             uiOutput("emissions_mat"))
-                        )
-                    )
-                )
-            ),
+                            bs4Dash::tabsetPanel(
+                                id = "hmm_info_tabs",
+                                type = "pills",
+                                selected = "hmm_intro",
+                                tabPanel("Introduction", value = "hmm_intro", 
+                                         div(style = "height: 70vh; font-size:18px;",
+                                            intro_hmm_text
+                                            )
+                                        ),
+                                tabPanel("Model Training", value = "hmm_train_exp", 
+                                         div(style = "height: 70vh; font-size:18px;",
+                                            hmm_training
+                                            )
+                                        ),
+                                tabPanel("Transition Probability", value = "trans_prob",
+                                         div(style = "height:50vh;",
+                                            transition_prob,
+                                            uiOutput("matrix_ui")
+                                         )
+                                ),
+                                tabPanel("Emission Probability", value = "emission_prob", 
+                                         div(style = "height:50vh;",
+                                             emission_prob,
+                                             uiOutput("emissions_mat")
+                                             )
+                                        )
+                                    )
+                                )
+                            ),
             
-            bs4Card(
-                collapsible = FALSE, closable = FALSE,
-                title = "State Plot", width = 7, status = "success", solidHeader = TRUE,
-                
-                div(
-                    id = "sim_shell",
-                    
-                    conditionalPanel(
-                        condition = "input.hmm_info_tabs == 'hmm_intro'",
-                        uiOutput("hmm_overlay_pi")                 
-                    ),
-                    
-                    conditionalPanel(
-                        condition = "input.hmm_info_tabs == 'hmm_train_exp'",
-                        fluidRow(
-                            column(
-                                width = 12,
-                                div(class = "p-2",
-                                    visNetworkOutput("em_flow", height = "10vh", width = "100%"),
-                                    uiOutput("em_step_details")
-                                )
-                            )
-                        )
-                    ),
-                    
-                    # B) TWO-COLUMN LAYOUT for other tabs
-                    conditionalPanel(
-                        condition = "input.hmm_info_tabs != 'hmm_train_exp'",
-                        fluidRow(
-                            # LEFT column
-                            column(
-                                width = 12,
+                            bs4Card(
+                                collapsible = FALSE, closable = FALSE,
+                                title = "State Plot", width = 7, status = "success", solidHeader = TRUE,
                                 
-                                conditionalPanel(
-                                    condition = "input.hmm_info_tabs == 'trans_prob'",
-                                    div(class = "mx-row",
-                                        div(class = "mx-lead", "Edit the transition matrix to change the state probabilities in the simulation:"),
-                                        div(class = "mx-mat",
-                                            numericInput("A11", NULL, value = round(A0[1,1], 2), min = 0, max = 1, step = 0.01, width = "90px"),
-                                            numericInput("A12", NULL, value = round(A0[1,2], 2), min = 0, max = 1, step = 0.01, width = "90px"),
-                                            numericInput("A21", NULL, value = round(A0[2,1], 2), min = 0, max = 1, step = 0.01, width = "90px"),
-                                            numericInput("A22", NULL, value = round(A0[2,2], 2), min = 0, max = 1, step = 0.01, width = "90px")
+                                div(
+                                    id = "sim_shell",
+                                    
+                                    conditionalPanel(
+                                        condition = "input.hmm_info_tabs == 'hmm_intro'",
+                                        uiOutput("hmm_overlay_pi")                 
+                                    ),
+                                    
+                                    conditionalPanel(
+                                        condition = "input.hmm_info_tabs == 'hmm_train_exp'",
+                                        fluidRow(
+                                            column(
+                                                width = 12,
+                                                div(class = "p-2",
+                                                    visNetworkOutput("em_flow", height = "10vh", width = "100%"),
+                                                    uiOutput("em_step_details")
+                                                )
+                                            )
+                                        )
+                                    ),
+                                    
+                                    # B) TWO-COLUMN LAYOUT for other tabs
+                                    conditionalPanel(
+                                        condition = "input.hmm_info_tabs != 'hmm_train_exp'",
+                                        fluidRow(
+                                            # LEFT column
+                                            column(
+                                                width = 12,
+                                                
+                                                conditionalPanel(
+                                                    condition = "input.hmm_info_tabs == 'trans_prob'",
+                                                    div(class = "mx-row",
+                                                        div(class = "mx-lead", "Edit the transition matrix to change the state probabilities in the simulation:"),
+                                                        div(class = "mx-mat",
+                                                            numericInput("A11", NULL, value = round(A0[1,1], 2), min = 0, max = 1, step = 0.01, width = "90px"),
+                                                            numericInput("A12", NULL, value = round(A0[1,2], 2), min = 0, max = 1, step = 0.01, width = "90px"),
+                                                            numericInput("A21", NULL, value = round(A0[2,1], 2), min = 0, max = 1, step = 0.01, width = "90px"),
+                                                            numericInput("A22", NULL, value = round(A0[2,2], 2), min = 0, max = 1, step = 0.01, width = "90px")
+                                                        )
+                                                    )
+                                                ),
+                                                
+                                                conditionalPanel(
+                                                    condition = "input.hmm_info_tabs == 'emission_prob'",
+                                                    div(class = "mx-row",
+                                                        div(class = "mx-lead", "Edit the emission matrix and to change the observation probabilities in the simulation"),
+                                                        div(class = "mx-mat",
+                                                            numericInput("B11", NULL, value = round(B0[1,1], 2), min = 0, max = 1, step = 0.01, width = "90px"),
+                                                            numericInput("B12", NULL, value = round(B0[1,2], 2), min = 0, max = 1, step = 0.01, width = "90px"),
+                                                            numericInput("B21", NULL, value = round(B0[2,1], 2), min = 0, max = 1, step = 0.01, width = "90px"),
+                                                            numericInput("B22", NULL, value = round(B0[2,2], 2), min = 0, max = 1, step = 0.01, width = "90px")
+                                                        )
+                                                    )
+                                                ),
+                                                
+                                                conditionalPanel(
+                                                    condition = "input.hmm_info_tabs == 'trans_prob' || input.hmm_info_tabs == 'emission_prob'",
+                                                    div(class = "mt-2",
+                                                        sliderInput("hmm_T", "Sequence length", min = 15, max = 45, value = 20, step = 1),
+                                                        actionButton("hmm_run_demo", "Simulate Hidden Markov Model", class = "btn btn-success btn-block"),
+                                                        highcharter::highchartOutput("hmm_demo_timeline", height = "40vh"),
+                                                        uiOutput("more_btn")
+                                                    )
+                                                )
+                                            )
                                         )
                                     )
                                 ),
                                 
-                                conditionalPanel(
-                                    condition = "input.hmm_info_tabs == 'emission_prob'",
-                                    div(class = "mx-row",
-                                        div(class = "mx-lead", "Edit the emission matrix and to change the observation probabilities in the simulation"),
-                                        div(class = "mx-mat",
-                                            numericInput("B11", NULL, value = round(B0[1,1], 2), min = 0, max = 1, step = 0.01, width = "90px"),
-                                            numericInput("B12", NULL, value = round(B0[1,2], 2), min = 0, max = 1, step = 0.01, width = "90px"),
-                                            numericInput("B21", NULL, value = round(B0[2,1], 2), min = 0, max = 1, step = 0.01, width = "90px"),
-                                            numericInput("B22", NULL, value = round(B0[2,2], 2), min = 0, max = 1, step = 0.01, width = "90px")
-                                        )
-                                    )
-                                ),
-                                
-                                conditionalPanel(
-                                    condition = "input.hmm_info_tabs == 'trans_prob' || input.hmm_info_tabs == 'emission_prob'",
-                                    div(class = "mt-2",
-                                        sliderInput("hmm_T", "Sequence length", min = 15, max = 45, value = 20, step = 1),
-                                        actionButton("hmm_run_demo", "Simulate Hidden Markov Model", class = "btn btn-success btn-block"),
-                                        highcharter::highchartOutput("hmm_demo_timeline", height = "40vh"),
-                                        uiOutput("more_btn")
+                                # DETAILS VIEW (full width)
+                                shinyjs::hidden(
+                                    div(
+                                        id = "details_shell",
+                                        reactable::reactableOutput("hmm_detail_table", height = "60vh"),
+                                        div(style = "margin-top:.5rem; display:flex; justify-content:flex-end;",
+                                            actionButton("back_to_chart", "Back", icon = icon("arrow-left"))
+                                            )
                                     )
                                 )
                             )
                         )
-                    )
-                ),
-                
-                # DETAILS VIEW (full width)
-                shinyjs::hidden(
-                    div(
-                        id = "details_shell",
-                        reactable::reactableOutput("hmm_detail_table", height = "60vh"),
-                        div(style = "margin-top:.5rem; display:flex; justify-content:flex-end;",
-                            actionButton("back_to_chart", "Back", icon = icon("arrow-left")))
-                    )
-                )
-            )
-                )
             ),
             
             ### Model Analysis Tab ----
@@ -773,7 +855,7 @@ ui <- bs4DashPage(
                             ),
                             tabPanel("t-SNE Plot",
                                      div(style = "padding:10px; font-size:16px; line-height:1.5; height:398.5px; overflow-y:auto;",
-                                         cs_interpretation)
+                                         "cs_interpretation")
                             ),
                             tabPanel("Data Collection",
                                      div(style = "padding:10px; font-size:16px; line-height:1.5; height:398.5px; overflow-y:auto;",
@@ -800,15 +882,11 @@ ui <- bs4DashPage(
             bs4TabItem(
                 tabName = "model_conclusion",
                 bs4Card(
-                    title = "HMM Annotated Diagram",
+                    title = HTML('<span style="margin-left: 0%; font-size:36px
+                                     "> <b> Model Conclusion </b> </span>'),
                     width = 12,
-                    # toggles (bind these to your own booleans if you already have them)
                     fluidRow(
-                        column(4, checkboxInput("initial_tab", "Show initial probabilities (π)", TRUE)),
-                        column(4, checkboxInput("transition_prob", "Show transition probabilities (A)", TRUE)),
-                        column(4, checkboxInput("emission_prob", "Show emission probabilities (B)", TRUE))
-                    )#,
-                    #uiOutput("hmm_overlay", inline = TRUE)
+                    )
                 )
             )
         )
@@ -890,7 +968,23 @@ server <- function(input, output, session) {
                 plotBands = plot_bands
             ) %>%
             hc_credits(enabled = FALSE) %>% 
-            hc_yAxis(title = list(text = "Index Value")) %>%
+            hc_yAxis(title = list(text = "Index Value"),
+                     plotLines = list(
+                         list(
+                             value = 100,
+                             color = "grey",
+                             dashStyle = "Dash",
+                             width = 3,
+                             zIndex = 5,
+                             label = list(
+                                 text = "Baseline (1966)",
+                                 align = "left",
+                                 style = list(color = "red",
+                                              fontSize = "16px")
+                             )
+                         )
+                     )
+                ) %>%
             hc_add_series(
                 data = line_series,
                 type = "line",
@@ -920,7 +1014,10 @@ server <- function(input, output, session) {
                 color = "red",
                 marker = list(symbol = "circle", radius = 5)
             ) %>%
-            hc_title(text = "Consumer Sentiment Over Time") %>%
+            hc_title(text = "Consumer Sentiment Over Time",
+                     style = list(
+                         fontSize = "28px")
+                     )%>%
             hc_tooltip(formatter = JS(
                 sprintf(
                     "
@@ -965,7 +1062,7 @@ server <- function(input, output, session) {
         )
         
         div(
-            style = "font-size:15px; font-family:Segoe UI, sans-serif; line-height:1.6;",
+            style = "font-size:18px; font-family:Segoe UI, sans-serif; line-height:1.6;",
             summary_text
         )
     })
@@ -1255,14 +1352,16 @@ server <- function(input, output, session) {
     })
     
     
-        #### Summary Table ----
+    #### Summary Table ----
     
     summary_table_data <- reactive({
         selected_category <- input$select1
         
         # select the indicators for the chosen category
         indicators <- category_map[[selected_category]]
-        indicators <- indicators[indicators != "consumer_sentiment"] # drop CS if needed
+        
+        # drop CS
+        indicators <- indicators[indicators != "consumer_sentiment"] 
         
         years <- full_dataset$Year
         
@@ -1309,15 +1408,36 @@ server <- function(input, output, session) {
     })
     
     
+    # output$summary_table <- DT::renderDataTable({
+    #     DT::datatable(summary_table_data(),
+    #                   options = list(pageLength = 1000, 
+    #                                  autoWidth = TRUE,
+    #                                  dom = 't',
+    #                                  paging = FALSE,            # no paginator
+    #                                  scrollY = '56vh',          # fits under the select + buttons inside 80vh
+    #                                  responsive = TRUE),
+    #                   rownames = FALSE
+    #     )
+    #     
+    # })
+    
+    table_visible <- reactiveVal(FALSE)
+    
+    observeEvent(input$show_summary_table, { table_visible(TRUE) })
+    observeEvent(input$back_to_summary,   { table_visible(FALSE) })
+    
     output$summary_table <- DT::renderDataTable({
-        DT::datatable(summary_table_data(),
-                      options = list(pageLength = 1000, 
-                                     autoWidth = TRUE,
-                                     dom = 't',
-                                     responsive = TRUE),
-                      rownames = FALSE
+        req(table_visible())
+        DT::datatable(
+            summary_table_data(),
+            options = list(
+                dom = "t", paging = FALSE, autoWidth = TRUE,
+                scrollY = "56vh", scrollCollapse = TRUE, scrollX = TRUE,
+                columnDefs = list(list(className = "dt-nowrap", targets = "_all"))
+            ),
+            class = "compact stripe hover",
+            rownames = FALSE
         )
-        
     })
     
     indicator_to_category <- purrr::map_dfr(names(category_map), function(cat) {
@@ -1325,6 +1445,25 @@ server <- function(input, output, session) {
             Indicator = category_map[[cat]],
             Category  = cat
         )
+    })
+    
+    #allows table to display after clicking button
+    
+    observeEvent(input$select1, {
+        shinyjs::show("cat_text_shell")
+        shinyjs::hide("cat_table_shell")
+    }, ignoreInit = TRUE)
+    
+    # show table
+    observeEvent(input$show_summary_table, {
+        shinyjs::hide("cat_text_shell")
+        shinyjs::show("cat_table_shell")
+    })
+    
+    # back to text
+    observeEvent(input$back_to_summary, {
+        shinyjs::show("cat_text_shell")
+        shinyjs::hide("cat_table_shell")
     })
     
     #creates data frame with r values for bar chart
@@ -1376,7 +1515,7 @@ server <- function(input, output, session) {
             hc_xAxis(categories = unname(cor_df$Label), reversed = TRUE) %>%
             hc_yAxis(title = list(text = "Pearson's r")) %>%
             hc_title(text = "Correlation to Consumer Sentiment") %>%
-            hc_subtitle(text = "The greater the value, the more correlated the variable is with Consumer Sentiment") %>%
+            hc_subtitle(text = "The greater the value, the more correlated the indicator is with Consumer Sentiment") %>%
             hc_add_series_list(series_list) %>%
             hc_caption(
                 text = paste0(
@@ -1586,7 +1725,7 @@ server <- function(input, output, session) {
           '))
     })
     
-    ### HMM Simulation Code
+    ### HMM Simulation Code ----
     
     pi0 <- c(0.5, 0.5)  
     A0  <- matrix(c(0.75,0.25,
@@ -1617,7 +1756,6 @@ server <- function(input, output, session) {
         errs
     }
     
-    # ---------- reactives: read inputs (no normalization) ----------
     A_input <- reactive({
         matrix(as.numeric(c(
             input$A11 %||% A0[1,1], input$A12 %||% A0[1,2],
@@ -1640,7 +1778,6 @@ server <- function(input, output, session) {
           .validate_matrix(B_input(), "Emission (B)"))
     })
     
-    # ---------- simulate + fit ----------------------
     demo_data <- eventReactive(input$hmm_run_demo, {
         errs <- prob_errors()
         if (length(errs)) {
@@ -2003,12 +2140,13 @@ server <- function(input, output, session) {
     ### 3D TSNE PLOT ----
     output$state_plot <- renderHighchart({
         
-        # reading in data (no need to recalculate)
+        # reading in data
         sent_hmm = readRDS("sent_hmm.rds")
+        tsne_result = readRDS("tnse_data.rds")
+        
+        
         fit_hmm = fit(sent_hmm)
         predicted_states <- posterior(fit_hmm)$state
-        
-        tsne_result = readRDS("tnse_data.rds")
         
         tsne_df <- data.frame(
             x = tsne_result$Y[, 1],
@@ -2016,8 +2154,6 @@ server <- function(input, output, session) {
             z = tsne_result$Y[, 3],
             group = factor(predicted_states)
         )
-        
-        print(tsne_df)
         
         hc <- highchart() %>%
             hc_chart(
