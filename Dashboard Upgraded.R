@@ -265,6 +265,7 @@ intro_hmm_text <- HTML(
 
 emission_prob <- HTML(
     "
+    <p> </p>
   <p>
     <b> Emission Probabilities </b> link the hidden states to the observations. They represent the probability of 
     seeing a particular observation given that the system is in a specific hidden state.
@@ -290,6 +291,7 @@ emission_prob <- HTML(
 
 transition_prob  <- HTML(
     "
+    <p> </p>
   <p>
     <b> Transition Probabilities </b> govern how the hidden states change over time. 
     They are the probabilities of moving from one hidden state to another in the next time step.
@@ -312,6 +314,7 @@ transition_prob  <- HTML(
 
 hmm_training  <- HTML(
     "
+    <p> </p>
 <p>
 <b> Model training </b> is the process of finding the internal probabilities (initial state, transition, and emission) that best explain a sequence of observations. The goal is to maximize the <b>log-likelihood</b>, a statistical measure of how well the model's parameters account for the data. A higher log-likelihood score means the model provides a more plausible explanation for the sequence.
 </p>
@@ -633,7 +636,8 @@ ui <- bs4DashPage(
                                        )
                                    )
                                 ),
-                            column(width = 7, highchartOutput("consumer_sentiment_plot", height = "80vh"))
+                            column(width = 7, 
+                                   highchartOutput("consumer_sentiment_plot", height = "80vh"))
                         )
                     )
                 )
@@ -651,48 +655,50 @@ ui <- bs4DashPage(
                         closable = FALSE,      # removes close icon
                         width = 5,
                         status = "success",
-                        title = HTML('<span style="margin-left: 0%; font-size:36px
-                                     "> <b> Economic Indicator Preliminary Analysis </b> </span>'),
-                        div(
-                            style = "height:75vh; font-size:18px; line-height:1.5; display:flex; flex-direction:column;",
-                            
-                            # selector stays on top
-                            selectInput("select1", "Indicator Category", choices = c(
-                                "Output", "Labor Market", "Price Levels",
-                                "Monetary and Fiscal", "Housing and Construction", "Trade"
-                            )),
-                            
-                            # TEXT SHELL (default)
+                        title = HTML('<b> Economic Indicator Preliminary Analysis </b>'),
+
                             div(
-                                id = "cat_text_shell",
-                                style = "flex:1 1 auto; display:flex; flex-direction:column;",
-                                div(style = "flex:1 1 auto;", uiOutput("category_summary")),
-                                div(style = "margin-top:.5rem; display:flex; justify-content:flex-end;",
-                                    actionButton("show_summary_table", "More details", class = "btn btn-outline-success"))
-                            ),
-                            
-                            # TABLE SHELL (hidden until button click)
-                            shinyjs::hidden(
+                                style = "min-height: 86vh; font-size:18px; line-height:1.5; display:flex; flex-direction:column;",
+                                
+                                # selector stays on top
+                                selectInput("select1", "Indicator Category", choices = c(
+                                    "Output", "Labor Market", "Price Levels",
+                                    "Monetary and Fiscal", "Housing and Construction", "Trade"
+                                )),
+                                
+                                # TEXT SHELL (default)
                                 div(
-                                    id = "cat_table_shell",
+                                    id = "cat_text_shell",
                                     style = "flex:1 1 auto; display:flex; flex-direction:column;",
-                                    # let the table consume the space; DataTables will get a scrollY (below)
-                                    div(style = "flex:1 1 auto;", DT::dataTableOutput("summary_table")),
+                                    div(style = "flex:1 1 auto;", uiOutput("category_summary")),
                                     div(style = "margin-top:.5rem; display:flex; justify-content:flex-end;",
-                                        actionButton("back_to_summary", "Back", icon = icon("arrow-left")))
-                                )
+                                        actionButton("show_summary_table", "More details", class = "btn btn-outline-success"))
+                                ),
+                                
+                                # TABLE SHELL (hidden until button click)
+                                shinyjs::hidden(
+                                    div(
+                                        id = "cat_table_shell",
+                                        style = "flex:1 1 auto; display:flex; flex-direction:column; min-height:0;",
+                                        div(
+                                            id    = "dt_wrap",
+                                            style = "flex:1 1 auto; min-height:0; overflow-x:auto; width:100%;",
+                                            DT::dataTableOutput("summary_table", width = "100%")
+                                        ),
+                                        div(style = "margin-top:.5rem; display:flex; justify-content:flex-end;",
+                                            actionButton("back_to_summary", "Back", icon = icon("arrow-left")))
+                                    )                                    )
                             )
+                        ),
+                    
+                    bs4Card(
+                        collapsible = FALSE,   # removes collapse toggle
+                        closable = FALSE,      # removes close icon
+                        width = 7,
+                        status = "success",
+                        highchartOutput("category_plot_hc", width = "100%", height = "45vh"),
+                        highchartOutput("pearsons_plot_hc", width = "100%", height = "50vh")
                         )
-                    ),
-                    column(
-                        #bs4Card(
-                            #collapsible = FALSE,   # removes collapse toggle
-                            #closable = FALSE,      # removes close icon
-                            width = 7,
-                            highchartOutput("category_plot_hc", width = "100%", height = "40vh"),
-                            highchartOutput("pearsons_plot_hc", width = "100%", height = "50vh")
-                        #)
-                    )
                 )
             ),
             
@@ -707,32 +713,31 @@ ui <- bs4DashPage(
                         bs4Card(
                             collapsible = FALSE,
                             closable = FALSE,
-                            title = "What is a Hidden Markov Model?",
+                            title = HTML('<b> The Hidden Markov Model </b>'),
                             width = 12,
                             status = "success",
-                            solidHeader = TRUE,
                             bs4Dash::tabsetPanel(
                                 id = "hmm_info_tabs",
                                 type = "pills",
                                 selected = "hmm_intro",
                                 tabPanel("Introduction", value = "hmm_intro", 
-                                         div(style = "height: 70vh; font-size:18px;",
+                                         div(style = "min-height: 70vh; font-size:18px;",
                                             intro_hmm_text
                                             )
                                         ),
                                 tabPanel("Model Training", value = "hmm_train_exp", 
-                                         div(style = "height: 70vh; font-size:18px;",
+                                         div(style = "min-height: 70vh; font-size:18px;",
                                             hmm_training
                                             )
                                         ),
                                 tabPanel("Transition Probability", value = "trans_prob",
-                                         div(style = "height:50vh;",
+                                         div(style = "min-height:50vh; font-size:18px;",
                                             transition_prob,
                                             uiOutput("matrix_ui")
                                          )
                                 ),
                                 tabPanel("Emission Probability", value = "emission_prob", 
-                                         div(style = "height:50vh;",
+                                         div(style = "min-height:50vh; font-size:18px;",
                                              emission_prob,
                                              uiOutput("emissions_mat")
                                              )
@@ -743,13 +748,16 @@ ui <- bs4DashPage(
             
                             bs4Card(
                                 collapsible = FALSE, closable = FALSE,
-                                title = "State Plot", width = 7, status = "success", solidHeader = TRUE,
+                                width = 7, 
+                                status = "success", 
+                                #solidHeader = TRUE,
                                 
                                 div(
                                     id = "sim_shell",
                                     
                                     conditionalPanel(
                                         condition = "input.hmm_info_tabs == 'hmm_intro'",
+                                        title = HTML('<b> Model Diagram </b>'),
                                         uiOutput("hmm_overlay_pi")                 
                                     ),
                                     
@@ -1086,25 +1094,23 @@ server <- function(input, output, session) {
     
     format_value <- function(val, fmt) {
         if (is.na(val)) return(NA)
-        if (fmt == "$") {
-            return(paste0("$", formatC(val, format="f", digits=2, big.mark=",")))
-        } else if (fmt == "%") {
-            return(paste0(formatC(val, format="f", digits=2), "%"))
-        } else {
-            return(round(val, 3))
-        }
+        switch(fmt,
+               "$" = {
+                   s <- formatC(abs(val), format = "f", digits = 2, big.mark = ",")
+                   paste0(ifelse(val < 0, "-", ""), "$", s)
+               },
+               "%" = paste0(formatC(val, format = "f", digits = 2), "%"),
+               round(val, 3)
+        )
     }
     
     format_true <- function(val, ind) {
-        if (!ind %in% names(indicator_formats)) {
-            message("Missing indicator_formats entry for: ", ind)
-            return(round(val, 2))
-        }
-        
+        if (!ind %in% names(indicator_formats)) return(round(val, 2))
         fmt <- indicator_formats[[ind]]
         if (is.na(val)) return(NA)
         if (fmt == "$") {
-            paste0("$", formatC(val, format = "f", digits = 2, big.mark = ","))
+            s <- formatC(abs(val), format = "f", digits = 2, big.mark = ",")
+            paste0(ifelse(val < 0, "-", ""), "$", s)
         } else if (fmt == "%") {
             paste0(formatC(val, format = "f", digits = 2), "%")
         } else {
@@ -1207,13 +1213,13 @@ server <- function(input, output, session) {
         "Trade"                    = "PuBu"
     )
     
-    # Build a distinct color palette per category
+    # Distinct color palette per category
     pal_out    <- brewer.pal(length(category_map$`Output`), "Blues")
     pal_lab    <- brewer.pal(length(category_map$`Labor Market`), "Greens")
     pal_price  <- brewer.pal(length(category_map$`Price Levels`), "Purples")
     pal_mon    <- brewer.pal(length(category_map$`Monetary and Fiscal`), "Reds")
-    pal_house  <- brewer.pal(length(category_map$`Housing and Construction`), "Oranges")
-    pal_trade  <- brewer.pal(length(category_map$`Trade`), "PuBu")
+    pal_house  <- brewer.pal(length(category_map$`Housing and Construction`), "BuGn")
+    pal_trade  <- brewer.pal(length(category_map$`Trade`), "PuRd")
     
     indicator_colors <- c(
         setNames(pal_out,     category_map$`Output`),
@@ -1243,10 +1249,8 @@ server <- function(input, output, session) {
             mutate(
                 Label    = nice_names[Indicator],
                 fmt      = indicator_formats[Indicator],
-                #is_sel   = Indicator %in% category_map[[input$select1]]
             )
         
-        # 3) Series order: everything except CS first, then CS last
         all_inds     <- unique(plot_df$Indicator)
         ordered_inds <- c(setdiff(all_inds, "consumer_sentiment"), "consumer_sentiment")
 
@@ -1280,19 +1284,24 @@ server <- function(input, output, session) {
                 events = list(
                     legendItemClick = JS(
                         "function() {
-           // find the bar chart
-           var bc = Highcharts.charts.find(c => c.renderTo.id==='pearsons_plot_hc');
-           if (!bc) return true;
-           // find the matching bar series
-           var bs = bc.get(this.options.id);
-           if (bs) {
-             // if the line *was* visible, we've just hidden it => make bar translucent
-             // otherwise, we've just shown it => make bar solid
-             var newColor = this.visible ? bs.options.inactiveColor : bs.options.origColor;
-             bs.update({ color: newColor }, true);
-           }
-           return true;  // still toggle the line
-         }"
+                           // find the bar chart
+                           var bc = Highcharts.charts.find(c => c.renderTo.id==='pearsons_plot_hc');
+                           
+                           if (!bc) return true;
+                           
+                           // find the matching bar series
+                           var bs = bc.get(this.options.id);
+                           
+                           if (bs) {
+                             // if the line *was* visible, we've just hidden it => make bar translucent
+                             // otherwise, we've just shown it => make bar solid
+                             
+                             var newColor = this.visible ? bs.options.inactiveColor : bs.options.origColor;
+                             bs.update({ color: newColor }, true);
+                           }
+                           
+                           return true;  // still toggle the line
+                         }"
                     )
                 )
             )) %>%
@@ -1306,15 +1315,23 @@ server <- function(input, output, session) {
             ) %>%
             hc_tooltip(
                 useHTML   = TRUE,
-                formatter = JS(
-                    "function() {",
-                    "  var fmt = this.point.format || '';",
-                    "  var num = Highcharts.numberFormat(this.point.trueValue, 2);",
-                    "  var txt = fmt === '%' ? num + fmt : fmt + num;",
-                    "  return '<b>' + this.series.name + '</b><br>' +",
-                    "         'Year: ' + this.x + '<br>' +",
-                    "         'Value: ' + txt;",
-                    "}"
+                formatter = JS("function () {
+                      var fmt = this.point.format || '';
+                      var v   = this.point.trueValue;
+                      var txt;
+                      if (fmt === '$') {
+                        var sign = (v < 0 ? '-' : '');
+                        var absv = Highcharts.numberFormat(Math.abs(v), 2);
+                        txt = sign + '$' + absv;  // -$ before digits
+                      } else if (fmt === '%') {
+                        txt = Highcharts.numberFormat(v, 2) + '%';
+                      } else {
+                        txt = Highcharts.numberFormat(v, 2);
+                      }
+                      return '<b>' + this.series.name + '</b><br>' +
+                             'Year: ' + this.x + '<br>' +
+                             'Value: ' + txt;
+                    }"
                 )
             ) %>%
             hc_yAxis(
@@ -1404,40 +1421,29 @@ server <- function(input, output, session) {
             values_from = Value
         )
         
+        # sanitize names before displaying
+        df_wide$Statistic <- gsub("\\s*\\(Year\\)", ". Year", df_wide$Statistic)
+        df_wide$Statistic <- gsub("\\.+", ".", df_wide$Statistic)
+        df_wide$Statistic <- sub("\\.$","", df_wide$Statistic)
+        
         as.data.frame(df_wide)
     })
     
-    
-    # output$summary_table <- DT::renderDataTable({
-    #     DT::datatable(summary_table_data(),
-    #                   options = list(pageLength = 1000, 
-    #                                  autoWidth = TRUE,
-    #                                  dom = 't',
-    #                                  paging = FALSE,            # no paginator
-    #                                  scrollY = '56vh',          # fits under the select + buttons inside 80vh
-    #                                  responsive = TRUE),
-    #                   rownames = FALSE
-    #     )
-    #     
-    # })
-    
+    # only make summary table visible if the user selects to it
     table_visible <- reactiveVal(FALSE)
-    
+
     observeEvent(input$show_summary_table, { table_visible(TRUE) })
     observeEvent(input$back_to_summary,   { table_visible(FALSE) })
     
     output$summary_table <- DT::renderDataTable({
         req(table_visible())
+        df <- summary_table_data()
         DT::datatable(
-            summary_table_data(),
-            options = list(
-                dom = "t", paging = FALSE, autoWidth = TRUE,
-                scrollY = "56vh", scrollCollapse = TRUE, scrollX = TRUE,
-                columnDefs = list(list(className = "dt-nowrap", targets = "_all"))
-            ),
-            class = "compact stripe hover",
-            rownames = FALSE
-        )
+            df, rownames = FALSE, class = "compact stripe hover",
+            options = list(dom='t', paging=FALSE, searching=FALSE, ordering=TRUE, autoWidth=TRUE)
+        ) %>%
+            DT::formatStyle(colnames(df)[-1], `min-width` = '120px', `padding` = '6px 12px') %>%
+            DT::formatStyle(colnames(df)[1],  `min-width` = '180px')
     })
     
     indicator_to_category <- purrr::map_dfr(names(category_map), function(cat) {
@@ -1469,42 +1475,61 @@ server <- function(input, output, session) {
     #creates data frame with r values for bar chart
     cor_df_reactive <- reactive({
         scaled_data %>%
-            dplyr::select(-consumer_sentiment) %>%
-            imap_dfr(~ tibble(
+            dplyr::select(-consumer_sentiment, -Year) %>%
+            purrr::imap_dfr(~tibble(
                 Indicator = .y,
-                r         = cor(.x, scaled_data$consumer_sentiment, use = "complete.obs")
+                r = cor(.x, scaled_data$consumer_sentiment, use = "complete.obs")
             )) %>%
-            mutate(
-                Label = unname(nice_names[Indicator]),
-                color = indicator_colors[Indicator]
+            dplyr::mutate(
+                Label = unname(nice_names[Indicator])
             ) %>%
-            filter(Indicator != "Year") %>%
-            mutate(r = round(abs(r), 3)) %>%
-            left_join(indicator_to_category, by = "Indicator") %>%
-            mutate(
-                color = RColorBrewer::brewer.pal(6, "Set1")[as.numeric(factor(Category))]
+            # You already have this mapping
+            dplyr::left_join(indicator_to_category, by = "Indicator") %>%
+            # Normalize category labels to match legend keys
+            dplyr::mutate(
+                Category_norm = dplyr::recode(
+                    Category,
+                    "Monetary and Fiscal"      = "Monetary & Fiscal",
+                    "Housing and Construction" = "Housing & Construction",
+                    .default = Category
+                ),
+                color = unname(category_colors[Category_norm]),
+                r = round(abs(r), 3)
             )
     })
     
     #### Pearson's R Bar Chart ----
+    
+    category_colors <- c(
+        Output                   = "#1f78b4",
+        `Labor Market`           = "#33a02c",
+        `Price Levels`           = "#6a3d9a",
+        `Monetary & Fiscal`      = "#e31a1c",
+        `Housing & Construction` = "#2D7C66",
+        Trade                    = "#E40078"
+    )
+    
+    # function to lower opacity of unselected bars
+    with_alpha <- function(hex, a = 0.30){
+        rgb <- grDevices::col2rgb(hex)
+        sprintf("rgba(%d,%d,%d,%.2f)", rgb[1], rgb[2], rgb[3], a)
+    }
+    
     output$pearsons_plot_hc <- renderHighchart({
         cor_df <- cor_df_reactive()
-        inactive_alpha <- 0.3
+        initial_inds <- category_map[[ isolate(input$select1) ]]
         
-        # grab the initial combo‐box value just once
-        initial_cat  <- isolate(input$select1)
-        initial_inds <- category_map[[ initial_cat ]]
-        
-        series_list <- purrr::map(seq_len(nrow(cor_df)), function(i) {
-            base_col     <- cor_df$color[i]
-            inactive_col <- alpha(base_col, inactive_alpha)
+        series_list <- lapply(seq_len(nrow(cor_df)), function(i){
+            id   <- cor_df$Indicator[i]
+            base <- cor_df$color[i]                   # category color
+            dimm <- with_alpha(base, 0.30)
             
             list(
-                id            = cor_df$Indicator[i],
+                id            = id,
                 name          = cor_df$Label[i],
-                color         = if (cor_df$Indicator[i] %in% initial_inds) base_col else inactive_col,
-                origColor     = base_col,
-                inactiveColor = inactive_col,
+                color         = if (id %in% initial_inds) base else dimm,
+                origColor     = base,
+                inactiveColor = dimm,
                 data          = list(list(x = i - 1, y = cor_df$r[i])),
                 showInLegend  = FALSE
             )
@@ -1527,7 +1552,7 @@ server <- function(input, output, session) {
                     "<span style='font-weight:bold;color:#6a3d9a'>&#9632;</span> Price Levels&nbsp;&nbsp;&nbsp;",
                     "<span style='font-weight:bold;color:#e31a1c'>&#9632;</span> Monetary & Fiscal&nbsp;&nbsp;&nbsp;",
                     "<span style='font-weight:bold;color:#ff7f00'>&#9632;</span> Housing & Construction&nbsp;&nbsp;&nbsp;",
-                    "<span style='font-weight:bold;color:#b15928'>&#9632;</span> Trade",
+                    "<span style='font-weight:bold;color:#5F1DF9'>&#9632;</span> Trade",
                     "</span>"
                 ),
                 useHTML = TRUE
@@ -1535,35 +1560,23 @@ server <- function(input, output, session) {
             hc_plotOptions(bar = list(pointWidth = 15))
     })
     
-    category_colors <- c(
-        Output                   = "#1f78b4",
-        `Labor Market`           = "#33a02c",
-        `Price Levels`           = "#6a3d9a",
-        `Monetary & Fiscal`      = "#e31a1c",
-        `Housing & Construction` = "#ff7f00",
-        Trade                    = "#b15928"
-    )
-    
     #update bar chart when new combo box item is selected
     observeEvent(input$select1, {
         cor_df <- cor_df_reactive()
-        inactive_alpha <- 0.3
+        sel_inds <- category_map[[ input$select1 ]]
         
         proxy <- highchartProxy("pearsons_plot_hc", session = session)
         
-        purrr::walk(seq_len(nrow(cor_df)), function(i) {
-            id          <- cor_df$Indicator[i]
-            base_col    <- cor_df$color[i]
-            inactive_col<- alpha(base_col, inactive_alpha)
-            
-            # pick opaque vs. translucent
-            new_col <- if (id %in% category_map[[ input$select1 ]]) base_col else inactive_col
+        for (i in seq_len(nrow(cor_df))) {
+            id   <- cor_df$Indicator[i]
+            base <- cor_df$color[i]              # category color from DF
+            dimm <- with_alpha(base, 0.30)
             
             proxy %>% hcpxy_update_series(
                 id    = id,
-                color = new_col
+                color = if (id %in% sel_inds) base else dimm
             )
-        })
+        }
     })
     
     ## Hidden Markov Model Code ----
