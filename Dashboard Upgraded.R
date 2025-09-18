@@ -89,8 +89,8 @@ The questions investigate how consumers feel about their personal finances and t
   $$
   </p>
   
-   <p>The calculated values in the graph are averages over the entire year, showing how consumers feel about the overall direction of 
-   the economy and their finances, relative to 1966. 
+   <p>The calculated value showes how consumers feel about the overall direction of the economy and their finances, relative to 
+   how consumers felt in 1966. 
   <b> Values above 100 </b> indicate sentiment stronger than in the base period, while <b> values below 100 </b> indicate weaker sentiment. 
   The index is still interpretable when comparing the values between two separate periods. For example, if period 1 had a score of 85 and 
   period 2 had a score of 87, it can be concluded that consumer sentiment has improved relative to the earlier period.</p>
@@ -240,25 +240,21 @@ intro_hmm_text <- HTML(
     </p>
     
     <p>
-    Think of it like trying to guess the weather (a hidden state) by only knowing the temperature (an observation). You can't see if it's Sunny, 
-    Cloudy, or Rainy from inside a windowless room, but if you're told the temperature is Hot, you can make a good guess that it's probably Sunny.
+    Think of it like trying to guess the weather on another planet. You can't see if it's sunny 
+    or rainy from where you are, but if you are told the humidity is low, there is a high-pressure system, and wind speeds are low, 
+    so you can make a good guess that it is likely calm weather right now.
     </p>
     
     <p>
-    The model has two layers: the unobservable hidden states (the weather types at the top of the diagram) and the observations we can see 
-    (the temperatures at the bottom). The model assumes that the sequence of hidden states follows a specific type of random process 
-    (a Markov chain), where the next state only depends on the current state.
+    There is two layers to this: the unobservable hidden states (the weather type) and the observations we can see 
+    (the meteorological indicators). The model assumes that the sequence of hidden states follows a specific type of random process 
+    called a <b> Markov chain </b>, where the next state only depends on the current state.
     </p>
     
     <p>
-    The primary goal of an HMM is to infer the most likely sequence of hidden states given a sequence of observations. 
-    For example, if you observe a temperature pattern of Hot, Mild, Cold over three days, the HMM can calculate 
-    the most probable weather sequence, such as Sunny, Cloudy, Rainy.
-    </p>
-    
-    <p>
-    The model trains by analyzing a large set of historical data where both the states and observations are known. 
-    It learns the probabilities that connect these states and observations, which are the core components of the model.
+    The primary goal of a Hidden Markov Model is to infer the most likely sequence of hidden states given a sequence of observations. 
+    For example, if you observe a pattern of <b> (Arid, Arid, Humid) </b> over three days, the HMM can calculate 
+    the most probable weather sequence, such as <b> (Sunny, Sunny, Rainy) </b>.
     </p>
     "
 )
@@ -266,25 +262,24 @@ intro_hmm_text <- HTML(
 emission_prob <- HTML(
     "
     <p> </p>
+    
   <p>
     <b> Emission Probabilities </b> link the hidden states to the observations. They represent the probability of 
-    seeing a particular observation given that the system is in a specific hidden state.
+    seeing a particular observation given that the system is in a specific hidden state. For example, given that it is Rainy, 
+      what is the probability that the air is Arid? These are also learned from historical data. For all the times the 
+      state was sunny, the model calculates the proportion of times the observations were arid and humid.
   </p>
   
   <p>
-  This is the crucial link that allows us to infer the hidden state. For example, given that it is a Rainy day, 
-  what is the probability that the temperature is Cold? This is an emission probability. 
-  It's unlikely that the temperature would be Hot on a Rainy day, so that probability would be very low.
+  In the matrix below, each entry represents the likelihood of observing a condition given a state. Each row shows the probability
+  of seeing a condition given every state in the system. This gives a mathematically useful way of identifying trends in our observations,
+  such as analyzing how useful an indicator is. 
   </p>
   
   <p>
-  These are also learned from historical data. For all the times the state was sunny, the model 
-  calculates the proportion of times the observation were hot, mild, and cold.
-  </p>
   
-  <p>
-  In the diagram, these are the dashed arrows pointing from the hidden weather states down to the observed temperature states. The label (...)
-  represents the probability of observing hot temperature when the hidden state is Sunny.
+  For example, if an indicator initially seemed to be useful, but its emissions matrix
+  did not demonstrate any relationships (all values are about equal), then that indicator cannot give any predictive insight on the states.
   </p>
 "
 )
@@ -305,24 +300,68 @@ transition_prob  <- HTML(
   </p>
   
   <p>
-  In the diagram, these are the curved arrows connecting the weather states. The label represents the probability 
-  of transitioning from State 1 (Sunny) to State 2 (Cloudy). The probabilities in each row of the matrix below must sum to 1.
+  In the matrix below, each transition likelihood is stored as a value between 0 and 1. Each row represents the likelihood of moving from
+  one state to every other state in the system. Using this matrix, we can identify trends in time. For example, the value from Sunny to
+  Rainy may be low, and the value from Rainy to Sunny may be high, meaning that it is unlikely on any Sunny day that it will become
+  Rainy, and once it does it is very likely to become Sunny the next day.
   </p>
   
 "
 )
 
-hmm_training  <- HTML(
+hmm_training <- HTML(
     "
     <p> </p>
-<p>
-<b> Model training </b> is the process of finding the internal probabilities (initial state, transition, and emission) that best explain a sequence of observations. The goal is to maximize the <b>log-likelihood</b>, a statistical measure of how well the model's parameters account for the data. A higher log-likelihood score means the model provides a more plausible explanation for the sequence.
-</p>
+    
+    <p>
+      The model trains by analyzing a large set of historical data where both the states and observations are known. 
+      At this stage, its central task is to determine the values of its internal probabilities (the initial state, transition likelihood, 
+      and emission probabilities) that best explain the given data. To measure what 'best' means, a statistical score called the 
+      <b>log-likelihood</b> is used, which numerically measures how well the model explains the data.
+    </p>
+    
+    <p>
+      To calculate the transition and emission probabilities, we need to know the sequence of hidden states. However, 
+      that sequence is unknown. To solve this, the HMM uses a powerful iterative method called the <b>Expectation-Maximization (EM)</b> 
+      algorithm. The algorithm starts with an initial guess for the probabilities and then repeatedly refines them through a two-step cycle, 
+      guaranteeing that the log-likelihood improves with each iteration.
+    </p>
+    
+    <p>
+      This cycle of expectation and maximization repeats until the model <b>converges</b>, when the improvements in the 
+      log-likelihood score become negligibly small. At this point, the algorithm has found a stable, optimized set of probabilities 
+      that best describes the hidden dynamics within the data. 
+      
+      </p>
+      
+    </p>"
+)
 
-<p>
-To achieve this, the model uses an iterative algorithm called <b>Expectation-Maximization (EM)</b>, known as the Baum-Welch algorithm in this context. It begins with an initial guess for the parameters and then repeatedly applies a two-step process to incrementally improve them. The <b>E-Step (Expectation)</b> calculates the probability of being in each hidden state at every point in time, and the <b>M-Step (Maximization)</b> uses these probabilities to update the model's parameters to a new, better-fitting set. This cycle repeats until the improvements become negligible, a state known as <b>convergence</b>, resulting in an optimized model.
-</p>
-"
+trans_matrix_text <- HTML(
+    '
+    <p>
+    Use the transition matrix to see how the probability values changes the states in the simulation.
+    Increasing the value of a cell means that transition is more likely to occur.
+    </p>
+
+    <p>
+    <b> (Note: All probability rows must sum to 1) </b>
+    </p>
+    '
+    
+)
+
+emission_matrix_text <- HTML(
+    '
+    <p>
+    Use the emissions matrix to see how the probability values changes the observations in the simulation.
+    Increasing the value of a cell means that observation is more likely to occur.
+    </p>
+
+    <p>
+    <b> (Note: All probability rows must sum to 1) </b>
+    </p>
+    '
 )
 
 ## Model Analysis Text ----
@@ -421,9 +460,6 @@ ui <- bs4DashPage(
         useShinyjs(),
         tags$head(
             
-            #THIS IS MAKING THE PILL STYLE TAB COLOR THE SAME COLOR AS THE THEME
-            # Custom CSS/JS
-            
             tags$style(HTML("
             /* Sidebar background */
               .main-sidebar {
@@ -492,27 +528,82 @@ ui <- bs4DashPage(
               white-space: normal;
             }
             
-            /* Little arrow */
-            .hs .callout::after {
-              content: \"\";
+            #hmmwrap_all{
+              position: relative;        /* base for absolute children */
+              isolation: isolate;        /* own stacking context so z-index is predictable */
+            }
+            
+            /* The base SVG just fills the box */
+            #hmmwrap_all .base-svg{
+              width: 100%; height: 60vh; display: block;
+            }
+            
+            /* Each hotspot */
+            #hmmwrap_all .hs{
               position: absolute;
-              left: 50%; bottom: -6px;
-              transform: translateX(-50%);
-              border: 6px solid transparent;
-              border-top-color: #fff;
+              transform: translate(-50%, -50%);  /* center on left/top percent */
+              z-index: 1;                        /* base layer */
             }
             
-            /* Show on hover/focus */
-            .hs:hover .callout, .hs:focus-within .callout {
+            /* Raise hovered/focused hotspot above siblings */
+            #hmmwrap_all .hs:hover,
+            #hmmwrap_all .hs:focus-within{
+              z-index: 9999;
+            }
+            
+            /* The popup */
+            #hmmwrap_all .hs .callout{
+              position: absolute;
+              left: 50%; top: -10px;              /* above the pill */
+              transform: translate(-50%, -100%);
+              min-width: 220px; max-width: 360px;
+              padding: 10px 12px;
+              border-radius: 10px;
+              background: #fff; color: #333;
+              box-shadow: 0 12px 30px rgba(0,0,0,.25);
+              opacity: 0; visibility: hidden;
+              pointer-events: none;               /* pointer stays on parent */
+              transition: opacity .12s ease, transform .12s ease;
+              z-index: 2147483647;                /* above everything in this context */
+            }
+            
+            /* Show popup on hover/focus */
+            #hmmwrap_all .hs:hover .callout,
+            #hmmwrap_all .hs:focus-within .callout{
               opacity: 1; visibility: visible;
-              transform: translate(-50%, -16px) scale(1);
-              transition-delay: 0s;
+              transform: translate(-50%, -110%);
             }
             
-            /* Optional per-group tint for the tag */
-            .hs.pi    .tag { background: rgba(46,134,222,.75); }   /* π */
-            .hs.trans .tag { background: rgba(231,76,60,.75); }    /* A */
-            .hs.emit  .tag { background: rgba(39,174,96,.75); }    /* B */
+            /* Palette for overlay pills */
+            #hmmwrap_all{
+              --pi:    #2e86de;   /* initial probs (π) */
+              --trans: #e74c3c;   /* transitions (A)  */
+              --emit:  #27ae60;   /* emissions (B)    */
+              --tagText: #fff;
+            }
+            
+            /* Default pill (fallback) */
+            #hmmwrap_all .hs .tag{
+              color: var(--tagText);
+              font-weight: 600;
+              padding: .18rem .50rem;
+              border-radius: .55rem;
+              background: rgba(0,0,0,.35);          /* fallback neutral */
+              backdrop-filter: blur(2px);
+              -webkit-backdrop-filter: blur(2px);
+            }
+            
+            /* Group tints (override the neutral background) */
+            #hmmwrap_all .hs.pi   .tag{ background: var(--pi); }
+            #hmmwrap_all .hs.trans.tag,                 /* in case .tag sits on the same node */
+            #hmmwrap_all .hs.trans .tag{ background: var(--trans); }
+            #hmmwrap_all .hs.emit .tag{ background: var(--emit); }
+            
+            /* Optional: slightly brighter on hover/focus */
+            #hmmwrap_all .hs:hover .tag,
+            #hmmwrap_all .hs:focus-within .tag{
+              filter: brightness(1.05);
+            }
             
             /* Frame draws [  ] around the table */
             .mx-frame{
@@ -568,6 +659,20 @@ ui <- bs4DashPage(
             
               /* Optional: center tab labels in tabbed headers/navs */
               .nav-tabs{ justify-content: center; }
+              
+            .irs-bar,
+             .irs-bar-edge{
+              background: #28a745 !important;
+              border-color: #28a745 !important;
+            }
+            .irs-single,
+            .irs-from,
+            .irs-to{
+              background: #28a745 !important;
+            }
+            .irs-handle > i:first-child{
+              background: #28a745 !important;
+            }
             
             <style>
               /* Center a label + the matrix side by side */
@@ -625,7 +730,7 @@ ui <- bs4DashPage(
                         #solidHeader = TRUE,
                         fluidRow(
                             column(width = 5,
-                                   div(style = "height: 80vh; font-size:18px; line-height:1.5; overflow-y:auto;",
+                                   div(style = "height: 80vh; font-size:18px; line-height:1.5; overflow-y:auto; font-family: Helvetica;",
                                        
                                        bs4Dash::tabsetPanel(
                                            id = "consumer_sent_tabs",
@@ -672,7 +777,7 @@ ui <- bs4DashPage(
                                     style = "flex:1 1 auto; display:flex; flex-direction:column;",
                                     div(style = "flex:1 1 auto;", uiOutput("category_summary")),
                                     div(style = "margin-top:.5rem; display:flex; justify-content:flex-end;",
-                                        actionButton("show_summary_table", "More details", class = "btn btn-outline-success"))
+                                        actionButton("show_summary_table", "More details", icon = icon("table"), class = "btn btn-outline-success"))
                                 ),
                                 
                                 # TABLE SHELL (hidden until button click)
@@ -705,135 +810,143 @@ ui <- bs4DashPage(
             ### Hidden Markov Model Tab ----
             bs4TabItem(
                 tabName = "model_intro",
-
+                
                 # Top explanatory card
-                fluidRow(
-                    column(
-                        width = 5,
-                        bs4Card(
-                            collapsible = FALSE,
-                            closable = FALSE,
-                            title = HTML('<b> The Hidden Markov Model </b>'),
-                            width = 12,
-                            status = "success",
+                bs4Card(
+                    collapsible = FALSE,
+                    closable = FALSE,
+                    title = HTML('<b> The Hidden Markov Model </b>'),
+                    width = 12,
+                    status = "success",
+                    fluidRow(
+                        column(
+                            width = 5,
                             bs4Dash::tabsetPanel(
                                 id = "hmm_info_tabs",
                                 type = "pills",
                                 selected = "hmm_intro",
-                                tabPanel("Introduction", value = "hmm_intro", 
-                                         div(style = "min-height: 70vh; font-size:18px;",
-                                            intro_hmm_text
-                                            )
-                                        ),
-                                tabPanel("Model Training", value = "hmm_train_exp", 
-                                         div(style = "min-height: 70vh; font-size:18px;",
-                                            hmm_training
-                                            )
-                                        ),
+                                tabPanel("Introduction", value = "hmm_intro",
+                                         div(style = "min-height: 50vh; font-size:18px; font-family:Helvetica;",
+                                             intro_hmm_text
+                                         )
+                                ),
+                                tabPanel("Training", value = "hmm_train_exp", 
+                                         div(style = "min-height: 63.2vh; font-size:18px; font-family:Helvetica;",
+                                             hmm_training
+                                         )
+                                ),
                                 tabPanel("Transition Probability", value = "trans_prob",
-                                         div(style = "min-height:50vh; font-size:18px;",
-                                            transition_prob,
-                                            uiOutput("matrix_ui")
+                                         div(style = "min-height:50vh; font-size:18px; font-family:Helvetica;",
+                                             transition_prob,
+                                             uiOutput("matrix_ui")
                                          )
                                 ),
                                 tabPanel("Emission Probability", value = "emission_prob", 
-                                         div(style = "min-height:50vh; font-size:18px;",
+                                         div(style = "min-height:50vh; font-size:18px; font-family:Helvetica;",
                                              emission_prob,
                                              uiOutput("emissions_mat")
-                                             )
+                                         )
+                                )
+                            )
+                        ),
+                        
+                        column(
+                            width = 7,
+                            div(
+                                id = "sim_shell",
+                                
+                                conditionalPanel(
+                                    condition = "input.hmm_info_tabs == 'hmm_intro'",
+                                    uiOutput("hmm_overlay_pi")                 
+                                ),
+                                
+                                conditionalPanel(
+                                    condition = "input.hmm_info_tabs == 'hmm_train_exp'",
+                                    fluidRow(
+                                        column(
+                                            width = 6,
+                                            div(class = "p-2",
+                                                visNetworkOutput("em_flow", height = "70vh", width = "100%"),
+                                            )
+                                        ),
+                                        column(
+                                            width = 6,
+                                            div(
+                                                class = "d-flex align-items-center",      # vertical center (cross-axis)
+                                                style = "min-height:70vh;",               # match the left chart height
+                                                div(style = "width:100%;", uiOutput("em_step_details"))
+                                            )
+                                        )                                    )
+                                ),
+                                
+                                # B) TWO-COLUMN LAYOUT for other tabs
+                                conditionalPanel(
+                                    condition = "input.hmm_info_tabs != 'hmm_train_exp'",
+                                    fluidRow(
+                                        # LEFT column
+                                        column(
+                                            width = 12,
+                                            
+                                            conditionalPanel(
+                                                condition = "input.hmm_info_tabs == 'trans_prob'",
+                                                div(class = "mx-row",
+                                                    div(class = "mx-lead", trans_matrix_text),
+                                                    div(class = "mx-mat",
+                                                        numericInput("A11", NULL, value = round(A0[1,1], 2), min = 0, max = 1, step = 0.01, width = "90px"),
+                                                        numericInput("A12", NULL, value = round(A0[1,2], 2), min = 0, max = 1, step = 0.01, width = "90px"),
+                                                        numericInput("A21", NULL, value = round(A0[2,1], 2), min = 0, max = 1, step = 0.01, width = "90px"),
+                                                        numericInput("A22", NULL, value = round(A0[2,2], 2), min = 0, max = 1, step = 0.01, width = "90px")
+                                                    )
+                                                )
+                                            ),
+                                            
+                                            conditionalPanel(
+                                                condition = "input.hmm_info_tabs == 'emission_prob'",
+                                                div(class = "mx-row",
+                                                    div(class = "mx-lead", emission_matrix_text),
+                                                    div(class = "mx-mat",
+                                                        numericInput("B11", NULL, value = round(B0[1,1], 2), min = 0, max = 1, step = 0.01, width = "90px"),
+                                                        numericInput("B12", NULL, value = round(B0[1,2], 2), min = 0, max = 1, step = 0.01, width = "90px"),
+                                                        numericInput("B21", NULL, value = round(B0[2,1], 2), min = 0, max = 1, step = 0.01, width = "90px"),
+                                                        numericInput("B22", NULL, value = round(B0[2,2], 2), min = 0, max = 1, step = 0.01, width = "90px")
+                                                    )
+                                                )
+                                            ),
+                                            
+                                            conditionalPanel(
+                                                condition = "input.hmm_info_tabs == 'trans_prob' || input.hmm_info_tabs == 'emission_prob'",
+                                                div(
+                                                    class = "mt-2",
+                                                    sliderInput("hmm_T", "Sequence length", min = 15, max = 45, value = 20, step = 1),
+                                                    actionButton("hmm_run_demo", "Simulate Hidden Markov Model", class = "btn btn-success btn-block"),
+                                                    
+                                                    # Reserve the space BEFORE the chart renders
+                                                    div(id = "hmm_chart_shell",
+                                                        style = "height:40vh; min-height:420px;",
+                                                        highcharter::highchartOutput("hmm_demo_timeline", height = "100%")
+                                                    ),
+                                                    
+                                                    uiOutput("more_btn")
+                                                )
+                                            )
                                         )
                                     )
                                 )
                             ),
-            
-                            bs4Card(
-                                collapsible = FALSE, closable = FALSE,
-                                width = 7, 
-                                status = "success", 
-                                #solidHeader = TRUE,
-                                
+                            
+                            # DETAILS VIEW (full width)
+                            shinyjs::hidden(
                                 div(
-                                    id = "sim_shell",
-                                    
-                                    conditionalPanel(
-                                        condition = "input.hmm_info_tabs == 'hmm_intro'",
-                                        title = HTML('<b> Model Diagram </b>'),
-                                        uiOutput("hmm_overlay_pi")                 
-                                    ),
-                                    
-                                    conditionalPanel(
-                                        condition = "input.hmm_info_tabs == 'hmm_train_exp'",
-                                        fluidRow(
-                                            column(
-                                                width = 12,
-                                                div(class = "p-2",
-                                                    visNetworkOutput("em_flow", height = "10vh", width = "100%"),
-                                                    uiOutput("em_step_details")
-                                                )
-                                            )
-                                        )
-                                    ),
-                                    
-                                    # B) TWO-COLUMN LAYOUT for other tabs
-                                    conditionalPanel(
-                                        condition = "input.hmm_info_tabs != 'hmm_train_exp'",
-                                        fluidRow(
-                                            # LEFT column
-                                            column(
-                                                width = 12,
-                                                
-                                                conditionalPanel(
-                                                    condition = "input.hmm_info_tabs == 'trans_prob'",
-                                                    div(class = "mx-row",
-                                                        div(class = "mx-lead", "Edit the transition matrix to change the state probabilities in the simulation:"),
-                                                        div(class = "mx-mat",
-                                                            numericInput("A11", NULL, value = round(A0[1,1], 2), min = 0, max = 1, step = 0.01, width = "90px"),
-                                                            numericInput("A12", NULL, value = round(A0[1,2], 2), min = 0, max = 1, step = 0.01, width = "90px"),
-                                                            numericInput("A21", NULL, value = round(A0[2,1], 2), min = 0, max = 1, step = 0.01, width = "90px"),
-                                                            numericInput("A22", NULL, value = round(A0[2,2], 2), min = 0, max = 1, step = 0.01, width = "90px")
-                                                        )
-                                                    )
-                                                ),
-                                                
-                                                conditionalPanel(
-                                                    condition = "input.hmm_info_tabs == 'emission_prob'",
-                                                    div(class = "mx-row",
-                                                        div(class = "mx-lead", "Edit the emission matrix and to change the observation probabilities in the simulation"),
-                                                        div(class = "mx-mat",
-                                                            numericInput("B11", NULL, value = round(B0[1,1], 2), min = 0, max = 1, step = 0.01, width = "90px"),
-                                                            numericInput("B12", NULL, value = round(B0[1,2], 2), min = 0, max = 1, step = 0.01, width = "90px"),
-                                                            numericInput("B21", NULL, value = round(B0[2,1], 2), min = 0, max = 1, step = 0.01, width = "90px"),
-                                                            numericInput("B22", NULL, value = round(B0[2,2], 2), min = 0, max = 1, step = 0.01, width = "90px")
-                                                        )
-                                                    )
-                                                ),
-                                                
-                                                conditionalPanel(
-                                                    condition = "input.hmm_info_tabs == 'trans_prob' || input.hmm_info_tabs == 'emission_prob'",
-                                                    div(class = "mt-2",
-                                                        sliderInput("hmm_T", "Sequence length", min = 15, max = 45, value = 20, step = 1),
-                                                        actionButton("hmm_run_demo", "Simulate Hidden Markov Model", class = "btn btn-success btn-block"),
-                                                        highcharter::highchartOutput("hmm_demo_timeline", height = "40vh"),
-                                                        uiOutput("more_btn")
-                                                    )
-                                                )
-                                            )
-                                        )
-                                    )
-                                ),
-                                
-                                # DETAILS VIEW (full width)
-                                shinyjs::hidden(
-                                    div(
-                                        id = "details_shell",
-                                        reactable::reactableOutput("hmm_detail_table", height = "60vh"),
-                                        div(style = "margin-top:.5rem; display:flex; justify-content:flex-end;",
-                                            actionButton("back_to_chart", "Back", icon = icon("arrow-left"))
-                                            )
+                                    id = "details_shell",
+                                    reactable::reactableOutput("hmm_detail_table", height = "69vh"),
+                                    div(style = "margin-top:.5rem; display:flex; justify-content:flex-end;",
+                                        actionButton("back_to_chart", "Back", icon = icon("arrow-left"))
                                     )
                                 )
                             )
                         )
+                    )
+                )
             ),
             
             ### Model Analysis Tab ----
@@ -1070,7 +1183,7 @@ server <- function(input, output, session) {
         )
         
         div(
-            style = "font-size:18px; font-family:Segoe UI, sans-serif; line-height:1.6;",
+            style = "font-size:18px; font-family:Helvetica; line-height:1.6;",
             summary_text
         )
     })
@@ -1234,16 +1347,18 @@ server <- function(input, output, session) {
     initial_cat  <- isolate(input$select1)
     initial_inds <- category_map[[ initial_cat ]]
     
+    scaled <- readRDS("scaled_dataset.rds") %>%
+        pivot_longer(-Year, names_to = "Indicator", values_to = "Scaled")
+    full   <- readRDS("full_dataset.rds") %>%
+        pivot_longer(-Year, names_to = "Indicator", values_to = "True")
+    
+    
     #### Selected Indicators over Time Plot ----
     output$category_plot_hc <- renderHighchart({
         
-        # 1) Pivot both data sets long
-        scaled <- readRDS("scaled_dataset.rds") %>%
-            pivot_longer(-Year, names_to = "Indicator", values_to = "Scaled")
-        full   <- readRDS("full_dataset.rds") %>%
-            pivot_longer(-Year, names_to = "Indicator", values_to = "True")
+        session$ns("category_plot_hc_loaded")
         
-        # 2) Join, label, flag selection & formatting
+        
         plot_df <- scaled %>%
             left_join(full, by = c("Year","Indicator")) %>%
             mutate(
@@ -1346,7 +1461,9 @@ server <- function(input, output, session) {
     
     #updates line
     observeEvent(input$select1, {
+        req(isTRUE(input$category_plot_hc_loaded))
         all_ids <- names(indicator_colors)
+        
         # grab the already‐rendered line chart by its outputId
         proxy <- highchartProxy("category_plot_hc", session = session)
         
@@ -1361,6 +1478,7 @@ server <- function(input, output, session) {
     
     #updates title
     observeEvent(input$select1, {
+        req(isTRUE(input$category_plot_hc_loaded))
         highchartProxy("category_plot_hc", session) %>%
             # this will update only the chart title in place
             hcpxy_update(
@@ -1516,6 +1634,7 @@ server <- function(input, output, session) {
     }
     
     output$pearsons_plot_hc <- renderHighchart({
+        session$ns("pearsons_plot_hc_loaded")
         cor_df <- cor_df_reactive()
         initial_inds <- category_map[[ isolate(input$select1) ]]
         
@@ -1562,6 +1681,7 @@ server <- function(input, output, session) {
     
     #update bar chart when new combo box item is selected
     observeEvent(input$select1, {
+        req(isTRUE(input$pearsons_plot_hc_loaded))
         cor_df <- cor_df_reactive()
         sel_inds <- category_map[[ input$select1 ]]
         
@@ -1581,126 +1701,204 @@ server <- function(input, output, session) {
     
     ## Hidden Markov Model Code ----
     
-    ### Algorithm VisNetwork Diagram
+    ### Algorithm VisNetwork Diagram ----
     
-    nodes <- data.frame( 
-        id   = c("init","estep","mstep","ll","check","done"), 
-        label = enc2utf8(c( 
-            "Initialize\nθ⁽⁰⁾",     # θ⁽⁰⁾ 
-            "E-step\n(expectation)", 
-            "M-step\n(maximization)", 
-            "Compute\nlog-likelihood", 
-            "Convergence?", # ΔL, ε 
-            "Done") 
-        ), 
-        #level = 0:5, 
-        title = c( 
-            "Choose starting parameters theta^(0)", 
-            "Compute responsibilities (posterior of hidden variables)", 
-            "Maximize expected complete log-likelihood", 
-            "Evaluate L(theta) = sum log sum p(x,z | theta)", 
-            "Stop if converged; otherwise continue", 
-            "Algorithm terminates" 
-        ), 
-        stringsAsFactors = FALSE 
-    ) 
+    nodes_core <- data.frame(
+        id    = c("init","estep","mstep","ll","check","done","rep_em"),
+        label = c(
+            "Initialize\nθ",
+            "E-step",
+            "M-step",
+            "Compute\nlog-likelihood",
+            "Convergence?",
+            "Done",
+            "Repeat\n(E/M)"
+        ),
+        stringsAsFactors = FALSE
+    )
     
-    edges <- data.frame( 
-        from  = c("init","estep","mstep","ll","check","check"), 
-        to   = c("estep","mstep","ll","check","estep","done"), 
-        label  = c("","","","","No","Yes"), 
-        arrows = "to", 
-        smooth = c(FALSE,FALSE,FALSE,FALSE,TRUE,FALSE), 
-        stringsAsFactors = FALSE 
-    ) 
+    # Per-node styling (defaults)
+    nodes_core$shape <- "box"
+    nodes_core$`color.background` <- "#f8f9fa"
+    nodes_core$`color.border`     <- "#6c757d"
+    nodes_core$`color.highlight.background` <- "#d4edda"
+    nodes_core$`color.highlight.border`     <- "#28a745"
+    nodes_core$font.size  <- 32
+    nodes_core$font.face  <- "Helvetica"
+    nodes_core$font.align <- "center"
     
-    # ---- Graph ---- 
-    output$em_flow <- renderVisNetwork({ 
-        visNetwork(nodes, edges, height = "420px", width = "100%") %>% 
-            visHierarchicalLayout( 
-                direction    = "LR", 
-                levelSeparation = 280,  # pushes columns apart (horizontal) 
-                nodeSpacing   = 140,  # vertical spacing within a column 
-                treeSpacing   = 240,  # spacing between branches 
-                blockShifting  = FALSE  # keeps columns from drifting 
-            ) %>% 
-            visNodes( 
-                shape = "box",  
-                margin = list(top = 14, right = 18, bottom = 14, left = 18), 
-                widthConstraint = list(minimum = 140, maximum = 220), 
-                color = list( 
-                    background = "#f8f9fa", border = "#6c757d", 
-                    highlight  = list(background = "#d4edda", border = "#28a745") 
-                ), 
-                font = list(size = 30, face = "Helvetica", align = "center") 
-            ) %>% 
-            visEdges(color = list(color = "#6c757d"), 
-                     font  = list(size = 28, align = "horizontal")) %>% 
-            visInteraction(dragNodes = FALSE, dragView = TRUE, zoomView = TRUE, hover = TRUE)  %>%
-            visEvents(
-                selectNode = "function(p){
-                    if(window.Shiny && p.nodes && p.nodes.length){
-                      Shiny.setInputValue('em_node_selected', p.nodes[0], {priority:'event'});
-                    }
-                  }",
-                            deselectNode = "function(p){
-                    if(window.Shiny){ Shiny.setInputValue('em_node_selected', null, {priority:'event'}); }
-                  }"
-            )
-        })
+    # Keep Repeat as an ellipse
+    nodes_core$shape[nodes_core$id == "rep_em"] <- "ellipse"
+    nodes_core$`color.background`[nodes_core$id == "rep_em"] <- "#fafafa"
     
+    lvl_map <- c(init=0, estep=1, mstep=2, ll=3, rep_em=4, check=5, done=6)
+    nodes_core$level <- unname(lvl_map[nodes_core$id])
+    nodes_core$group <- ifelse(nodes_core$id == "rep_em", "rep_em_pill", "main")
+    
+    # Forward spine
+    edges_fwd <- data.frame(
+        from   = c("init","estep","mstep","ll","check"),
+        to     = c("estep","mstep","ll","check","done"),
+        label  = c("","","","","Yes"),
+        arrows = "to",
+        dashes = FALSE,
+        smooth = FALSE,
+        stringsAsFactors = FALSE
+    )
+    
+    # Loop via Repeat (dashed)
+    edges_loop <- data.frame(
+        from   = c("check","rep_em"),
+        to     = c("rep_em","estep"),
+        label  = c("No",""),
+        arrows = "to",
+        dashes = TRUE,
+        smooth = TRUE,
+        stringsAsFactors = FALSE
+    )
+    
+    edges_all <- rbind(edges_fwd, edges_loop)
+    
+    
+    dy  <- 160
+    x0  <- 0
+    
+    pos <- data.frame(
+        id = c("init","estep","mstep","ll","rep_em","check","done"),
+        x  = c(x0,  x0,   x0,   x0,   x0 + 340, x0,   x0),
+        y  = c(0,    dy,  2*dy, 3*dy, 3*dy + 30, 4*dy, 5*dy)
+    )
+    
+    # merge positions & lock them
+    nodes_plot <- nodes_core |>
+        dplyr::select(-dplyr::any_of("level")) |>
+        dplyr::left_join(pos, by = "id") |>
+        dplyr::mutate(fixed.x = TRUE, fixed.y = TRUE) 
+    
+    output$em_flow <- renderVisNetwork({
+        visNetwork(nodes_plot, edges_all, height = "60vh", width = "100%") %>%
+            visPhysics(enabled = FALSE) %>%
+            visNodes(
+                shape = "box",
+                margin = list(top=14,right=18,bottom=14,left=18),
+                widthConstraint = list(minimum = 220, maximum = 340),
+                color = list(
+                    background = "#f8f9fa", border = "#6c757d",
+                    highlight  = list(background = "#d4edda", border = "#28a745")
+                ),
+                font  = list(size = 32, face = "Helvetica", align = "center")
+            ) %>%
+            visGroups(groupname = "rep_em_pill", font = list(size = 26), inherit = FALSE) %>%
+            visEdges(
+                color  = list(color = "#6c757d"),
+                smooth = list(enabled = TRUE, type = "cubicBezier", roundness = 0.35),
+                font   = list(size = 20, align = "middle")
+            ) %>%
+            visInteraction(dragNodes = FALSE, dragView = F, zoomView = F, hover = T) %>%
+            # Select 'init' once after first paint (no physics => no 'stabilized' event)
+            
+            visEvents( selectNode = "function(p){ if(window.Shiny && p.nodes && p.nodes.length){ Shiny.setInputValue('em_node_selected', 
+                       p.nodes[0], {priority:'event'}); 
+                       } 
+                       }", 
+                       
+                       deselectNode = "function(p){ if(window.Shiny){ Shiny.setInputValue('em_node_selected', null, {priority:'event'}); 
+                            } 
+                       }",
+                      afterDrawing = "
+                      function(){
+                        if(!this._didInit){
+                          this._didInit = true;
+                          this.selectNodes(['init']);
+                          if(window.Shiny){
+                            Shiny.setInputValue('em_node_selected','init',{priority:'event'});
+                          }
+                        }
+                      }
+    ")
+    })
+    
+    ### Algorithm text ----
     em_text <- lapply(list(
         init = '
+        <div style="font-size: 18px; font-family: Helvetica;">
     <h4>Step 1: Initialize Parameters</h4>
     <p>
       The algorithm begins by making an initial guess for the model\'s parameters, collectively known as \\(\\theta\\). These parameters define the model\'s starting beliefs about the system.
       $$ \\theta = \\{\\pi, A, B \\} $$
       This includes \\(\\pi\\), the probability of starting in each hidden state; <b>A</b>, the probability of transitioning between hidden states; and <b>B</b>, the probability of seeing an observation from a given hidden state. For our weather example, we might guess there\'s a 50% chance the first day is <em>Sunny</em> (\\(\\pi\\)), a 10% chance a <em>Sunny</em> day is followed by a <em>Rainy</em> one (in matrix A), and an 80% chance a <em>Sunny</em> day results in an <em>Arid</em> observation (in matrix B).
-    </p>',
+    </p>
+        </div>',
         
         estep = '
+        <div style="font-size: 18px; font-family: Helvetica;">
     <h4>Step 2: The E-Step (Expectation)</h4>
     <p>
-      Using its current parameters, the model calculates the "responsibilities"—the probability of each hidden state being the true state for every point in our observed data sequence. It does this using a formula for \\(\\gamma_t(i)\\):
+      Using its current parameters, the model calculates the probability of each hidden state being the true state for every point in our observed data sequence. It does this using a formula for \\(\\gamma_t(i)\\):
       $$ \\gamma_t(i) = P(z_t=i | X, \\theta) $$
       This equation calculates the probability that the hidden state \\(z\\) at time \\(t\\) was state \\(i\\) (e.g., <em>Sunny</em>), given the entire sequence of observations \\(X\\) (e.g., Arid, Humid, Humid...). Rather than making a hard decision, it creates a soft, probabilistic map. For a day we observed <em>Arid</em> conditions, this step might conclude there\'s an 85% probability the underlying state was <em>Sunny</em> and a 15% probability it was <em>Rainy</em>.
-    </p>',
+    </p>
+        </div>',
         
         mstep = '
+        <div style="font-size: 18px; font-family: Helvetica;">
     <h4>Step 3: The M-Step (Maximization)</h4>
     <p>
       With the probabilistic map from the E-step, the model updates its parameters to better explain the data. For example, the transition probabilities in matrix <b>A</b> are re-calculated based on the expected number of transitions that occurred.
-       $$ A_{ij} = \\frac{\\text{Expected # of transitions from state i to j}}{\\text{Expected # of transitions from state i}} $$
+       $$ A_{ij} = \\frac{\\text{Expected # of transitions from }i \\text{ to } j}{\\text{Expected # of transitions from } i} $$
       If the E-step frequently found that a high-probability <em>Sunny</em> day was followed by a high-probability <em>Rainy</em> day, this M-step will increase the value for the <em>Sunny</em> → <em>Rainy</em> transition. The same logic is applied to update the initial state (\\(\\pi\\)) and emission (<b>B</b>) probabilities, ensuring the new parameters are a better fit for the data.
-    </p>',
+    </p>
+        </div>',
         
         ll = '
+        <div style="font-size: 18px; font-family: Helvetica;">
     <h4>Step 4: Compute Log-Likelihood</h4>
     <p>
       After updating the parameters, the algorithm "scores" how well the new model explains the observed data by calculating the log-likelihood.
       $$ L(\\theta) = \\log P(X|\\theta) $$
       This value, \\(L(\\theta)\\), is the logarithm of the total probability of observing our specific sequence of data (e.g., Arid, Humid, Humid...) given the current model parameters. In a properly functioning EM algorithm, this score should increase with each iteration, signaling that the model is getting progressively better.
-    </p>',
+    </p>
+        </div>',
         
         check = '
+        <div style="font-size: 18px; font-family: Helvetica;">
     <h4>Step 5: Check for Convergence</h4>
     <p>
       The algorithm must decide whether to stop or perform another iteration. It stops if the improvement in the log-likelihood score becomes negligible, or if a maximum number of cycles is reached.
       $$ \\Delta L < \\epsilon $$
       This condition checks if the change in log-likelihood (\\(\\Delta L\\)) is less than a tiny tolerance value (\\(\\epsilon\\)). When the probabilities for <em>Sunny/Rainy</em> transitions and <em>Arid/Humid</em> emissions barely change from one cycle to the next, we can be confident the model has converged on a stable, locally optimal solution.
-    </p>',
+    </p>
+        </div>',
+        
+        rep_em = '
+        <div style="font-size: 18px; font-family: Helvetica;">
+        <h4>Repeat Cycle: Iterative Refinement</h4>
+  <p>
+    If the model has not yet converged, the algorithm loops back to the E-step to begin a new cycle. This iterative process is the heart of how the model learns. The refined parameters from the previous M-step are now used as the new "current" parameters for the E-step.
+  </p>
+  <p>
+    $$ \\theta_{old} \\rightarrow \\text{E-Step} \\rightarrow \\text{M-Step} \\rightarrow \\theta_{new} $$
+            Because the new parameters (e.g., the updated probability of a <i>Sunny</i> to <i>Rainy</i> transition) are guaranteed to be a better fit for the data, the subsequent E-step will produce a more accurate probabilistic map of the hidden states. This improved map, in turn, allows the next M-step to find an even better set of parameters, further increasing the log-likelihood score. This cycle of refinement continues, with each loop bringing the model closer to an optimal solution.
+        </p>
+        </div>
+        ',
         
         done = '
+        <div style="font-size: 18px; font-family: Helvetica;">
     <h4>Step 6: Algorithm Complete</h4>
     <p>
       Once convergence is reached, the algorithm terminates. The final set of parameters, \\(\\theta^*\\), represents the fully trained model. These optimized probabilities capture the underlying structure of the training data. For example, the final model might have learned that a <em>Sunny</em> day has a 95% chance of being followed by another <em>Sunny</em> day, and an 85% chance of producing an <em>Arid</em> observation. This trained model can now be used for analysis or to predict hidden states from new data.
-    </p>'
+    </p>
+        </div>'
     ), HTML)
     
     output$em_step_details <- renderUI({
         id <- input$em_node_selected
         if (is.null(id)) return(div(style="color:#6c757d;", htmltools::tags$em("Click a step to see details.")))
-        withMathJax(HTML(em_text[[id]]))
+        withMathJax(HTML(
+            em_text[[id]]
+            
+            ))
     })
     
     ### Probability Matrices ----
@@ -1708,7 +1906,7 @@ server <- function(input, output, session) {
     # Transition probabilities matrix
     output$matrix_ui <- renderUI({
         withMathJax(HTML('
-          <div id="trans-mx" class="mx" style="font-size:220%; text-align:center;">
+          <div id="trans-mx" class="mx" style="font-size:160%; text-align:center;">
             \\[
               \\left[
               \\begin{array}{c|cc}
@@ -1724,7 +1922,7 @@ server <- function(input, output, session) {
 
     output$emissions_mat <- renderUI({
         withMathJax(HTML('
-          <div id="trans-mx" class="mx" style="font-size:220%; text-align:center;">
+          <div id="trans-mx" class="mx" style="font-size:160%; text-align:center;">
             \\[
               \\left[
               \\begin{array}{c|cc}
@@ -1977,43 +2175,49 @@ server <- function(input, output, session) {
     
     ### HMM Diagram with labels ----
     
+    items <- list(
+        # initial π
+        list(id="pi_sun", cls="pi",   left=45, top=30, col="#ADD8E6",
+             label="π(Sunny)", info="<b>π(Sunny)</b> = The likelihood the model will start at <b> Sunny </b>"),
+        list(id="pi_rain", cls="pi",  left=55, top=30, col="#ADD8E6",
+             label="π(Rainy)", info="<b>π(Rainy)</b> = The likelihood the model will start at <b> Rainy </b>"),
+        
+        # transitions A
+        list(id="p11", cls="trans", left=20, top=57, col="#e74c3c",
+             label="P(Sunny → Sunny)",
+             info="<b>P(Sunny → Sunny)</b> = The probability it will be <b> Sunny </b> tomorrow
+             given that it is <b> Sunny </b> today"),
+        list(id="p12", cls="trans", left=50, top=46.5, col="#e74c3c",
+             label="P(Sunny → Rainy)",
+             info="<b>P(Sunny → Rainy)</b> = The probability it will be <b> Rainy </b> tomorrow
+             given that it is <b> Sunny </b> today"),
+        list(id="p21", cls="trans", left=50, top=70, col="#e74c3c",
+             label="P(Rainy → Sunny)",
+             info="<b>P(Rainy → Sunny)</b> = The probability it will be <b> Sunny </b> tomorrow
+             given that it is <b> Rainy </b> today"),
+        list(id="p22", cls="trans", left=80, top=57, col="#e74c3c",
+             label="P(Rainy → Rainy)",
+             info="<b>P(Rainy → Rainy)</b> = The probability it will be <b> Rainy </b> tomorrow
+             given that it is <b> Rainy </b> today"),
+        
+        # emissions B
+        list(id="b11", cls="emit", left=58, top=80, col="#27ae60",
+             label="Pr(Humid | Sunny)",
+             info="<b>Pr(Humid | Sunny)</b> = The likelihood the air is <b> Humid </b> given that it is  <b> Sunny </b>"),
+        list(id="b12", cls="emit", left=32, top=75, col="#27ae60",
+             label="Pr(Arid | Sunny)",
+             info="<b>Pr(Arid | Sunny)</b> = The likelihood the air is <b> Arid </b> given that it is <b> Sunny </b>"),
+        list(id="b21", cls="emit", left=70, top=75, col="#27ae60",
+             label="Pr(Humid | Rainy)",
+             info="<b>Pr(Humid | Rainy)</b> = The likelihood the air is <b> Humid </b> given that it is <b> Rainy </b>"),
+        list(id="b22", cls="emit", left=43, top=80, col="#27ae60",
+             label="Pr(Arid | Rainy)",
+             info="<b>Pr(Arid | Rainy)</b> = The likelihood the air is <b> Arid </b> given that it is <b> Rainy </b>")
+    )
+    
+    
     svg_file <- "HMM_Diagram.svg"
     output$hmm_overlay_pi <- renderUI({
-        items <- list(
-            # initial π
-            list(id="pi_sun", cls="pi",   left=45, top=30,
-                 label="π(Sunny)", info="<b>π(Sunny)</b> = Pr(start in Sunny)"),
-            list(id="pi_rain", cls="pi",  left=55, top=30,
-                 label="π(Rainy)", info="<b>π(Rainy)</b> = Pr(start in Rainy)"),
-            
-            # transitions A
-            list(id="p11", cls="trans", left=32, top=57,
-                 label="P(Sunny → Sunny)",
-                 info="<b>P(Sunny → Sunny)</b> = Pr(Sunny tomorrow | Sunny today)"),
-            list(id="p12", cls="trans", left=50, top=44,
-                 label="P(Sunny → Rainy)",
-                 info="<b>P(Sunny → Rainy)</b> = Pr(Rainy tomorrow | Sunny today)"),
-            list(id="p21", cls="trans", left=50, top=70,
-                 label="P(Rainy → Sunny)",
-                 info="<b>P(Rainy → Sunny)</b> = Pr(Sunny tomorrow | Rainy today)"),
-            list(id="p22", cls="trans", left=68, top=57,
-                 label="P(Rainy → Rainy)",
-                 info="<b>P(Rainy → Rainy)</b> = Pr(Rainy tomorrow | Rainy today)"),
-            
-            # emissions B
-            list(id="b11", cls="emit", left=38, top=75,
-                 label="Pr(Humid | Sunny)",
-                 info="<b>Pr(Humid | Sunny)</b> = Likelihood air is humid given Sunny"),
-            list(id="b12", cls="emit", left=55, top=83,
-                 label="Pr(Arid | Sunny)",
-                 info="<b>Pr(Arid | Sunny)</b> = Likelihood air is arid given Sunny"),
-            list(id="b21", cls="emit", left=45, top=83,
-                 label="Pr(Humid | Rainy)",
-                 info="<b>Pr(Humid | Rainy)</b> = Likelihood air is humid given Rainy"),
-            list(id="b22", cls="emit", left=62, top=75,
-                 label="Pr(Arid | Rainy)",
-                 info="<b>Pr(Arid | Rainy)</b> = Likelihood air is arid given Rainy")
-        )
         
         tags$div(
             id = "hmmwrap_all",
