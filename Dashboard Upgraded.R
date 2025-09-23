@@ -24,7 +24,7 @@ library(rhandsontable)
 library(shinyjs)
 library(reactable)
 
-library(ggplot2)
+#library(ggplot2)
 library(depmixS4)
 
 # SHOULD NOT BE NEEDED
@@ -127,9 +127,6 @@ cs_data_collection<- HTML(
      <li><strong>Housing and Construction</strong>: Indicators such as housing starts and building permits, which serve as leading 
      indicators of economic cycles and household confidence.</li>
      
-     <li><strong>Trade</strong>: Metrics like the trade balance, which reflect the global economic position and can influence domestic 
-     economic conditions.</li>
-     
      </ul>
      <p>Detailed information about each category and their relationship to consumer sentiment is in 
      <a href='javascript:void(0);' id='prelim_analysis'>Preliminary Analysis</a>.</p>
@@ -215,19 +212,19 @@ housing_analysis <- HTML('
       <p>Because housing is a large share of household wealth and spending, swings in these indicators can move consumer attitudes sharply, especially on big‑ticket purchases.</p>
     ')
 
-trade_analysis <- HTML('
-      <p><strong>Trade indicators:</strong> the flow of goods and services across borders.</p>
-      <ul>
-        <li><strong>Imports:</strong> value of foreign goods and services purchased domestically. 
-          Rising imports can signal strong domestic demand (positive for sentiment), but persistent trade deficits may feed concerns about domestic manufacturing and jobs.</li>
-        <li><strong>Exports:</strong> value of domestic goods sold abroad. 
-          Higher exports support U.S. production and jobs, which can lift consumer sentiment, especially in manufacturing regions.</li>
-        <li><strong>Current account balance:</strong> net of exports minus imports plus foreign income. 
-          A surplus indicates net foreign demand for U.S. output-often a positive for aggregate production and therefore consumer confidence.</li>
-      </ul>
-      <p>Trade balances reflect global demand for U.S. goods and services.  
-      Strong export growth often bolsters jobs and incomes, lifting sentiment, while widening trade deficits can raise questions about competitiveness and growth.</p>
-    ')
+# trade_analysis <- HTML('
+#       <p><strong>Trade indicators:</strong> the flow of goods and services across borders.</p>
+#       <ul>
+#         <li><strong>Imports:</strong> value of foreign goods and services purchased domestically. 
+#           Rising imports can signal strong domestic demand (positive for sentiment), but persistent trade deficits may feed concerns about domestic manufacturing and jobs.</li>
+#         <li><strong>Exports:</strong> value of domestic goods sold abroad. 
+#           Higher exports support U.S. production and jobs, which can lift consumer sentiment, especially in manufacturing regions.</li>
+#         <li><strong>Current account balance:</strong> net of exports minus imports plus foreign income. 
+#           A surplus indicates net foreign demand for U.S. output-often a positive for aggregate production and therefore consumer confidence.</li>
+#       </ul>
+#       <p>Trade balances reflect global demand for U.S. goods and services.  
+#       Strong export growth often bolsters jobs and incomes, lifting sentiment, while widening trade deficits can raise questions about competitiveness and growth.</p>
+#     ')
 
 ## Hidden Markov Model Text ----
 
@@ -369,9 +366,15 @@ emission_matrix_text <- HTML(
 model_result_info <- HTML(
     "<div style='font-size:18px; line-height:1.6;'>
   <p>
-    To optimize the Hidden Markov Model algorithm, the model is reduced to use a select number of the predictors for analysis. 
-    A set of 7 predictors were determined to be the most accurate in detecting hidden states using an algorithm of 
-    maximizing the log-likelihood of each possible set. The predictors most effective for predicting consumer sentiment are:
+    To optimize the Hidden Markov Model, a smaller subset of indicators are used as observations, as using every 
+    indicator would result in too much noise for the model to accurately identify any relationships. To identify the best set of 
+    indicators, a script was used to identify the set with the highest log-likelihood (predictive accuracy). 
+  </p>
+  
+  <p>
+  The script identified the following set of six indicators to be the most accurate in detecting hidden states and explaining
+  changes in consumer sentiment:
+  </p>
     
     <ol>
       <li>Nominal GDP</li>
@@ -768,7 +771,7 @@ ui <- bs4DashPage(
                                 # selector stays on top
                                 selectInput("select1", "Indicator Category", choices = c(
                                     "Output", "Labor Market", "Price Levels",
-                                    "Monetary and Fiscal", "Housing and Construction", "Trade"
+                                    "Monetary and Fiscal", "Housing and Construction"#, "Trade"
                                 )),
                                 
                                 # TEXT SHELL (default)
@@ -958,10 +961,10 @@ ui <- bs4DashPage(
                     bs4Card(
                         collapsible = FALSE,   # removes collapse toggle
                         closable = FALSE,      # removes close icon
-                        title = "State Plot",
+                        title = HTML("<b> State Plot </b>"),
                         width = 7,
                         status = "success",
-                        solidHeader = TRUE,
+                        #solidHeader = TRUE,
                         bs4Dash::tabsetPanel(
                             id = "model_analysis_tabs",
                             type = "pills",
@@ -1178,8 +1181,8 @@ server <- function(input, output, session) {
                                "Labor Market" = labor_analysis,
                                "Price Levels" = price_analysis,
                                "Monetary and Fiscal" = monetary_analysis,
-                               "Housing and Construction" = housing_analysis,
-                               "Trade" = trade_analysis
+                               "Housing and Construction" = housing_analysis#,
+                               #"Trade" = trade_analysis
         )
         
         div(
@@ -1313,8 +1316,8 @@ server <- function(input, output, session) {
         "Monetary and Fiscal"    = c("consumer_sentiment", "federal_funds_rate",
                                      "three_month_rate", "M2", "FYFSD", "federal_debt"),
         "Housing and Construction" = c("consumer_sentiment", "new_houses",
-                                       "new_permits", "house_sales", "case_schiller_val"),
-        "Trade"                  = c("consumer_sentiment", "export", "import", "account_balance")
+                                       "new_permits", "house_sales", "case_schiller_val")#,
+        #"Trade"                  = c("consumer_sentiment", "export", "import", "account_balance")
     )
     
     palette_map <- list(
