@@ -1253,10 +1253,10 @@ server <- function(input, output, session) {
         new_houses = "New Private Houses Built",
         new_permits = "New Housing Permits",
         house_sales = "New Private Houses Sold",
-        case_schiller_val = "Case-Schiller Index",
-        export = "Total Exports",
-        import = "Total Imports",
-        account_balance = "Account Balance"
+        case_schiller_val = "Case-Schiller Index"#,
+        #export = "Total Exports",
+        #import = "Total Imports",
+        #account_balance = "Account Balance"
     )
     
     indicator_formats <- c(
@@ -1302,10 +1302,10 @@ server <- function(input, output, session) {
         new_houses         = "New Houses",
         new_permits        = "New Permits",
         house_sales        = "House Sales",
-        case_schiller_val  = "Case‑Shiller Home Prices",
-        export             = "Exports",
-        import             = "Imports",
-        account_balance    = "Current Account Balance"
+        case_schiller_val  = "Case‑Shiller Home Prices"#,
+        #export             = "Exports",
+        #import             = "Imports",
+        #account_balance    = "Current Account Balance"
     )
     
     #- which raw indicators belong to which category:
@@ -1335,15 +1335,15 @@ server <- function(input, output, session) {
     pal_price  <- brewer.pal(length(category_map$`Price Levels`), "Purples")
     pal_mon    <- brewer.pal(length(category_map$`Monetary and Fiscal`), "Reds")
     pal_house  <- brewer.pal(length(category_map$`Housing and Construction`), "BuGn")
-    pal_trade  <- brewer.pal(length(category_map$`Trade`), "PuRd")
+    #pal_trade  <- brewer.pal(length(category_map$`Trade`), "PuRd")
     
     indicator_colors <- c(
         setNames(pal_out,     category_map$`Output`),
         setNames(pal_lab,     category_map$`Labor Market`),
         setNames(pal_price,   category_map$`Price Levels`),
         setNames(pal_mon,     category_map$`Monetary and Fiscal`),
-        setNames(pal_house,   category_map$`Housing and Construction`),
-        setNames(pal_trade,   category_map$`Trade`)
+        setNames(pal_house,   category_map$`Housing and Construction`)#,
+        #setNames(pal_trade,   category_map$`Trade`)
     )
     
     #default_cat <- isolate(input$select1)
@@ -1626,8 +1626,8 @@ server <- function(input, output, session) {
         `Labor Market`           = "#33a02c",
         `Price Levels`           = "#6a3d9a",
         `Monetary & Fiscal`      = "#e31a1c",
-        `Housing & Construction` = "#2D7C66",
-        Trade                    = "#E40078"
+        `Housing & Construction` = "#2D7C66"#,
+        #Trade                    = "#E40078"
     )
     
     # function to lower opacity of unselected bars
@@ -1674,7 +1674,7 @@ server <- function(input, output, session) {
                     "<span style='font-weight:bold;color:#6a3d9a'>&#9632;</span> Price Levels&nbsp;&nbsp;&nbsp;",
                     "<span style='font-weight:bold;color:#e31a1c'>&#9632;</span> Monetary & Fiscal&nbsp;&nbsp;&nbsp;",
                     "<span style='font-weight:bold;color:#ff7f00'>&#9632;</span> Housing & Construction&nbsp;&nbsp;&nbsp;",
-                    "<span style='font-weight:bold;color:#5F1DF9'>&#9632;</span> Trade",
+                    #"<span style='font-weight:bold;color:#5F1DF9'>&#9632;</span> Trade",
                     "</span>"
                 ),
                 useHTML = TRUE
