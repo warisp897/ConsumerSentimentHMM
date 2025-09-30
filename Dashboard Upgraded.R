@@ -1,6 +1,7 @@
 # Dashboard_bs4Dash.R
 # Upgraded to bs4Dash with vertical sidebar navigation
 
+# Imported libraries ----
 library(shiny)
 library(bs4Dash)
 library(plotly)
@@ -129,7 +130,7 @@ cs_data_collection<- HTML(
      
      </ul>
      <p>Detailed information about each category and their relationship to consumer sentiment is in 
-     <a href='javascript:void(0);' id='prelim_analysis'>Preliminary Analysis</a>.</p>
+     <a href='javascript:void(0);' id='prelim_analysis'>Economic Indicators</a>.</p>
      "
 )
 
@@ -363,6 +364,39 @@ emission_matrix_text <- HTML(
 
 ## Model Analysis Text ----
 
+model_selection_text <- HTML(
+    "
+    <p>
+    To optimize the interpretability and numerical stability of the model, the macroeconomic indicators were first filtered. 
+    This ensured that no single economic category was overrepresented, which would inadvertently bias the model. 
+    This process involved an initial screening to find the single indicator from each category that exhibited the highest
+    predictive power with consumer sentiment.
+    </p>
+
+    <p>
+    Following this preliminary filtering, a feature selection process was applied to identify the optimal combination of three indicators. 
+    Each candidate model was then rigorously tested using out-of-sample validation via a rolling cross-validation scheme, using
+    training and testing windows to ensure the model's performance is not artificially inflated by using period-specific anomalies.
+    </p>
+    
+    <p>
+    Model selection relied on two core metrics:
+    </p>
+    
+    <ul>
+    <li><b> Mean Log-Likelihood per Observation: </b> This measures how well the candidate model's structure or explains the unobserved, 
+    test-set data. Performance is judged relative to a baseline model, which assumes transitions are constant over time.</li>
+    
+    <li><b> Standard Deviation Across Folds: </b> This quantifies the model's variability and robustness across different training periods.</li>
+    </ul>
+    
+    <p>
+    Preference was given to models that deliver a higher average log-likelihood, representing better predictive performance, 
+    with lower variability across the folds, highlighting their ability to generalize reliably across different economic cycles.
+    </p>
+    "
+)
+
 model_result_info <- HTML(
     "<div style='font-size:18px; line-height:1.6;'>
   <p>
@@ -451,8 +485,9 @@ ui <- bs4DashPage(
         bs4SidebarMenu(
             id = "dashboard_tabs", # ID of Sidebar menu
             bs4SidebarMenuItem("Overview", tabName = "overview", icon = icon("dashboard")),
-            bs4SidebarMenuItem("Preliminary Analysis", tabName = "preliminary_analysis", icon = icon("chart-line")),
+            bs4SidebarMenuItem("Economic Indicators", tabName = "indicator_analysis", icon = icon("chart-line")),
             bs4SidebarMenuItem("Hidden Markov Model", tabName = "model_intro", icon = icon("project-diagram")),
+            #bs4SidebarMenuItem("Model Selection", tabName = "model_select", icon = icon("project-diagram")),
             bs4SidebarMenuItem("Analysis", tabName = "model_analysis", icon = icon("chart-line")),
             bs4SidebarMenuItem("Conclusion", tabName = "model_conclusion", icon = icon("chart-line"))
         )
@@ -755,7 +790,7 @@ ui <- bs4DashPage(
             
             ### Preliminary Analysis Tab ----
             bs4TabItem(
-                tabName = "preliminary_analysis",
+                tabName = "indicator_analysis",
                 #id = "analysis",
                 fluidRow(
                     bs4Card(
@@ -763,10 +798,10 @@ ui <- bs4DashPage(
                         closable = FALSE,      # removes close icon
                         width = 5,
                         status = "success",
-                        title = HTML('<b> Economic Indicator Preliminary Analysis </b>'),
+                        title = HTML('<b> Economic Indicators </b>'),
 
                             div(
-                                style = "min-height: 86vh; font-size:18px; line-height:1.5; display:flex; flex-direction:column;",
+                                style = "min-height: 80vh; font-size:18px; line-height:1.5; display:flex; flex-direction:column;",
                                 
                                 # selector stays on top
                                 selectInput("select1", "Indicator Category", choices = c(
@@ -805,7 +840,7 @@ ui <- bs4DashPage(
                         width = 7,
                         status = "success",
                         highchartOutput("category_plot_hc", width = "100%", height = "45vh"),
-                        highchartOutput("pearsons_plot_hc", width = "100%", height = "50vh")
+                        highchartOutput("pearsons_plot_hc", width = "100%", height = "45vh")
                         )
                 )
             ),
@@ -952,6 +987,10 @@ ui <- bs4DashPage(
                 )
             ),
             
+            #bs4TabItem(
+            #    tabName = "model_select",
+            #),
+            
             ### Model Analysis Tab ----
             bs4TabItem(
                 tabName = "model_analysis",
@@ -961,45 +1000,52 @@ ui <- bs4DashPage(
                     bs4Card(
                         collapsible = FALSE,   # removes collapse toggle
                         closable = FALSE,      # removes close icon
-                        title = HTML("<b> State Plot </b>"),
-                        width = 7,
+                        title = HTML("<b> Consumer Sentiment Model </b>"),
+                        width = 12,
                         status = "success",
                         #solidHeader = TRUE,
-                        bs4Dash::tabsetPanel(
-                            id = "model_analysis_tabs",
-                            type = "pills",
-                            tabPanel("Top Economic Indicators",
-                                     div(style = "padding:10px; font-size:18px; line-height:1.5; overflow-y:auto;",
-                                         model_result_info)
+                        fluidRow(
+                            column(
+                                width = 6,
+                                bs4Dash::tabsetPanel(
+                                    id = "model_analysis_tabs",
+                                    type = "pills",
+                                    tabPanel("Model Selection",
+                                             div(style = "padding:10px; font-size:18px; line-height:1.5; overflow-y:auto;",
+                                                 model_selection_text)
+                                    ),
+                                    tabPanel("Top Economic Indicators",
+                                             div(style = "padding:10px; font-size:18px; line-height:1.5; overflow-y:auto;",
+                                                 model_result_info)
+                                    ),
+                                    tabPanel("Transition Matrix",
+                                             div(style = "padding:10px; font-size:16px; line-height:1.5; height:398.5px; overflow-y:auto;",
+                                                 "ok",
+                                                 uiOutput("transition_mat", height = "600px", width = "100%"))
+                                    ),
+                                    tabPanel("t-SNE Plot",
+                                             div(style = "padding:10px; font-size:16px; line-height:1.5; height:398.5px; overflow-y:auto;",
+                                                 "cs_interpretation")
+                                    )
+                                )
                             ),
-                            tabPanel("Transition Matrix",
-                                     div(style = "padding:10px; font-size:16px; line-height:1.5; height:398.5px; overflow-y:auto;",
-                                         "ok",
-                                         uiOutput("transition_mat", height = "600px", width = "100%"))
-                            ),
-                            tabPanel("t-SNE Plot",
-                                     div(style = "padding:10px; font-size:16px; line-height:1.5; height:398.5px; overflow-y:auto;",
-                                         "cs_interpretation")
-                            ),
-                            tabPanel("Data Collection",
-                                     div(style = "padding:10px; font-size:16px; line-height:1.5; height:398.5px; overflow-y:auto;",
-                                         cs_data_collection)
+                        
+                            column(
+                                collapsible = FALSE,   # removes collapse toggle
+                                closable = FALSE,      # removes close icon
+                                width = 6,
+                                
+                                # State plot, aligned to bottom
+                                div(
+                                    style = "flex-grow: 1; display: flex; flex-direction: column; height: calc(100vh - 200px);",  # 200px = height of header/navbar/etc
+                                    #highchartOutput("state_plot", height = "650px", width = "100%")
+                                    highchartOutput("model_selection_plot", height = "100%", width = "100%")
+                                    
+                                )
                             )
                         )
-                    ),
-                    
-                    column(
-                        collapsible = FALSE,   # removes collapse toggle
-                        closable = FALSE,      # removes close icon
-                        width = 5,
-                        
-                        # State plot, aligned to bottom
-                        div(
-                            style = "flex-grow: 1; display: flex; flex-direction: column; justify-content: flex-end; height: calc(100vh - 200px);",  # 200px = height of header/navbar/etc
-                            highchartOutput("state_plot", height = "650px", width = "100%")
-                        )
                     )
-                ),
+                )
             ),
             
             ### Model Conclusion ----
@@ -1026,7 +1072,7 @@ server <- function(input, output, session) {
     
     # link hyperlink blue prelim analysis text to tab
     onclick("prelim_analysis", {
-        updateTabsetPanel(session, "dashboard_tabs", selected = "preliminary_analysis")
+        updateTabsetPanel(session, "dashboard_tabs", selected = "indicator_analysis")
     })
     
     
@@ -1356,10 +1402,11 @@ server <- function(input, output, session) {
         pivot_longer(-Year, names_to = "Indicator", values_to = "True")
     
     
+    CAT_PLOT_LOADED <- F
     #### Selected Indicators over Time Plot ----
     output$category_plot_hc <- renderHighchart({
-        
-        session$ns("category_plot_hc_loaded")
+        CAT_PLOT_LOADED <<- T
+        #session$ns("category_plot_hc_loaded")
         
         
         plot_df <- scaled %>%
@@ -1462,9 +1509,9 @@ server <- function(input, output, session) {
             hc_title(text = paste(default_cat, "Over Time"))
     })
     
-    #updates line
+    #### Econ Plot Updates ----
     observeEvent(input$select1, {
-        req(isTRUE(input$category_plot_hc_loaded))
+        req(isTRUE(CAT_PLOT_LOADED))
         all_ids <- names(indicator_colors)
         
         # grab the already‐rendered line chart by its outputId
@@ -1481,7 +1528,7 @@ server <- function(input, output, session) {
     
     #updates title
     observeEvent(input$select1, {
-        req(isTRUE(input$category_plot_hc_loaded))
+        req(isTRUE(CAT_PLOT_LOADED))
         highchartProxy("category_plot_hc", session) %>%
             # this will update only the chart title in place
             hcpxy_update(
@@ -1637,7 +1684,7 @@ server <- function(input, output, session) {
     }
     
     output$pearsons_plot_hc <- renderHighchart({
-        session$ns("pearsons_plot_hc_loaded")
+        
         cor_df <- cor_df_reactive()
         initial_inds <- category_map[[ isolate(input$select1) ]]
         
@@ -1684,7 +1731,7 @@ server <- function(input, output, session) {
     
     #update bar chart when new combo box item is selected
     observeEvent(input$select1, {
-        req(isTRUE(input$pearsons_plot_hc_loaded))
+        req(isTRUE(CAT_PLOT_LOADED))
         cor_df <- cor_df_reactive()
         sel_inds <- category_map[[ input$select1 ]]
         
@@ -2356,6 +2403,104 @@ server <- function(input, output, session) {
     
     
     ## Analysis Code ----
+    
+    ### Model selection bar chart ----
+    
+    # the bar chart displaying the mean LL for the 5 best models
+    output$model_selection_plot <- renderHighchart({
+        plot_df <- readRDS("plot_top5_delta_ll.rds")
+        
+        # Vectors pulled from the df (no other objects needed)
+        cats     <- plot_df$label
+        ybar     <- plot_df$mean_delta_ll
+        ci_lo    <- plot_df$ci_lo
+        ci_hi    <- plot_df$ci_hi
+        best_idx <- which.max(ybar)
+        best_pos <- best_idx - 1  # 0-based for categories
+        
+        # Aquamarine palette + light band on the winner row
+        aqua_main <- "#00BFA6"
+        aqua_mid  <- "#54D7CA"
+        aqua_band <- "rgba(0,191,166,0.12)"
+        
+        # Inline raw JS array for errorbars: [[low,high], ...]
+        err_js <- sprintf(
+            "[%s]",
+            paste(sprintf("[%.6f,%.6f]", ci_lo, ci_hi), collapse = ",")
+        )
+        
+        highchart() %>%
+            hc_add_dependency("highcharts-more") %>%
+            hc_chart(type = "bar") %>%
+            hc_title(text = "Top 5 Models Δ Mean Test Log-Likelihood vs Baseline") %>%
+            hc_subtitle(text = "Bars: out-of-sample improvement per observation; whiskers: 95% CI across folds") %>%
+            hc_xAxis(
+                categories = cats,
+                title = list(text = NULL),
+                plotBands = list(list(from = best_pos - 0.5, to = best_pos + 0.5, color = aqua_band, zIndex = -1)),
+                labels = list(
+                    useHTML = TRUE,
+                    formatter = JS(sprintf("
+        function () {
+          var bestPos = %d;
+          var esc = function(s){ return String(s)
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+            .replace(/\"/g,'&quot;').replace(/'/g,'&#39;'); };
+          return (this.pos === bestPos)
+            ? '<span style=\"font-weight:700;\">' + esc(this.value) + '</span>'
+            : esc(this.value);
+        }
+      ", best_pos))
+                )
+            ) %>%
+            hc_yAxis(
+                title = list(text = "Δ mean test LL per obs"),
+                plotLines = list(list(value = 0, color = "#888", width = 1))
+            ) %>%
+            hc_plotOptions(series = list(
+                colorByPoint = TRUE,
+                zoneAxis = "x",
+                zones = list(
+                    list(value = best_pos - 0.5, color = aqua_mid),
+                    list(value = best_pos + 0.5, color = aqua_main),
+                    list(color = aqua_mid)
+                ),
+                dataLabels = list(
+                    enabled = TRUE,
+                    format = "{point.y:.3f}",
+                    style = list(color = "#000000", textOutline = "none")   # force black, no outline
+                )
+            )) %>%
+            hc_add_series(
+                name = "Δ mean LL",
+                data = ybar,
+                showInLegend = FALSE
+            ) %>%
+            hc_add_series(
+                type = "errorbar",
+                name = "95% CI",
+                data = JS(err_js),
+                showInLegend = FALSE
+            ) %>%
+            hc_tooltip(
+                shared = TRUE, useHTML = TRUE,
+                # Force high-contrast (black) text in tooltip for both series
+                headerFormat = "<b style='color:#000;'>{point.key}</b><br/>",
+                pointFormatter = JS("
+      function(){
+        if (this.series.type === 'errorbar') {
+          return '<span style=\"color:#000;\">95% CI</span>: <b style=\"color:#000;\">' +
+                 Highcharts.numberFormat(this.low, 4) + '</b> to <b style=\"color:#000;\">' +
+                 Highcharts.numberFormat(this.high, 4) + '</b><br/>';
+        } else {
+          return '<span style=\"color:#000;\">Δ Mean LL</span>: <b style=\"color:#000;\">' +
+                 Highcharts.numberFormat(this.y, 4) + '</b><br/>';
+        }
+      }
+    ")
+            )
+        
+    })
     
     ### 3D TSNE PLOT ----
     output$state_plot <- renderHighchart({
