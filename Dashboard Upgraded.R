@@ -364,72 +364,67 @@ emission_matrix_text <- HTML(
 
 ## Model Analysis Text ----
 
-model_selection_text <- HTML(
-    "
-    <p>
-    To optimize the interpretability and numerical stability of the model, the macroeconomic indicators were first filtered. 
-    This ensured that no single economic category was overrepresented, which would inadvertently bias the model. 
-    This process involved an initial screening to find the single indicator from each category that exhibited the highest
-    predictive power with consumer sentiment.
-    </p>
+    model_selection_text <- HTML(
+        "
+        <p>
+        To optimize the interpretability and numerical stability of the model, the macroeconomic indicators were first filtered. 
+        This ensured that no single economic category was overrepresented, which would inadvertently bias the model. This process 
+        involved an initial screening to find the single indicator from each category that exhibited the highest predictive power 
+        with consumer sentiment. As part of this screening, each indicator was evaluated both contemporaneously (t) and with a 
+        one-year delay (t–1) to reflect how information typically reaches households and markets. This helped avoid look-ahead 
+        effects and capture genuine lead–lag dynamics.
+        </p>
 
-    <p>
-    Following this preliminary filtering, a feature selection process was applied to identify the optimal combination of three indicators. 
-    Each candidate model was then rigorously tested using out-of-sample validation via a rolling cross-validation scheme, using
-    training and testing windows to ensure the model's performance is not artificially inflated by using period-specific anomalies.
-    </p>
-    
-    <p>
-    Model selection relied on two core metrics:
-    </p>
-    
-    <ul>
-    <li><b> Mean Log-Likelihood per Observation: </b> This measures how well the candidate model's structure or explains the unobserved, 
-    test-set data. Performance is judged relative to a baseline model, which assumes transitions are constant over time.</li>
-    
-    <li><b> Standard Deviation Across Folds: </b> This quantifies the model's variability and robustness across different training periods.</li>
-    </ul>
-    
-    <p>
-    Preference was given to models that deliver a higher average log-likelihood, representing better predictive performance, 
-    with lower variability across the folds, highlighting their ability to generalize reliably across different economic cycles.
-    </p>
-    "
-)
+        <p>
+        Following this preliminary filtering, a feature selection process was applied to identify the optimal combination of three 
+        indicators. Each candidate model was then rigorously tested using out-of-sample validation via a rolling cross-validation scheme, 
+        using training and testing windows to ensure the model's performance is not artificially inflated by period-specific anomalies. 
+        The final specification therefore balances signal across categories and timing, with lags included only when they improved 
+        real-time predictability.
+        </p>
+
+        <p><b>Model selection relied on two core metrics:</b></p>
+        <ul>
+          <li><b>Mean Log-Likelihood per Observation:</b> how well a candidate explains unseen test-set data, judged relative to a 
+          baseline model with no time-varying drivers.</li>
+          
+          <li><b>Standard Deviation Across Folds:</b> the model’s stability and robustness across different training periods.</li>
+        </ul>
+        
+        <p>
+        Preference was given to models that deliver a higher average log-likelihood—indicating better predictive performance—with lower variability across folds, highlighting their ability to generalize reliably across different economic cycles. Where lags were selected, they consistently improved these out-of-sample scores.
+        </p>
+        "
+    )
 
 model_result_info <- HTML(
     "<div style='font-size:18px; line-height:1.6;'>
-  <p>
-    To optimize the Hidden Markov Model, a smaller subset of indicators are used as observations, as using every 
-    indicator would result in too much noise for the model to accurately identify any relationships. To identify the best set of 
-    indicators, a script was used to identify the set with the highest log-likelihood (predictive accuracy). 
-  </p>
-  
-  <p>
-  The script identified the following set of six indicators to be the most accurate in detecting hidden states and explaining
-  changes in consumer sentiment:
-  </p>
     
-    <ol>
-      <li>Nominal GDP</li>
-      <li>Real GDP</li>
-      <li>Unemployment Rate</li>
-      <li>Robust PCEPI</li>
-      <li>Federal Funds Rate</li>
-      <li>Case-Schiller Index</li>
-     </ol>
-    
-  </p>
+    <p>
+    The model specified as <b>(Real GDP, PCE Price Index, Federal Surplus/Deficit)</b> delivered the strongest out-of-sample 
+    improvement over the baseline across the rolling train/test windows. This particular specification proved superior at 
+    anticipating when consumer sentiment would shift regimes in unseen historical periods, and it did so with greater consistency 
+    than alternative candidate models.
+    </p>
   
-  By this, we can identify that the variables that affect consumer sentiment the most are the ones that hit consumers
-  the hardest. <b> Nominal GDP </b> and <b> Real GDP </b> are a result of consumers (something about what they see on the news and how
-  it affects their view of the economy? Find an article for this). The <b> Unemployment Rate </b> is a direct response
-  to their ability to find work. The <b> Robust PCEIPI </b> is representative of their cost of living, as it represents
-  how much they are spending each year, properly accounting for the (hyperlink blue) Substitution Effect. And finally, the <b> Federal Funds
-  Rate </b> affects their ability to make large purchases, such as cars and homes. The presence of the <b> Case-Schiller Index </b> 
-  further emphasizes this, as home ownership is parallel to economic propserity and the American Dream.
+    <p>
+    The strength of this model lies in its use of <b>complementary signals, not duplication.</b> Real GDP (using a lagged reading) 
+    captures broad economic momentum, the PCE Price Index reflects contemporaneous price pressure and cost-of-living impacts, and the 
+    Federal Surplus/Deficit (also lagged) summarizes significant policy tailwinds or headwinds. Since each variable contributes
+    distinct information to the model, this combination accurately moves the switching odds in a way that simpler or more overlapping 
+    sets of indicators could not.
+    </p>
   
-</div>"
+    <p>
+    This chosen model also demonstrates a superior ability to <b>generalize across periods</b>. While competing models exhibited 
+    moments of strong fit in isolated historical slices, this specification consistently produced a larger average performance gain 
+    with fewer fold-to-fold swings in reliability. Furthermore, the timing of the indicators—using lagged readings for GDP and 
+    fiscal balance while incorporating prices contemporaneously—plausibly matches the transmission of economic news to households. 
+    Ultimately, this parsimonious model of three well-chosen indicators achieved the necessary lift in predictive power 
+    without the noise associated with more complex and less stable mixtures.
+    </p>
+        </div>
+        "
 )
   
 
@@ -749,7 +744,26 @@ ui <- bs4DashPage(
           "))
         ),
 
-        tags$script(src="https://cdn.jsdelivr.net/npm/mathjax@2/MathJax.js?config=TeX-AMS-MML_HTMLorMML"),
+        #tags$script(src="https://cdn.jsdelivr.net/npm/mathjax@2/MathJax.js?config=TeX-AMS-MML_HTMLorMML"),
+        tags$script(HTML("
+        Shiny.addCustomMessageHandler('toggleDrill', function(x){
+          var leftTabs   = document.getElementById('model_analysis_tabs');
+          var drillView  = document.getElementById('drillView');
+          var metrics    = document.getElementById('metricsPanel');
+          if (!leftTabs || !drillView || !metrics) return;
+          if (x.show){
+            leftTabs.classList.add('fade-out');
+            drillView.classList.add('fade-in');
+            metrics.classList.add('fade-in');
+            leftTabs.classList.remove('fade-in'); drillView.classList.remove('fade-out'); metrics.classList.remove('fade-out');
+          } else {
+            leftTabs.classList.add('fade-in');
+            drillView.classList.add('fade-out');
+            metrics.classList.add('fade-out');
+            leftTabs.classList.remove('fade-out'); drillView.classList.remove('fade-in'); metrics.classList.remove('fade-in');
+          }
+        });
+        ")),
         
         ## All Tab Content ----
         
@@ -994,53 +1008,99 @@ ui <- bs4DashPage(
             ### Model Analysis Tab ----
             bs4TabItem(
                 tabName = "model_analysis",
-                
-                # right side (text, sig factors, analysis)
                 fluidRow(
                     bs4Card(
-                        collapsible = FALSE,   # removes collapse toggle
-                        closable = FALSE,      # removes close icon
+                        collapsible = FALSE,
+                        closable = FALSE,
                         title = HTML("<b> Consumer Sentiment Model </b>"),
                         width = 12,
                         status = "success",
-                        #solidHeader = TRUE,
-                        fluidRow(
-                            column(
-                                width = 6,
-                                bs4Dash::tabsetPanel(
-                                    id = "model_analysis_tabs",
-                                    type = "pills",
-                                    tabPanel("Model Selection",
-                                             div(style = "padding:10px; font-size:18px; line-height:1.5; overflow-y:auto;",
-                                                 model_selection_text)
+                        
+                        # Three subtabs
+                        bs4Dash::tabsetPanel(
+                            id   = "model_analysis_tabs",
+                            type = "pills",
+                            
+                            # ======================
+                            # Tab 1: Model selection
+                            # ======================
+                            tabPanel(
+                                "Model Selection",
+                                fluidRow(
+                                    # Left: explanatory text
+                                    column(
+                                        width = 6,
+                                        div(
+                                            style = "padding:10px; font-size:18px; line-height:1.5; overflow-y:auto;",
+                                            model_selection_text   # <-- your existing HTML blurb with lag note
+                                        )
                                     ),
-                                    tabPanel("Top Economic Indicators",
-                                             div(style = "padding:10px; font-size:18px; line-height:1.5; overflow-y:auto;",
-                                                 model_result_info)
-                                    ),
-                                    tabPanel("Transition Matrix",
-                                             div(style = "padding:10px; font-size:16px; line-height:1.5; height:398.5px; overflow-y:auto;",
-                                                 "ok",
-                                                 uiOutput("transition_mat", height = "600px", width = "100%"))
-                                    ),
-                                    tabPanel("t-SNE Plot",
-                                             div(style = "padding:10px; font-size:16px; line-height:1.5; height:398.5px; overflow-y:auto;",
-                                                 "cs_interpretation")
+                                    # Right: one time-series with ALL 5 indicators overlaid
+                                    column(
+                                        width = 6,
+                                        div(
+                                            style = "display:flex; flex-direction:column; height: calc(100vh - 220px);",
+                                            highchartOutput("overview_ts", height = "100%", width = "100%")
+                                            # Server: render to output$overview_ts (CS + 5 indicators, z-scored)
+                                        )
                                     )
                                 )
                             ),
-                        
-                            column(
-                                collapsible = FALSE,   # removes collapse toggle
-                                closable = FALSE,      # removes close icon
-                                width = 6,
-                                
-                                # State plot, aligned to bottom
-                                div(
-                                    style = "flex-grow: 1; display: flex; flex-direction: column; height: calc(100vh - 200px);",  # 200px = height of header/navbar/etc
-                                    #highchartOutput("state_plot", height = "650px", width = "100%")
-                                    highchartOutput("model_selection_plot", height = "100%", width = "100%")
-                                    
+                            
+                            # ======================
+                            # Tab 2: Model metrics
+                            # ======================
+                            tabPanel(
+                                "Model Metrics",
+                                fluidRow(
+                                    # Left: bar+whisker and selector (as you already have)
+                                    column(
+                                        width = 6,
+                                        highchartOutput("model_metrics_bw", height = "340px"),
+                                        div(
+                                            style = "margin-top:8px;",
+                                            radioButtons(
+                                                "which_model", label = HTML("<b>Select model</b>"),
+                                                choices  = setNames(1:5, paste("Model", 1:5, "(ranked)")),
+                                                inline   = TRUE,
+                                                selected = 1
+                                            )
+                                        )
+                                    ),
+                                    # Right: CS regime plot + metrics table (room to add more later)
+                                    column(
+                                        width = 6,
+                                        highchartOutput("cs_regime_plot", height = "340px"),
+                                        br(),
+                                        tableOutput("metrics_table")
+                                        # (Add more plots below when ready)
+                                    )
+                                )
+                            ),
+                            
+                            # ======================
+                            # Tab 3: Top indicators
+                            # ======================
+                            tabPanel(
+                                "Top Indicators",
+                                fluidRow(
+                                    # Left: explanatory text about the winning indicators (human labels + lags)
+                                    column(
+                                        width = 6,
+                                        div(
+                                            style = "padding:10px; font-size:18px; line-height:1.5; overflow-y:auto;",
+                                            model_result_info   # <-- your existing text object for this section
+                                        )
+                                    ),
+                                    # Right: reserved space for a plot (to be wired later)
+                                    column(
+                                        width = 6,
+                                        div(
+                                            style = "display:flex; flex-direction:column; height: calc(100vh - 220px);",
+                                            highchartOutput("top_indicators_plot", height = "100%", width = "100%")
+                                            # Server later: maybe a small multiples panel or response curves
+                                        )
+                                    )
                                 )
                             )
                         )
@@ -2404,103 +2464,195 @@ server <- function(input, output, session) {
     
     ## Analysis Code ----
     
-    ### Model selection bar chart ----
+    ### Indicator Gallery ----
+    
+    output$overview_ts <- renderHighchart({
+        # --- CONFIG: pick the 5 indicators to overlay and their lags (0 = same year, 1 = t−1) ---
+        overview_vars <- c("real_GDP", "PCEPI", "FYFSD", "unemployment_rate", "case_schiller_val")
+        lag_map <- c(real_GDP = 1, PCEPI = 0, FYFSD = 1, unemployment_rate = 1, case_schiller_val = 1)
+        
+        # --- Data prep ---
+        dat <- full_dataset[order(full_dataset$Year), ]
+        # build a consistent time index as datetime (Jan 1 each year) to match your preferred style
+        x_ts <- datetime_to_timestamp(as.Date(paste0(dat$Year, "-01-01")))
+        
+        # lag each indicator as configured, then z-score; keep common non-NA window
+        series_list <- list()
+        for (nm in overview_vars) {
+            v <- dat[[nm]]
+            L <- if (nm %in% names(lag_map)) lag_map[[nm]] else 0L
+            if (L > 0) v <- c(rep(NA_real_, L), head(v, -L))
+            series_list[[nm]] <- v
+        }
+        # CS has no lag in this overview
+        cs <- dat$consumer_sentiment
+        
+        # align and scale on the overlapping window
+        df_all <- cbind(cs = cs, as.data.frame(series_list))
+        keep   <- stats::complete.cases(df_all)
+        df_all <- df_all[keep, , drop = FALSE]
+        x_keep <- x_ts[keep]
+        
+        # z-score each series separately for comparability
+        z_all <- as.data.frame(lapply(df_all, function(col) as.numeric(scale(col))))
+        
+        # --- Plot (styled like your other chart) ---
+        hc <- highchart() %>%
+            hc_chart(zoomType = "x") %>%
+            hc_credits(enabled = FALSE) %>%
+            hc_title(text = NULL) %>%
+            hc_xAxis(type = "datetime") %>%
+            hc_yAxis(
+                title = list(text = "z-score")            ) %>%
+            hc_plotOptions(series = list(marker = list(enabled = FALSE)))
+        
+        # color palette (CS dark, indicators aquamarine family)
+        col_cs   <- "#2E3138"
+        cols_ind <- c("#00BFA6", "#2CC8BB", "#54D7CA", "#7FE3D7", "#A7EFE4")
+        
+        # add CS first (anchor)
+        hc <- hc %>% hc_add_series(
+            type = "line", name = "Consumer Sentiment",
+            data = purrr::transpose(list(x = x_keep, y = z_all$cs)),
+            color = col_cs, lineWidth = 3, showInLegend = TRUE
+        )
+        
+        # add the 5 indicators
+        pretty_map <- c(
+            real_GDP = "Real GDP (t−1)",
+            PCEPI = "PCE Price Index (t)",
+            FYFSD = "Federal Surplus/Deficit (t−1)",
+            unemployment_rate = "Unemployment Rate (t−1)",
+            case_schiller_val = "Case–Shiller Index (t−1)"
+        )
+        i <- 0
+        for (nm in overview_vars) {
+            i <- i + 1
+            nm_pretty <- if (nm %in% names(pretty_map)) pretty_map[[nm]] else nm
+            hc <- hc %>% hc_add_series(
+                type = "line", name = nm_pretty,
+                data = purrr::transpose(list(x = x_keep, y = z_all[[nm]])),
+                color = cols_ind[(i - 1) %% length(cols_ind) + 1],
+                lineWidth = 1.6, showInLegend = TRUE
+            )
+        }
+        
+        # tooltip consistent with your other chart (opaque, black text, year label)
+        hc %>%
+            hc_tooltip(
+                useHTML = TRUE,
+                backgroundColor = "rgba(255,255,255,1)",
+                borderColor = "#333333",
+                style = list(color = "#000000"),
+                shared = TRUE,
+                formatter = JS("
+        function () {
+          var s = '<b>' + Highcharts.dateFormat('%Y', this.x) + '</b><br/>';
+          this.points.forEach(function(p){
+            s += '<span style=\"color:' + p.series.color + '\">' + p.series.name +
+                 '</span>: <b>' + Highcharts.numberFormat(p.y, 2) + '</b><br/>';
+          });
+          return s;
+        }
+      ")
+            )
+    })    
+    ### Model Selection Bar Chart ----
+    
+    plot_df <- readRDS("plot_top5_delta_ll.rds")
     
     # the bar chart displaying the mean LL for the 5 best models
     output$model_selection_plot <- renderHighchart({
-        plot_df <- readRDS("plot_top5_delta_ll.rds")
         
-        # Vectors pulled from the df (no other objects needed)
-        cats     <- plot_df$label
-        ybar     <- plot_df$mean_delta_ll
-        ci_lo    <- plot_df$ci_lo
-        ci_hi    <- plot_df$ci_hi
-        best_idx <- which.max(ybar)
-        best_pos <- best_idx - 1  # 0-based for categories
-        
-        # Aquamarine palette + light band on the winner row
-        aqua_main <- "#00BFA6"
-        aqua_mid  <- "#54D7CA"
-        aqua_band <- "rgba(0,191,166,0.12)"
-        
-        # Inline raw JS array for errorbars: [[low,high], ...]
-        err_js <- sprintf(
-            "[%s]",
-            paste(sprintf("[%.6f,%.6f]", ci_lo, ci_hi), collapse = ",")
-        )
-        
-        highchart() %>%
-            hc_add_dependency("highcharts-more") %>%
-            hc_chart(type = "bar") %>%
-            hc_title(text = "Top 5 Models Δ Mean Test Log-Likelihood vs Baseline") %>%
-            hc_subtitle(text = "Bars: out-of-sample improvement per observation; whiskers: 95% CI across folds") %>%
-            hc_xAxis(
-                categories = cats,
-                title = list(text = NULL),
-                plotBands = list(list(from = best_pos - 0.5, to = best_pos + 0.5, color = aqua_band, zIndex = -1)),
-                labels = list(
-                    useHTML = TRUE,
-                    formatter = JS(sprintf("
-        function () {
-          var bestPos = %d;
-          var esc = function(s){ return String(s)
-            .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-            .replace(/\"/g,'&quot;').replace(/'/g,'&#39;'); };
-          return (this.pos === bestPos)
-            ? '<span style=\"font-weight:700;\">' + esc(this.value) + '</span>'
-            : esc(this.value);
-        }
-      ", best_pos))
-                )
-            ) %>%
-            hc_yAxis(
-                title = list(text = "Δ mean test LL per obs"),
-                plotLines = list(list(value = 0, color = "#888", width = 1))
-            ) %>%
-            hc_plotOptions(series = list(
-                colorByPoint = TRUE,
-                zoneAxis = "x",
-                zones = list(
-                    list(value = best_pos - 0.5, color = aqua_mid),
-                    list(value = best_pos + 0.5, color = aqua_main),
-                    list(color = aqua_mid)
-                ),
-                dataLabels = list(
-                    enabled = TRUE,
-                    format = "{point.y:.3f}",
-                    style = list(color = "#000000", textOutline = "none")   # force black, no outline
-                )
-            )) %>%
-            hc_add_series(
-                name = "Δ mean LL",
-                data = ybar,
-                showInLegend = FALSE
-            ) %>%
-            hc_add_series(
-                type = "errorbar",
-                name = "95% CI",
-                data = JS(err_js),
-                showInLegend = FALSE
-            ) %>%
-            hc_tooltip(
-                shared = TRUE, useHTML = TRUE,
-                # Force high-contrast (black) text in tooltip for both series
-                headerFormat = "<b style='color:#000;'>{point.key}</b><br/>",
-                pointFormatter = JS("
-      function(){
-        if (this.series.type === 'errorbar') {
-          return '<span style=\"color:#000;\">95% CI</span>: <b style=\"color:#000;\">' +
-                 Highcharts.numberFormat(this.low, 4) + '</b> to <b style=\"color:#000;\">' +
-                 Highcharts.numberFormat(this.high, 4) + '</b><br/>';
-        } else {
-          return '<span style=\"color:#000;\">Δ Mean LL</span>: <b style=\"color:#000;\">' +
-                 Highcharts.numberFormat(this.y, 4) + '</b><br/>';
-        }
-      }
-    ")
-            )
-        
+        # Left: the same Δ-LL bar + CI (top 5)
+        output$model_metrics_bw <- renderHighchart({
+            cats     <- plot_df$label
+            ybar     <- plot_df$mean_delta_ll
+            ci_lo    <- plot_df$ci_lo
+            ci_hi    <- plot_df$ci_hi
+            best_idx <- which.max(ybar); best_pos <- best_idx - 1
+            
+            aqua_main <- "#00BFA6"; aqua_mid  <- "#54D7CA"; aqua_band <- "rgba(0,191,166,0.12)"
+            err_js <- sprintf("[%s]", paste(sprintf("[%.6f,%.6f]", ci_lo, ci_hi), collapse = ","))
+            
+            highchart() %>%
+                hc_add_dependency("highcharts-more") %>%
+                hc_chart(type = "bar") %>%
+                hc_title(text = "Mean Test Log-Likelihood vs Baseline") %>%
+                hc_subtitle(text = "Top five candidates — bars: Δ mean test LL, whiskers: 95% CI") %>%
+                hc_xAxis(
+                    categories = cats, title = list(text = NULL),
+                    plotBands = list(list(from = best_pos - 0.5, to = best_pos + 0.5, color = aqua_band, zIndex = -1)),
+                    labels = list(useHTML = FALSE, style = list(color = "#000"),
+                                  formatter = JS(sprintf("
+          function () {
+            var bestPos = %d; var txt = this.value;
+            if (this.pos === bestPos &&
+                this.axis && this.axis.ticks && this.axis.ticks[this.pos] && this.axis.ticks[this.pos].label) {
+              this.axis.ticks[this.pos].label.css({ fontWeight: '700' });
+            }
+            return txt;
+          }", best_pos))
+                    )
+                ) %>%
+                hc_yAxis(title = list(text = "Δ mean LL per obs"),
+                         plotLines = list(list(value = 0, color = "#888", width = 1))) %>%
+                hc_plotOptions(series = list(
+                    colorByPoint = TRUE, zoneAxis = "x",
+                    zones = list(
+                        list(value = best_pos - 0.5, color = "#54D7CA"),
+                        list(value = best_pos + 0.5, color = "#00BFA6"),
+                        list(color = "#54D7CA")
+                    ),
+                    dataLabels = list(enabled = TRUE, format = "{point.y:.3f}",
+                                      style = list(color="#000", textOutline="none"))
+                )) %>%
+                hc_add_series(name = "Δ mean LL", data = ybar, showInLegend = FALSE) %>%
+                hc_add_series(type = "errorbar", name = "95% CI", data = JS(err_js), showInLegend = FALSE)
+        })
+})
+    
+    # A small helper to map radio 1..5 -> model_id
+    selected_model_id <- reactive({
+        idx <- as.integer(input$which_model)
+        validate(need(idx %in% 1:5, "Select a model"))
+        plot_df$model_id[idx]
     })
+    
+    
+    
+    ### Time series with regime highlights ----
+
+    output$cs_regime_plot <- renderHighchart({
+        mid  <- selected_model_id()
+           # year, cs, p_high, state_hi (0/1)
+        yr   <- post$year
+        cs   <- post$cs
+        hi   <- post$p_high >= 0.5
+
+        #print(class(yr))
+
+    })
+    
+    output$metrics_table <- renderTable({
+        mid <- selected_model_id()
+        row <- subset(plot_df, model_id == mid)[1, ]
+        
+        post <- readRDS(sprintf("posterior_%s.rds", mid))
+        n_switches <- sum(abs(diff(post$state_hi)) == 1, na.rm = TRUE)
+        share_high <- mean(post$state_hi == 1, na.rm = TRUE)
+        
+        data.frame(
+            "Model"                      = row$label,
+            "Δ mean test LL (avg)"       = sprintf("%.3f", row$mean_delta_ll),
+            "95%% CI (Δ LL)"             = sprintf("[%.3f, %.3f]", row$ci_lo, row$ci_hi),
+            "Folds"                      = row$n_folds,
+            "Regime switches (count)"    = n_switches,
+            "Time in High state (share)" = sprintf("%.1f%%", 100 * share_high),
+            check.names = FALSE
+        )
+    }, striped = TRUE, bordered = TRUE, digits = 3)
+
     
     ### 3D TSNE PLOT ----
     output$state_plot <- renderHighchart({
