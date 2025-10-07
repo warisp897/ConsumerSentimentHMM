@@ -494,6 +494,32 @@ ui <- bs4DashPage(
         tags$head(
             
             tags$style(HTML("
+            
+            /* --- Segmented Control --- */
+              .segmented-control {
+                display: inline-flex;
+                border: 1px solid #007bff;
+                border-radius: 0.25rem;
+                overflow: hidden;
+              }
+              .segmented-control .btn {
+                border-radius: 0;
+                border: none;
+                background-color: #fff;
+                color: #007bff;
+              }
+              .segmented-control .btn:not(:last-child) {
+                border-right: 1px solid #007bff;
+              }
+              .segmented-control .btn.active {
+                background-color: #007bff;
+                color: #fff;
+                cursor: default;
+              }
+              .segmented-control .btn:hover:not(.active) {
+                background-color: #e9ecef;
+              }
+  
             /* Sidebar background */
               .main-sidebar {
               // background-color: #A5A9B4 !important;  /* Replace with your desired color */
@@ -763,6 +789,14 @@ ui <- bs4DashPage(
             leftTabs.classList.remove('fade-out'); drillView.classList.remove('fade-in'); metrics.classList.remove('fade-in');
           }
         });
+        
+          Shiny.addCustomMessageHandler('segmented-set-active', function(msg){
+            var id = msg.id;
+            var $btn = $('#' + id);
+            var $wrap = $btn.closest('.segmented-control');
+            $wrap.find('.btn').removeClass('active');
+            $btn.addClass('active');
+          });
         ")),
         
         ## All Tab Content ----
@@ -1021,9 +1055,6 @@ ui <- bs4DashPage(
                             id   = "model_analysis_tabs",
                             type = "pills",
                             
-                            # ======================
-                            # Tab 1: Model selection
-                            # ======================
                             tabPanel(
                                 "Model Selection",
                                 fluidRow(
@@ -1046,41 +1077,33 @@ ui <- bs4DashPage(
                                     )
                                 )
                             ),
-                            
-                            # ======================
-                            # Tab 2: Model metrics
-                            # ======================
+
                             tabPanel(
                                 "Model Metrics",
                                 fluidRow(
                                     # Left: bar+whisker and selector (as you already have)
                                     column(
                                         width = 6,
-                                        highchartOutput("model_metrics_bw", height = "340px"),
+                                        highchartOutput("model_selection_plot", height = "340px"),
                                         div(
-                                            style = "margin-top:8px;",
-                                            radioButtons(
-                                                "which_model", label = HTML("<b>Select model</b>"),
-                                                choices  = setNames(1:5, paste("Model", 1:5, "(ranked)")),
-                                                inline   = TRUE,
-                                                selected = 1
-                                            )
-                                        )
+                                            class = "segmented-control",
+                                            actionButton("mod_one",   "Model 1", class = "btn active"),
+                                            actionButton("mod_two",   "Model 2", class = "btn"),
+                                            actionButton("mod_three", "Model 3", class = "btn"),
+                                            actionButton("mod_four",  "Model 4", class = "btn"),
+                                            actionButton("mod_five",  "Model 5", class = "btn")
+                                        )                                    
                                     ),
                                     # Right: CS regime plot + metrics table (room to add more later)
                                     column(
                                         width = 6,
-                                        highchartOutput("cs_regime_plot", height = "340px"),
-                                        br(),
-                                        tableOutput("metrics_table")
+                                        highchartOutput("cs_regime_chart", height = "340px"),
+                                        #br(),
+                                        #tableOutput("metrics_table")
                                         # (Add more plots below when ready)
                                     )
                                 )
                             ),
-                            
-                            # ======================
-                            # Tab 3: Top indicators
-                            # ======================
                             tabPanel(
                                 "Top Indicators",
                                 fluidRow(
@@ -1125,7 +1148,7 @@ ui <- bs4DashPage(
 
 
 # Server function ----
-
+options(highcharter.offline = FALSE)
 server <- function(input, output, session) {
     
     ## Overview Code ----
@@ -2467,16 +2490,12 @@ server <- function(input, output, session) {
     ### Indicator Gallery ----
     
     output$overview_ts <- renderHighchart({
-        # --- CONFIG: pick the 5 indicators to overlay and their lags (0 = same year, 1 = t−1) ---
         overview_vars <- c("real_GDP", "PCEPI", "FYFSD", "unemployment_rate", "case_schiller_val")
         lag_map <- c(real_GDP = 1, PCEPI = 0, FYFSD = 1, unemployment_rate = 1, case_schiller_val = 1)
         
-        # --- Data prep ---
         dat <- full_dataset[order(full_dataset$Year), ]
-        # build a consistent time index as datetime (Jan 1 each year) to match your preferred style
         x_ts <- datetime_to_timestamp(as.Date(paste0(dat$Year, "-01-01")))
-        
-        # lag each indicator as configured, then z-score; keep common non-NA window
+
         series_list <- list()
         for (nm in overview_vars) {
             v <- dat[[nm]]
@@ -2484,19 +2503,15 @@ server <- function(input, output, session) {
             if (L > 0) v <- c(rep(NA_real_, L), head(v, -L))
             series_list[[nm]] <- v
         }
-        # CS has no lag in this overview
         cs <- dat$consumer_sentiment
         
-        # align and scale on the overlapping window
         df_all <- cbind(cs = cs, as.data.frame(series_list))
         keep   <- stats::complete.cases(df_all)
         df_all <- df_all[keep, , drop = FALSE]
         x_keep <- x_ts[keep]
         
-        # z-score each series separately for comparability
         z_all <- as.data.frame(lapply(df_all, function(col) as.numeric(scale(col))))
         
-        # --- Plot (styled like your other chart) ---
         hc <- highchart() %>%
             hc_chart(zoomType = "x") %>%
             hc_credits(enabled = FALSE) %>%
@@ -2506,18 +2521,15 @@ server <- function(input, output, session) {
                 title = list(text = "z-score")            ) %>%
             hc_plotOptions(series = list(marker = list(enabled = FALSE)))
         
-        # color palette (CS dark, indicators aquamarine family)
         col_cs   <- "#2E3138"
         cols_ind <- c("#00BFA6", "#2CC8BB", "#54D7CA", "#7FE3D7", "#A7EFE4")
         
-        # add CS first (anchor)
         hc <- hc %>% hc_add_series(
             type = "line", name = "Consumer Sentiment",
             data = purrr::transpose(list(x = x_keep, y = z_all$cs)),
             color = col_cs, lineWidth = 3, showInLegend = TRUE
         )
         
-        # add the 5 indicators
         pretty_map <- c(
             real_GDP = "Real GDP (t−1)",
             PCEPI = "PCE Price Index (t)",
@@ -2537,7 +2549,6 @@ server <- function(input, output, session) {
             )
         }
         
-        # tooltip consistent with your other chart (opaque, black text, year label)
         hc %>%
             hc_tooltip(
                 useHTML = TRUE,
@@ -2546,113 +2557,211 @@ server <- function(input, output, session) {
                 style = list(color = "#000000"),
                 shared = TRUE,
                 formatter = JS("
-        function () {
-          var s = '<b>' + Highcharts.dateFormat('%Y', this.x) + '</b><br/>';
-          this.points.forEach(function(p){
-            s += '<span style=\"color:' + p.series.color + '\">' + p.series.name +
-                 '</span>: <b>' + Highcharts.numberFormat(p.y, 2) + '</b><br/>';
-          });
-          return s;
-        }
+                    function () {
+                      var s = '<b>' + Highcharts.dateFormat('%Y', this.x) + '</b><br/>';
+                      this.points.forEach(function(p){
+                        s += '<span style=\"color:' + p.series.color + '\">' + p.series.name +
+                             '</span>: <b>' + Highcharts.numberFormat(p.y, 2) + '</b><br/>';
+                      });
+                      return s;
+                    }
       ")
             )
     })    
+    
+    # Map button clicks -> index 1..5 based on *current* plot_df ordering
+    model_idx <- reactiveVal(1L)  # default = first button
+    
+    observeEvent(input$mod_one,   ignoreInit = TRUE, { model_idx(1L) })
+    observeEvent(input$mod_two,   ignoreInit = TRUE, { model_idx(2L) })
+    observeEvent(input$mod_three, ignoreInit = TRUE, { model_idx(3L) })
+    observeEvent(input$mod_four,  ignoreInit = TRUE, { model_idx(4L) })
+    observeEvent(input$mod_five,  ignoreInit = TRUE, { model_idx(5L) })
+    
     ### Model Selection Bar Chart ----
     
     plot_df <- readRDS("plot_top5_delta_ll.rds")
     
     # the bar chart displaying the mean LL for the 5 best models
     output$model_selection_plot <- renderHighchart({
+        sel_idx <- 1L
+        sel_pos <- sel_idx - 1
         
-        # Left: the same Δ-LL bar + CI (top 5)
-        output$model_metrics_bw <- renderHighchart({
-            cats     <- plot_df$label
-            ybar     <- plot_df$mean_delta_ll
-            ci_lo    <- plot_df$ci_lo
-            ci_hi    <- plot_df$ci_hi
-            best_idx <- which.max(ybar); best_pos <- best_idx - 1
-            
-            aqua_main <- "#00BFA6"; aqua_mid  <- "#54D7CA"; aqua_band <- "rgba(0,191,166,0.12)"
-            err_js <- sprintf("[%s]", paste(sprintf("[%.6f,%.6f]", ci_lo, ci_hi), collapse = ","))
-            
-            highchart() %>%
-                hc_add_dependency("highcharts-more") %>%
-                hc_chart(type = "bar") %>%
-                hc_title(text = "Mean Test Log-Likelihood vs Baseline") %>%
-                hc_subtitle(text = "Top five candidates — bars: Δ mean test LL, whiskers: 95% CI") %>%
-                hc_xAxis(
-                    categories = cats, title = list(text = NULL),
-                    plotBands = list(list(from = best_pos - 0.5, to = best_pos + 0.5, color = aqua_band, zIndex = -1)),
-                    labels = list(useHTML = FALSE, style = list(color = "#000"),
-                                  formatter = JS(sprintf("
-          function () {
-            var bestPos = %d; var txt = this.value;
-            if (this.pos === bestPos &&
-                this.axis && this.axis.ticks && this.axis.ticks[this.pos] && this.axis.ticks[this.pos].label) {
-              this.axis.ticks[this.pos].label.css({ fontWeight: '700' });
-            }
-            return txt;
-          }", best_pos))
-                    )
-                ) %>%
-                hc_yAxis(title = list(text = "Δ mean LL per obs"),
-                         plotLines = list(list(value = 0, color = "#888", width = 1))) %>%
-                hc_plotOptions(series = list(
-                    colorByPoint = TRUE, zoneAxis = "x",
-                    zones = list(
-                        list(value = best_pos - 0.5, color = "#54D7CA"),
-                        list(value = best_pos + 0.5, color = "#00BFA6"),
-                        list(color = "#54D7CA")
-                    ),
-                    dataLabels = list(enabled = TRUE, format = "{point.y:.3f}",
-                                      style = list(color="#000", textOutline="none"))
-                )) %>%
-                hc_add_series(name = "Δ mean LL", data = ybar, showInLegend = FALSE) %>%
-                hc_add_series(type = "errorbar", name = "95% CI", data = JS(err_js), showInLegend = FALSE)
+        cats  <- plot_df$label
+        ybar  <- plot_df$mean_delta_ll
+        ci_lo <- plot_df$ci_lo
+        ci_hi <- plot_df$ci_hi
+        
+        #chart_id <- session$ns("model_selection_plot_chart")
+        
+        # Best model stays green (#28a745), others aquamarine
+        best_idx <- if ("rank" %in% names(plot_df)) which(plot_df$rank == 1)[1] else which.max(ybar)
+        col_best <- "#28a745"; col_oth <- "#54D7CA"; band_col <- "rgba(0,191,166,0.12)"
+        
+        data_list <- lapply(seq_along(ybar), function(i){
+            list(y = ybar[i], color = if (i == best_idx) col_best else col_oth)
         })
-})
+        err_js <- sprintf("[%s]", paste(sprintf("[%.6f,%.6f]", ci_lo, ci_hi), collapse = ","))
+        
+        highchart() %>%
+            highcharter::hc_add_dependency("highcharts-more") %>%
+            highcharter::hc_add_dependency("modules/exporting") %>%
+            hc_chart(type = "bar", id = session$ns("model_selection_plot_chart")) %>%
+            hc_chart(type = "bar") %>%
+            hc_title(text = "Mean Test Log-Likelihood vs Baseline") %>%
+            hc_subtitle(text = "Top five candidates — bars: Δ mean test LL, whiskers: 95% CI") %>%
+            hc_xAxis(
+                categories = cats,
+                plotBands  = list(list(id = "sel", from = sel_pos - 0.5, to = sel_pos + 0.5,
+                                       color = band_col, zIndex = -1))
+            ) %>%
+            hc_yAxis(title = list(text = "Δ mean LL per obs"),
+                     plotLines = list(list(value = 0, color = "#888", width = 1))) %>%
+            hc_plotOptions(series = list(
+                dataLabels = list(enabled = TRUE, format = "{point.y:.3f}",
+                                  style = list(color = "#000", textOutline = "none"))
+            )) %>%
+            hc_add_series(name = "Δ mean LL", data = data_list, showInLegend = FALSE) %>%
+            hc_add_series(type = "errorbar", name = "95% CI", data = JS(err_js), showInLegend = FALSE) %>%
+            # Custom handler to move only the band
+            htmlwidgets::onRender("
+  function(el, x) {
+    // --- robustly get the Highcharts chart instance for this widget ---
+    function getChart() {
+      if (window.Highcharts && Highcharts.charts) {
+        var idx = +el.getAttribute('data-highcharts-chart');
+        if (!isNaN(idx) && Highcharts.charts[idx]) return Highcharts.charts[idx];
+        // fallback: scan by DOM containment
+        for (var i = 0; i < Highcharts.charts.length; i++) {
+          var c = Highcharts.charts[i];
+          if (c && c.renderTo && (c.renderTo === el || el.contains(c.renderTo))) return c;
+        }
+      }
+      return null;
+    }
+
+    var chart = getChart();
+    if (!chart) { console.warn('No Highcharts chart found for', el.id); return; }
+
+    // Listen on the Shiny output container id (your highchartOutput id)
+    var channel = 'hc-bar-select-' + el.id;
+
+    Shiny.addCustomMessageHandler(channel, function(msg){
+      var idx = (msg.index || 1) - 1;       // 0-based bar index
+      var xa  = chart.xAxis && chart.xAxis[0];
+      if (!xa) { console.warn('No xAxis on chart'); return; }
+
+      try { xa.removePlotBand('sel'); } catch(e) {}
+      xa.addPlotBand({
+        id: 'sel',
+        from: idx - 0.5, to: idx + 0.5,
+        color: msg.bandColor || 'rgba(0,191,166,0.12)',
+        zIndex: -1
+      });
+      chart.redraw(false);
+    });
+  }
+")
+    })
     
-    # A small helper to map radio 1..5 -> model_id
+    # Updates top 5 model plot highlight
+    observeEvent(model_idx(), {
+        session$sendCustomMessage(
+            "hc-bar-select-model_selection_plot",
+            list(index = model_idx(), bandColor = "rgba(0,191,166,0.12)")
+        )
+    }, ignoreInit = FALSE)
+    
+    # Updates the action button
+    observeEvent(model_idx(), {
+        ids <- c('mod_one','mod_two','mod_three','mod_four','mod_five')
+        sel_id <- session$ns(ids[model_idx()])
+        
+        session$sendCustomMessage('segmented-set-active', list(id = sel_id))
+    }, ignoreInit = FALSE)
+    
+    ### Regime Time Series Plot ----
+    
     selected_model_id <- reactive({
-        idx <- as.integer(input$which_model)
+        idx <- model_idx()
         validate(need(idx %in% 1:5, "Select a model"))
         plot_df$model_id[idx]
     })
     
+    posterior_all_df <- readRDS("posterior_all_models.rds")
     
+    # Build plotBands from contiguous runs of state_hi (0/1)
+    make_plotbands <- function(df_yearly) {
+        # df_yearly: year (numeric), state_hi (0/1), ordered
+        # Use Jan 1 for yearly stamps
+        df_yearly <- df_yearly %>% mutate(date = as.Date(paste0(year, "-01-01")))
+        ts <- highcharter::datetime_to_timestamp(df_yearly$date) # ms
+        
+        runs <- rle(df_yearly$state_hi)
+        ends <- cumsum(runs$lengths)
+        starts <- c(1, head(ends, -1) + 1)
+        
+        # last band extends ~1 year
+        to_ts <- purrr::map_dbl(seq_along(starts), function(i) {
+            if (i < length(starts)) ts[starts[i + 1]] else ts[ends[i]] + 365*24*3600*1000
+        })
+        
+        purrr::map2(seq_along(starts), runs$values, function(i, v) {
+            list(
+                from  = ts[starts[i]],
+                to    = to_ts[i],
+                color = if (v == 1)
+                    "rgba(46, 204, 113, 0.12)"  # High regime
+                else
+                    "rgba(231, 76, 60, 0.10)",  # Low regime
+                label = list(
+                    text  = if (v == 1) "High" else "Low",
+                    style = list(fontSize = "10px", color = "#555")
+                ),
+                zIndex = -1
+            )
+        })
+    }
     
-    ### Time series with regime highlights ----
-
-    output$cs_regime_plot <- renderHighchart({
-        mid  <- selected_model_id()
-           # year, cs, p_high, state_hi (0/1)
-        yr   <- post$year
-        cs   <- post$cs
-        hi   <- post$p_high >= 0.5
-
-        #print(class(yr))
-
-    })
-    
-    output$metrics_table <- renderTable({
+    # Recompute the filtered data when a model button is clicked
+    df_model <- eventReactive(selected_model_id(), {
         mid <- selected_model_id()
-        row <- subset(plot_df, model_id == mid)[1, ]
+        df <- posterior_all_df %>%
+            filter(model_id == mid) %>%
+            arrange(year)
         
-        post <- readRDS(sprintf("posterior_%s.rds", mid))
-        n_switches <- sum(abs(diff(post$state_hi)) == 1, na.rm = TRUE)
-        share_high <- mean(post$state_hi == 1, na.rm = TRUE)
+        validate(need(nrow(df) > 0, "No rows for selected model."))
+        df
+    }, ignoreInit = FALSE)
+    
+    output$cs_regime_chart <- renderHighchart({
+        df <- df_model()
+        bands <- make_plotbands(df)
         
-        data.frame(
-            "Model"                      = row$label,
-            "Δ mean test LL (avg)"       = sprintf("%.3f", row$mean_delta_ll),
-            "95%% CI (Δ LL)"             = sprintf("[%.3f, %.3f]", row$ci_lo, row$ci_hi),
-            "Folds"                      = row$n_folds,
-            "Regime switches (count)"    = n_switches,
-            "Time in High state (share)" = sprintf("%.1f%%", 100 * share_high),
-            check.names = FALSE
-        )
-    }, striped = TRUE, bordered = TRUE, digits = 3)
-
+        series_df <- df %>%
+            transmute(
+                x = datetime_to_timestamp(as.Date(paste0(year, "-01-01"))),
+                y = cs
+            )
+        
+        highchart() %>%
+            hc_chart(zoomType = "x") %>%
+            hc_title(text = paste0("Consumer Sentiment Regimes in Model ", df$model_id[1])) %>%
+            hc_subtitle(text = paste0("Threshold: P(High) ≥ 0.5")) %>%
+            hc_xAxis(type = "datetime", title = list(text = "Year"), plotBands = bands) %>%
+            hc_yAxis(title = list(text = "Consumer Sentiment")) %>%
+            hc_add_series(
+                data = list_parse2(series_df),
+                name = "Consumer Sentiment",
+                type = "line",
+                lineWidth = 3,
+                color = "black",
+                marker = list(enabled = FALSE)
+            ) %>%
+            hc_tooltip(valueDecimals = 1, pointFormat = "<b>{point.y}</b>") %>%
+            hc_legend(enabled = FALSE) %>%
+            hc_exporting(enabled = TRUE)
+    })
     
     ### 3D TSNE PLOT ----
     output$state_plot <- renderHighchart({
