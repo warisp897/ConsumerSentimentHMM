@@ -28,16 +28,14 @@ library(reactable)
 #library(ggplot2)
 library(depmixS4)
 
-# SHOULD NOT BE NEEDED
+# Data Files Read in ----
 
-# mint_theme <- bs_theme(
-#     bootswatch = "flatly",  # clean base
-#     primary = "#98FF98",    # mint green base
-#     secondary = "#2E8B57",  # optional darker green accent
-#     base_font = font_google("Nunito Sans"),
-#     heading_font = font_google("Quicksand")
-# )
-
+scaled_data = readRDS("scaled_dataset.rds")
+full_dataset = readRDS("full_dataset.rds")
+plot_df <- readRDS("plot_top5_delta_ll.rds")
+posterior_all_df <- readRDS("posterior_all_models.rds")
+sent_hmm = readRDS("sent_hmm.rds")
+tsne_result = readRDS("tnse_data.rds")
 
 # All Text Used in Dashboard ----
 
@@ -497,22 +495,26 @@ ui <- bs4DashPage(
             
             /* --- Segmented Control --- */
               .segmented-control {
-                display: inline-flex;
-                border: 1px solid #007bff;
+                display: flex;
+                justify-content: center;
+                border: 1px solid #28a745;
                 border-radius: 0.25rem;
                 overflow: hidden;
+                width: fit-content;  
+                margin-left: auto;
+                margin-right: auto;
               }
               .segmented-control .btn {
                 border-radius: 0;
                 border: none;
                 background-color: #fff;
-                color: #007bff;
+                color: #28a745;
               }
               .segmented-control .btn:not(:last-child) {
-                border-right: 1px solid #007bff;
+                border-right: 1px solid #28a745;
               }
               .segmented-control .btn.active {
-                background-color: #007bff;
+                background-color: #28a745;
                 color: #fff;
                 cursor: default;
               }
@@ -1084,20 +1086,28 @@ ui <- bs4DashPage(
                                     # Left: bar+whisker and selector (as you already have)
                                     column(
                                         width = 6,
-                                        highchartOutput("model_selection_plot", height = "340px"),
+                                        highchartOutput("model_selection_plot", height = "550px"),
                                         div(
                                             class = "segmented-control",
-                                            actionButton("mod_one",   "Model 1", class = "btn active"),
-                                            actionButton("mod_two",   "Model 2", class = "btn"),
+                                            actionButton("mod_one", "Model 1", class = "btn active"),
+                                            actionButton("mod_two", "Model 2", class = "btn"),
                                             actionButton("mod_three", "Model 3", class = "btn"),
-                                            actionButton("mod_four",  "Model 4", class = "btn"),
-                                            actionButton("mod_five",  "Model 5", class = "btn")
+                                            actionButton("mod_four", "Model 4", class = "btn"),
+                                            actionButton("mod_five", "Model 5", class = "btn")
                                         )                                    
                                     ),
                                     # Right: CS regime plot + metrics table (room to add more later)
                                     column(
                                         width = 6,
                                         highchartOutput("cs_regime_chart", height = "340px"),
+                                        #highchartOutput("emis_bars", height = "340px"),
+                                        #highchartOutput("tpm_avg", height = "340px"),
+                                        highchartOutput("tpm_time", height = "340px"),
+                                        div(
+                                            class = "segmented-control",
+                                            actionButton("trans_btn", "Transition", class = "btn active"),
+                                            actionButton("emiss_btn", "Emission", class = "btn")
+                                        )
                                         #br(),
                                         #tableOutput("metrics_table")
                                         # (Add more plots below when ready)
@@ -1169,8 +1179,6 @@ server <- function(input, output, session) {
     
     
     ### Consumer Sentiment TS Plot ----
-    scaled_data = readRDS(here("scaled_dataset.rds"))
-    full_dataset = readRDS(here("full_dataset.rds"))
     output$consumer_sentiment_plot <- renderHighchart({
         
         cs_data <- data.frame(
@@ -1299,6 +1307,12 @@ server <- function(input, output, session) {
     })
     
     ## Preliminary Analysis Code ----
+    
+    scaled <- scaled_data %>%
+        pivot_longer(-Year, names_to = "Indicator", values_to = "Scaled")
+    
+    full   <- full_dataset %>%
+        pivot_longer(-Year, names_to = "Indicator", values_to = "True")
     
     ### Preliminary Analysis Switching Functionality ----
     output$category_summary <- renderUI({
@@ -1479,11 +1493,6 @@ server <- function(input, output, session) {
     initial_cat  <- isolate(input$select1)
     initial_inds <- category_map[[ initial_cat ]]
     
-    scaled <- readRDS("scaled_dataset.rds") %>%
-        pivot_longer(-Year, names_to = "Indicator", values_to = "Scaled")
-    full   <- readRDS("full_dataset.rds") %>%
-        pivot_longer(-Year, names_to = "Indicator", values_to = "True")
-    
     
     CAT_PLOT_LOADED <- F
     #### Selected Indicators over Time Plot ----
@@ -1524,6 +1533,7 @@ server <- function(input, output, session) {
         default_cat <- isolate(input$select1)
         
         highchart() %>%
+            hc_chart(zoomType = "x") %>%
             hc_chart(
                 type    = "line",
                 spacing = list(top=10, right=10, bottom=20, left=10)
@@ -2580,8 +2590,6 @@ server <- function(input, output, session) {
     
     ### Model Selection Bar Chart ----
     
-    plot_df <- readRDS("plot_top5_delta_ll.rds")
-    
     # the bar chart displaying the mean LL for the 5 best models
     output$model_selection_plot <- renderHighchart({
         sel_idx <- 1L
@@ -2598,18 +2606,18 @@ server <- function(input, output, session) {
         best_idx <- if ("rank" %in% names(plot_df)) which(plot_df$rank == 1)[1] else which.max(ybar)
         col_best <- "#28a745"; col_oth <- "#54D7CA"; band_col <- "rgba(0,191,166,0.12)"
         
+        #col_oth <- "#54D7CA"
+        
         data_list <- lapply(seq_along(ybar), function(i){
             list(y = ybar[i], color = if (i == best_idx) col_best else col_oth)
         })
         err_js <- sprintf("[%s]", paste(sprintf("[%.6f,%.6f]", ci_lo, ci_hi), collapse = ","))
         
         highchart() %>%
-            highcharter::hc_add_dependency("highcharts-more") %>%
-            highcharter::hc_add_dependency("modules/exporting") %>%
             hc_chart(type = "bar", id = session$ns("model_selection_plot_chart")) %>%
             hc_chart(type = "bar") %>%
             hc_title(text = "Mean Test Log-Likelihood vs Baseline") %>%
-            hc_subtitle(text = "Top five candidates — bars: Δ mean test LL, whiskers: 95% CI") %>%
+            hc_subtitle(text = "Bars: Δ Mean Test LL <br> Whiskers: 95% CI") %>%
             hc_xAxis(
                 categories = cats,
                 plotBands  = list(list(id = "sel", from = sel_pos - 0.5, to = sel_pos + 0.5,
@@ -2625,43 +2633,43 @@ server <- function(input, output, session) {
             hc_add_series(type = "errorbar", name = "95% CI", data = JS(err_js), showInLegend = FALSE) %>%
             # Custom handler to move only the band
             htmlwidgets::onRender("
-  function(el, x) {
-    // --- robustly get the Highcharts chart instance for this widget ---
-    function getChart() {
-      if (window.Highcharts && Highcharts.charts) {
-        var idx = +el.getAttribute('data-highcharts-chart');
-        if (!isNaN(idx) && Highcharts.charts[idx]) return Highcharts.charts[idx];
-        // fallback: scan by DOM containment
-        for (var i = 0; i < Highcharts.charts.length; i++) {
-          var c = Highcharts.charts[i];
-          if (c && c.renderTo && (c.renderTo === el || el.contains(c.renderTo))) return c;
-        }
-      }
-      return null;
-    }
-
-    var chart = getChart();
-    if (!chart) { console.warn('No Highcharts chart found for', el.id); return; }
-
-    // Listen on the Shiny output container id (your highchartOutput id)
-    var channel = 'hc-bar-select-' + el.id;
-
-    Shiny.addCustomMessageHandler(channel, function(msg){
-      var idx = (msg.index || 1) - 1;       // 0-based bar index
-      var xa  = chart.xAxis && chart.xAxis[0];
-      if (!xa) { console.warn('No xAxis on chart'); return; }
-
-      try { xa.removePlotBand('sel'); } catch(e) {}
-      xa.addPlotBand({
-        id: 'sel',
-        from: idx - 0.5, to: idx + 0.5,
-        color: msg.bandColor || 'rgba(0,191,166,0.12)',
-        zIndex: -1
-      });
-      chart.redraw(false);
-    });
-  }
-")
+                              function(el, x) {
+                                // --- robustly get the Highcharts chart instance for this widget ---
+                                function getChart() {
+                                  if (window.Highcharts && Highcharts.charts) {
+                                    var idx = +el.getAttribute('data-highcharts-chart');
+                                    if (!isNaN(idx) && Highcharts.charts[idx]) return Highcharts.charts[idx];
+                                    // fallback: scan by DOM containment
+                                    for (var i = 0; i < Highcharts.charts.length; i++) {
+                                      var c = Highcharts.charts[i];
+                                      if (c && c.renderTo && (c.renderTo === el || el.contains(c.renderTo))) return c;
+                                    }
+                                  }
+                                  return null;
+                                }
+                            
+                                var chart = getChart();
+                                if (!chart) { console.warn('No Highcharts chart found for', el.id); return; }
+                            
+                                // Listen on the Shiny output container id (your highchartOutput id)
+                                var channel = 'hc-bar-select-' + el.id;
+                            
+                                Shiny.addCustomMessageHandler(channel, function(msg){
+                                  var idx = (msg.index || 1) - 1;       // 0-based bar index
+                                  var xa  = chart.xAxis && chart.xAxis[0];
+                                  if (!xa) { console.warn('No xAxis on chart'); return; }
+                            
+                                  try { xa.removePlotBand('sel'); } catch(e) {}
+                                  xa.addPlotBand({
+                                    id: 'sel',
+                                    from: idx - 0.5, to: idx + 0.5,
+                                    color: msg.bandColor || 'rgba(0,191,166,0.12)',
+                                    zIndex: -1
+                                  });
+                                  chart.redraw(false);
+                                });
+                              }
+                            ")
     })
     
     # Updates top 5 model plot highlight
@@ -2688,8 +2696,6 @@ server <- function(input, output, session) {
         plot_df$model_id[idx]
     })
     
-    posterior_all_df <- readRDS("posterior_all_models.rds")
-    
     # Build plotBands from contiguous runs of state_hi (0/1)
     make_plotbands <- function(df_yearly) {
         # df_yearly: year (numeric), state_hi (0/1), ordered
@@ -2711,9 +2717,9 @@ server <- function(input, output, session) {
                 from  = ts[starts[i]],
                 to    = to_ts[i],
                 color = if (v == 1)
-                    "rgba(46, 204, 113, 0.12)"  # High regime
+                    "rgba(83, 212, 74, 0.4)"  # High regime
                 else
-                    "rgba(231, 76, 60, 0.10)",  # Low regime
+                    "rgba(231, 76, 60, 0.5)",  # Low regime
                 label = list(
                     text  = if (v == 1) "High" else "Low",
                     style = list(fontSize = "10px", color = "#555")
@@ -2767,9 +2773,6 @@ server <- function(input, output, session) {
     output$state_plot <- renderHighchart({
         
         # reading in data
-        sent_hmm = readRDS("sent_hmm.rds")
-        tsne_result = readRDS("tnse_data.rds")
-        
         
         fit_hmm = fit(sent_hmm)
         predicted_states <- posterior(fit_hmm)$state
@@ -2875,6 +2878,78 @@ server <- function(input, output, session) {
             )
         hc
         
+    })
+    
+    ### Emissions Bar Chart ----
+    
+    bundle <- readRDS("hmm_models_bundle.rds")
+    
+    current <- reactive({ bundle[[ selected_model_id() ]] })
+    
+    # Emission bars
+    output$emis_bars <- renderHighchart({
+        b <- current(); ep <- b$emis
+        series_mu <- data.frame(x = seq_len(nrow(ep)) - 1L, y = ep$mu)
+        err_js <- sprintf("[%s]", paste(sprintf("[%.6f,%.6f]", ep$mu - 2*ep$sd, ep$mu + 2*ep$sd), collapse = ","))
+        highcharter::highchart() %>%
+            highcharter::hc_title(text = "State emission parameters (Gaussian)") %>%
+            highcharter::hc_subtitle(text = "Bars: μ  |  Whiskers: μ ± 2σ") %>%
+            highcharter::hc_xAxis(categories = ep$state) %>%
+            highcharter::hc_yAxis(title = list(text = "Consumer Sentiment")) %>%
+            highcharter::hc_add_series(type = "column", name = "μ", data = highcharter::list_parse2(series_mu)) %>%
+            highcharter::hc_add_series(type = "errorbar", name = "μ ± 2σ", data = highcharter::JS(err_js), showInLegend = FALSE)
+    })
+    
+    # Average TPM Heatmap ----
+    output$tpm_avg <- renderHighchart({
+        b <- current(); P <- b$P_avg; K <- nrow(P)
+        y_cats <- as.vector(outer(paste0("S",1:K), paste0("S",1:K), function(a,b) paste0(a,"→",b)))
+        hm_df <- data.frame(
+            x = rep(0:(K-1), times = K),
+            y = rep(0:(K-1), each  = K),
+            value = as.vector(P),
+            pair = y_cats
+        )
+        highcharter::highchart() %>%
+            highcharter::hc_add_dependency("modules/heatmap") %>%
+            highcharter::hc_chart(type = "heatmap") %>%
+            highcharter::hc_title(text = "Average Transition Matrix") %>%
+            highcharter::hc_xAxis(categories = paste0("S",1:K), title = list(text = "To")) %>%
+            highcharter::hc_yAxis(categories = paste0("S",1:K), title = list(text = "From"), reversed = TRUE) %>%
+            highcharter::hc_colorAxis(min = 0, max = 1) %>%
+            highcharter::hc_add_series(data = highcharter::list_parse2(hm_df[,c("x","y","value")]), keys=c("x","y","value")) %>%
+            highcharter::hc_tooltip(pointFormat = "{point.series.yAxis.categories[this.point.y]} → {point.series.xAxis.categories[this.point.x]}: <b>{point.value:.2f}</b>") #%>%
+            #highcharter::hc_dataLabels(enabled = TRUE, format = "{point.value:.2f}")
+    })
+    
+    ### Transition Heatmap Based on Current State
+    output$tpm_time <- renderHighchart({
+        b <- current(); xi <- b$P_time; K <- dim(xi)[2]; Tm1 <- dim(xi)[1]
+        years_eff <- b$years_P
+        # rebuild long df (masked): active from-state at t is viterbi[t]
+        y_cats <- as.vector(outer(paste0("S",1:K), paste0("S",1:K), function(a,b) paste0(a,"→",b)))
+        df <- lapply(seq_len(Tm1), function(t){
+            expand.grid(i=1:K, j=1:K) %>%
+                mutate(x = t-1L,
+                       pair = paste0("S",i,"→S",j),
+                       value = as.vector(xi[t,,]),
+                       from_idx = i)
+        }) %>% bind_rows() %>%
+            mutate(y = match(pair, y_cats)-1L,
+                   value = ifelse(from_idx == b$viterbi[x+1L], value, NA_real_)) %>%
+            filter(is.finite(value)) %>%
+            dplyr::select(x,y,value)
+        
+        highcharter::highchart() %>%
+            highcharter::hc_add_dependency("modules/heatmap") %>%
+            highcharter::hc_chart(type = "heatmap") %>%
+            highcharter::hc_title(text = "Transition probabilities over time") %>%
+            highcharter::hc_subtitle(text = "Only the Viterbi from-state row is shown per column") %>%
+            highcharter::hc_xAxis(categories = years_eff, title = list(text = "Year")) %>%
+            highcharter::hc_yAxis(categories = y_cats, title = list(text = "From → To"), reversed = TRUE) %>%
+            highcharter::hc_colorAxis(min = 0, max = 1) %>%
+            highcharter::hc_add_series(data = highcharter::list_parse2(df), keys=c("x","y","value"), turboThreshold=0) %>%
+            highcharter::hc_tooltip(pointFormat = "{point.series.yAxis.categories[this.point.y]} at {point.series.xAxis.categories[this.point.x]}: <b>{point.value:.2f}</b>")
     })
     
     ### True Transition matrix ----
