@@ -30,12 +30,14 @@ library(depmixS4)
 
 # Data Files Read in ----
 
-scaled_data = readRDS("scaled_dataset.rds")
-full_dataset = readRDS("full_dataset.rds")
+scaled_data <- readRDS("scaled_dataset.rds")
+full_dataset <- readRDS("full_dataset.rds")
 plot_df <- readRDS("plot_top5_delta_ll.rds")
 posterior_all_df <- readRDS("posterior_all_models.rds")
-sent_hmm = readRDS("sent_hmm.rds")
-tsne_result = readRDS("tnse_data.rds")
+sent_hmm <- readRDS("sent_hmm.rds")
+tsne_result <- readRDS("tnse_data.rds")
+emiss_obs <- readRDS("emissions_observations.rds")
+bundle <- readRDS("hmm_models_bundle.rds")
 
 # All Text Used in Dashboard ----
 
@@ -771,7 +773,9 @@ ui <- bs4DashPage(
             
           "))
         ),
-
+        
+        # Custom JS Scripts that are Dashboard-Wide
+        
         #tags$script(src="https://cdn.jsdelivr.net/npm/mathjax@2/MathJax.js?config=TeX-AMS-MML_HTMLorMML"),
         tags$script(HTML("
         Shiny.addCustomMessageHandler('toggleDrill', function(x){
@@ -1011,7 +1015,7 @@ ui <- bs4DashPage(
                                                     # Reserve the space BEFORE the chart renders
                                                     div(id = "hmm_chart_shell",
                                                         style = "height:40vh; min-height:420px;",
-                                                        highcharter::highchartOutput("hmm_demo_timeline", height = "100%")
+                                                        highchartOutput("hmm_demo_timeline", height = "100%")
                                                     ),
                                                     
                                                     uiOutput("more_btn")
@@ -1083,10 +1087,9 @@ ui <- bs4DashPage(
                             tabPanel(
                                 "Model Metrics",
                                 fluidRow(
-                                    # Left: bar+whisker and selector (as you already have)
+                                    
                                     column(
-                                        width = 6,
-                                        highchartOutput("model_selection_plot", height = "550px"),
+                                        width = 12,
                                         div(
                                             class = "segmented-control",
                                             actionButton("mod_one", "Model 1", class = "btn active"),
@@ -1094,20 +1097,42 @@ ui <- bs4DashPage(
                                             actionButton("mod_three", "Model 3", class = "btn"),
                                             actionButton("mod_four", "Model 4", class = "btn"),
                                             actionButton("mod_five", "Model 5", class = "btn")
-                                        )                                    
-                                    ),
-                                    # Right: CS regime plot + metrics table (room to add more later)
-                                    column(
-                                        width = 6,
-                                        highchartOutput("cs_regime_chart", height = "340px"),
-                                        #highchartOutput("emis_bars", height = "340px"),
-                                        #highchartOutput("tpm_avg", height = "340px"),
-                                        highchartOutput("tpm_time", height = "340px"),
+                                        ),
                                         div(
                                             class = "segmented-control",
                                             actionButton("trans_btn", "Transition", class = "btn active"),
                                             actionButton("emiss_btn", "Emission", class = "btn")
                                         )
+                                    )
+                                ),
+                                    
+                                fluidRow(
+                                    column(
+                                        width = 6,
+                                        highchartOutput("model_selection_plot", height = "850px"),
+                                    ),
+                                    # Right: CS regime plot + metrics table (room to add more later)
+                                    column(
+                                        width = 6,
+                                        div(
+                                            id = "transition_probs",
+                                            highchartOutput("cs_regime_chart", height = "300px"),
+                                            highchartOutput("tpm_time", height = "300px"),
+                                            highchartOutput("tpm_avg", height = "300px")
+                                        ),
+
+                                        div(
+                                            id = "emission_probs",
+                                            
+                                            #this sets the highchart output to not display initially (and display once the button is pressed)
+                                            style = "display: none;", 
+                                            highchartOutput("emis_dens", height = "340px"),
+                                            highchartOutput("state_means_scaled", height = "340px"),
+                                            highchartOutput("state_prob_heatmap", height = "340px")
+                                        ),
+                                        
+                                        
+                                        # REACH: Add a third table to display metrics in a plain table
                                         #br(),
                                         #tableOutput("metrics_table")
                                         # (Add more plots below when ready)
@@ -1130,7 +1155,7 @@ ui <- bs4DashPage(
                                         width = 6,
                                         div(
                                             style = "display:flex; flex-direction:column; height: calc(100vh - 220px);",
-                                            highchartOutput("top_indicators_plot", height = "100%", width = "100%")
+                                            highchartOutput("hmm_fan", height = "100%", width = "100%")
                                             # Server later: maybe a small multiples panel or response curves
                                         )
                                     )
@@ -1715,7 +1740,6 @@ server <- function(input, output, session) {
     })
     
     #allows table to display after clicking button
-    
     observeEvent(input$select1, {
         shinyjs::show("cat_text_shell")
         shinyjs::hide("cat_table_shell")
@@ -2499,6 +2523,14 @@ server <- function(input, output, session) {
     
     ### Indicator Gallery ----
     
+    pretty_map <- c(
+        real_GDP = "Real GDP (t−1)",
+        PCEPI = "PCE Price Index (t)",
+        FYFSD = "Federal Surplus/Deficit (t−1)",
+        unemployment_rate = "Unemployment Rate (t−1)",
+        case_schiller_val = "Case–Shiller Index (t−1)"
+    )
+    
     output$overview_ts <- renderHighchart({
         overview_vars <- c("real_GDP", "PCEPI", "FYFSD", "unemployment_rate", "case_schiller_val")
         lag_map <- c(real_GDP = 1, PCEPI = 0, FYFSD = 1, unemployment_rate = 1, case_schiller_val = 1)
@@ -2540,13 +2572,6 @@ server <- function(input, output, session) {
             color = col_cs, lineWidth = 3, showInLegend = TRUE
         )
         
-        pretty_map <- c(
-            real_GDP = "Real GDP (t−1)",
-            PCEPI = "PCE Price Index (t)",
-            FYFSD = "Federal Surplus/Deficit (t−1)",
-            unemployment_rate = "Unemployment Rate (t−1)",
-            case_schiller_val = "Case–Shiller Index (t−1)"
-        )
         i <- 0
         for (nm in overview_vars) {
             i <- i + 1
@@ -2600,11 +2625,9 @@ server <- function(input, output, session) {
         ci_lo <- plot_df$ci_lo
         ci_hi <- plot_df$ci_hi
         
-        #chart_id <- session$ns("model_selection_plot_chart")
-        
         # Best model stays green (#28a745), others aquamarine
         best_idx <- if ("rank" %in% names(plot_df)) which(plot_df$rank == 1)[1] else which.max(ybar)
-        col_best <- "#28a745"; col_oth <- "#54D7CA"; band_col <- "rgba(0,191,166,0.12)"
+        col_best <- "#28a745"; col_oth <- "#00aaff"; band_col <- "rgba(0,191,166,0.12)"
         
         #col_oth <- "#54D7CA"
         
@@ -2701,7 +2724,7 @@ server <- function(input, output, session) {
         # df_yearly: year (numeric), state_hi (0/1), ordered
         # Use Jan 1 for yearly stamps
         df_yearly <- df_yearly %>% mutate(date = as.Date(paste0(year, "-01-01")))
-        ts <- highcharter::datetime_to_timestamp(df_yearly$date) # ms
+        ts <- datetime_to_timestamp(df_yearly$date) # ms
         
         runs <- rle(df_yearly$state_hi)
         ends <- cumsum(runs$lengths)
@@ -2721,7 +2744,7 @@ server <- function(input, output, session) {
                 else
                     "rgba(231, 76, 60, 0.5)",  # Low regime
                 label = list(
-                    text  = if (v == 1) "High" else "Low",
+                    text  = if (v == 1) "State 1" else "State 2",
                     style = list(fontSize = "10px", color = "#555")
                 ),
                 zIndex = -1
@@ -2752,7 +2775,7 @@ server <- function(input, output, session) {
         
         highchart() %>%
             hc_chart(zoomType = "x") %>%
-            hc_title(text = paste0("Consumer Sentiment Regimes in Model ", df$model_id[1])) %>%
+            hc_title(text = paste0("Predicted Consumer Sentiment Regimes")) %>%
             hc_subtitle(text = paste0("Threshold: P(High) ≥ 0.5")) %>%
             hc_xAxis(type = "datetime", title = list(text = "Year"), plotBands = bands) %>%
             hc_yAxis(title = list(text = "Consumer Sentiment")) %>%
@@ -2767,6 +2790,173 @@ server <- function(input, output, session) {
             hc_tooltip(valueDecimals = 1, pointFormat = "<b>{point.y}</b>") %>%
             hc_legend(enabled = FALSE) %>%
             hc_exporting(enabled = TRUE)
+    })
+    
+    ### Emissions Vector ----
+    output$state_means_scaled <- renderHighchart({
+        b   <- current()
+        dbs <- dplyr::arrange(scaled_data, Year)
+        
+        vars <- b$vars
+        lags <- b$lags
+        stopifnot(length(vars) == length(lags))
+        
+        X <- sapply(seq_along(vars), function(i) {
+            v <- dbs[[ vars[i] ]]
+            L <- as.integer(lags[i])
+            if (L > 0L) v <- c(rep(NA_real_, L), v)[1:length(v)]
+            v
+        })
+        X <- as.matrix(X)
+        colnames(X) <- paste0(vars, "_L", lags)   # internal lagged names
+        
+        idx <- match(b$posterior$year, dbs$Year)
+        X   <- X[idx, , drop = FALSE]
+
+        P1 <- b$posterior$S1; P2 <- b$posterior$S2
+        P_high <- if (b$hi_state == 1L) P1 else P2
+        P_low  <- if (b$hi_state == 1L) P2 else P1
+        
+        wmean <- function(x, w) {
+            ok <- is.finite(x) & is.finite(w)
+            w <- w[ok]; x <- x[ok]; if (!length(x)) return(NA_real_)
+            sum(w * x) / sum(w)
+        }
+        wsd <- function(x, w, mu) {
+            ok <- is.finite(x) & is.finite(w)
+            w <- w[ok]; x <- x[ok]; if (!length(x)) return(NA_real_)
+            sqrt(sum(w * (x - mu)^2) / sum(w))
+        }
+        
+        mu_H <- apply(X, 2, function(col) wmean(col, P_high))
+        mu_L <- apply(X, 2, function(col) wmean(col, P_low))
+        sd_H <- mapply(function(col, m) wsd(col, P_high, m), as.data.frame(X), mu_H)
+        sd_L <- mapply(function(col, m) wsd(col, P_low,  m), as.data.frame(X), mu_L)
+        
+        base_names   <- vars
+        pretty_final <- unname(pretty_map[base_names])
+        miss <- is.na(pretty_final)
+        if (any(miss)) pretty_final[miss] <- base_names[miss]  # fallback
+        
+        cats <- as.character(pretty_final)  # categories in model order
+
+        err_high <- Map(function(m, s) c(m - s, m + s), as.numeric(mu_H), as.numeric(sd_H))
+        err_low  <- Map(function(m, s) c(m - s, m + s), as.numeric(mu_L), as.numeric(sd_L))
+        
+        highchart() %>%
+            hc_add_dependency("highcharts-more") %>%
+            hc_chart(type = "column") %>%
+            hc_title(text = sprintf("Indicator Means ± SD (scaled)")) %>%
+            hc_subtitle(text = "Posterior-weighted by state; data from scaled_data") %>%
+            hc_xAxis(categories = cats, type = "category", tickPositions = 0:(length(cats) - 1)) %>%
+            hc_yAxis(title = list(text = "Scaled units (z)"),
+                     plotLines = list(list(value = 0, color = "#666", width = 1))) %>%
+            hc_plotOptions(column = list(pointPadding = 0.1, groupPadding = 0.08)) %>%
+            # Means
+            hc_add_series(name = "High", data = round(as.numeric(mu_H), 3), color = "#28a745", zIndex = 2) %>%
+            hc_add_series(name = "Low",  data = round(as.numeric(mu_L),  3), color = "#e74c3c", zIndex = 2) %>%
+            # Error bars (±1 SD)
+            hc_add_series(type = "errorbar", name = "High ±1 SD", data = err_high,
+                          linkedTo = ":previous", color = "#1b5e20", whiskerLength = "30%", zIndex = 1,
+                          tooltip = list(pointFormat = "High ±1 SD: <b>{point.low:.3f}</b> – <b>{point.high:.3f}</b>")) %>%
+            hc_add_series(type = "errorbar", name = "Low ±1 SD",  data = err_low,
+                          color = "#7f1d1d", whiskerLength = "30%", zIndex = 1,
+                          tooltip = list(pointFormat = "<br>Low ±1 SD: <b>{point.low:.3f}</b> – <b>{point.high:.3f}</b>")) %>%
+            hc_tooltip(shared = TRUE, valueDecimals = 3)
+    })
+    
+    ### Emissions Correlation Matrix ----
+    
+    lagged_X_for_model <- function(dat_base, b) {
+        X <- build_X_all(dat_base, b$vars, b$lags)
+        colnames(X) <- paste0(b$vars, "_L", b$lags)
+        X <- as.data.frame(X, stringsAsFactors = FALSE)
+        X[] <- lapply(X, function(col) {
+            if (is.factor(col)) col <- as.character(col)
+            suppressWarnings(as.numeric(col))
+        })
+        idx <- match(b$posterior$year, dat_base$Year)
+        stopifnot(!any(is.na(idx)))
+        as.matrix(X[idx, , drop = FALSE])  # numeric matrix
+    }
+    
+    output$state_prob_heatmap <- renderHighchart({
+        b  <- current()
+        db <- dplyr::arrange(full_dataset, Year)
+        
+        X <- lagged_X_for_model(db, b)     # n × p numeric
+        orig_cols <- colnames(X)
+        p <- ncol(X)
+        
+        yrs <- db$Year[match(b$posterior$year, db$Year)]
+        X_det <- matrix(NA_real_, nrow = nrow(X), ncol = p)
+        for (j in seq_len(p)) {
+            v <- X[, j]
+            rr <- try(resid(lm(v ~ yrs)), silent = TRUE)
+            X_det[, j] <- if (inherits(rr, "try-error") || anyNA(rr)) v else rr
+        }
+        colnames(X_det) <- orig_cols
+        X <- X_det
+        
+        P1 <- b$posterior$S1; P2 <- b$posterior$S2
+        P_high <- if (b$hi_state == 1L) P1 else P2
+        P_low  <- if (b$hi_state == 1L) P2 else P1
+
+        safe_cor <- function(x, y) suppressWarnings(cor(x, y, use = "pair", method = "spearman"))
+        c_high <- vapply(seq_len(p), function(j) safe_cor(X[, j], P_high), numeric(1))
+        c_low  <- vapply(seq_len(p), function(j) safe_cor(X[, j], P_low ), numeric(1))
+        names(c_high) <- orig_cols
+        names(c_low)  <- orig_cols
+
+        M <- rbind(c_high, c_low)
+        rownames(M) <- c("State 1", "State 2")
+        colnames(M) <- orig_cols  # <- ensure names exist
+        
+        orig_cols  <- colnames(M)
+        base_names <- sub("_L[0-9]+$", "", orig_cols)
+        
+        pretty_final <- unname(pretty_map[base_names])
+        
+        missing <- is.na(pretty_final)
+        if (any(missing)) pretty_final[missing] <- base_names[missing]
+        
+        # assign and use for the axis
+        colnames(M) <- pretty_final
+        vars <- as.character(pretty_final)
+
+        rows <- rownames(M)
+        p    <- ncol(M)
+        
+        df_plot <- data.frame(
+            x     = rep(0:(p-1), each = 2L), 
+            y     = rep(c(0L, 1L), times = p),
+            value = as.vector(t(M)),
+            stringsAsFactors = FALSE
+    )
+        highchart() %>%
+            hc_add_dependency("modules/heatmap") %>%
+            hc_chart(type = "heatmap") %>%
+            hc_title(text = sprintf("Correlation to Indicators per State")) %>%
+            hc_subtitle(text = "Spearman correlation; detrended by Year") %>%
+            hc_xAxis(categories = vars, title = list(text = NULL)) %>%
+            hc_yAxis(
+                categories = c("State 1", "State 2"),
+                type = "category",
+                tickPositions = 0:(length(rows)-1),
+                reversed = TRUE,
+                title = list(text = NULL)
+            ) %>%
+            hc_colorAxis(min = -1, max = 1,
+                         stops = list(list(0, "#b2182b"), list(0.5, "#f7f7f7"), list(1, "#2166ac"))) %>%
+            hc_add_series(
+                data = highcharter::list_parse2(df_plot),
+                keys = c("x","y","value"),
+                borderWidth = 0.5,
+                tooltip = list(
+                    pointFormat = "{point.series.yAxis.categories[this.point.y]} × {point.series.xAxis.categories[this.point.x]}: <b>{point.value:.2f}</b>"
+                )
+            ) #%>%
+            #hc_dataLabels(enabled = TRUE, format = "{point.value:.2f}")
     })
     
     ### 3D TSNE PLOT ----
@@ -2880,27 +3070,95 @@ server <- function(input, output, session) {
         
     })
     
-    ### Emissions Bar Chart ----
-    
-    bundle <- readRDS("hmm_models_bundle.rds")
     
     current <- reactive({ bundle[[ selected_model_id() ]] })
     
-    # Emission bars
+    ### Emissions Bar Chart ----
     output$emis_bars <- renderHighchart({
         b <- current(); ep <- b$emis
         series_mu <- data.frame(x = seq_len(nrow(ep)) - 1L, y = ep$mu)
         err_js <- sprintf("[%s]", paste(sprintf("[%.6f,%.6f]", ep$mu - 2*ep$sd, ep$mu + 2*ep$sd), collapse = ","))
-        highcharter::highchart() %>%
-            highcharter::hc_title(text = "State emission parameters (Gaussian)") %>%
-            highcharter::hc_subtitle(text = "Bars: μ  |  Whiskers: μ ± 2σ") %>%
-            highcharter::hc_xAxis(categories = ep$state) %>%
-            highcharter::hc_yAxis(title = list(text = "Consumer Sentiment")) %>%
-            highcharter::hc_add_series(type = "column", name = "μ", data = highcharter::list_parse2(series_mu)) %>%
-            highcharter::hc_add_series(type = "errorbar", name = "μ ± 2σ", data = highcharter::JS(err_js), showInLegend = FALSE)
+        highchart() %>%
+            hc_title(text = "State emission parameters (Gaussian)") %>%
+            hc_subtitle(text = "Bars: Average Observed Index  |  Whiskers: μ ± 2σ") %>%
+            hc_xAxis(categories = ep$state) %>%
+            hc_yAxis(title = list(text = "Average Observed Index")) %>%
+            hc_add_series(type = "column", name = "Average Observed Index", data = list_parse2(series_mu)) %>%
+            hc_add_series(type = "errorbar", name = "μ ± 2σ", data = JS(err_js), showInLegend = FALSE)
     })
     
-    # Average TPM Heatmap ----
+    ### Emissions Density Chart ----
+    output$emis_dens <- renderHighchart({
+        b  <- current()                 
+        ep <- b$emis                    
+        
+        # Label states as High/Low based on which mean is larger
+        labs <- if (b$hi_state == 1L) c("High","Low") else c("Low","High")
+        
+        # x-range and grid
+        x_min <- min(ep$mu - 4*ep$sd, na.rm = TRUE)
+        x_max <- max(ep$mu + 4*ep$sd, na.rm = TRUE)
+        # small padding so lines/labels aren't clipped
+        pad   <- 0.03 * (x_max - x_min)
+        x_min <- x_min - pad; x_max <- x_max + pad
+        x_grid <- seq(x_min, x_max, length.out = 300)
+        
+        # Build density series per state (keep S1 row as series 1, S2 as series 2; rename via labs)
+        dens_list <- lapply(seq_len(nrow(ep)), function(i){
+            data.frame(x = x_grid, y = dnorm(x_grid, mean = ep$mu[i], sd = ep$sd[i]))
+        })
+        
+        # Colors (optional): green for High, red for Low (consistent across dashboard)
+        col_high <- "#28a745"
+        col_low  <- "#e74c3c"
+        series_colors <- c(col_high, col_low)  # assumes i=1 is "High", i=2 is "Low" AFTER labs mapping
+        # labs[i] corresponds to state i because hi_state mapping above orders labs as S1->labs[1], S2->labs[2]
+        
+        # Dashed vertical plotLines at peaks (μ)
+        peak_lines <- lapply(seq_len(nrow(ep)), function(i){
+            list(
+                value = ep$mu[i],
+                color = series_colors[i],
+                width = 2,
+                dashStyle = "ShortDash",
+                zIndex = 5,
+                label = list(
+                    text = sprintf("%s peak: μ=%.2f", labs[i], ep$mu[i]),
+                    rotation = 0, align = "left", y = -5, x = 5,
+                    style = list(color = series_colors[i], fontWeight = "bold")
+                )
+            )
+        })
+        
+        highchart() %>%
+            hc_chart(type = "areaspline") %>%
+            hc_title(text = "Emission Densities by State") %>%
+            hc_subtitle(text = "Theoretical Densities: y | State s ~ N(μₛ, σₛ²)") %>%
+            hc_xAxis(title = list(text = "Average Observed Index"),
+                     min = x_min, max = x_max,
+                     plotLines = peak_lines) %>%   # <-- dashed lines at μ
+            hc_yAxis(title = list(text = "Density")) %>%
+            hc_plotOptions(series = list(marker = list(enabled = FALSE), animation = TRUE)) %>%
+            # Add series for each state
+            hc_add_series_list(lapply(seq_along(dens_list), function(i){
+                list(
+                    name = labs[i],
+                    type = "areaspline",
+                    data = list_parse2(dens_list[[i]][, c("x","y")]),  # pass x,y pairs
+                    keys = c("x","y"),
+                    color = series_colors[i],
+                    tooltip = list(valueDecimals = 3)
+                )
+            })) %>%
+            hc_tooltip(shared = TRUE, useHTML = TRUE,
+                       headerFormat = "<b>{point.key:.2f}</b><br/>",
+                       pointFormat  = "{series.name}: <b>{point.y:.3f}</b><br/>") %>%
+            hc_legend(enabled = TRUE) %>%
+            hc_exporting(enabled = TRUE)
+    })
+    
+    
+    ### Average TPM Heatmap ----
     output$tpm_avg <- renderHighchart({
         b <- current(); P <- b$P_avg; K <- nrow(P)
         y_cats <- as.vector(outer(paste0("S",1:K), paste0("S",1:K), function(a,b) paste0(a,"→",b)))
@@ -2910,24 +3168,41 @@ server <- function(input, output, session) {
             value = as.vector(P),
             pair = y_cats
         )
-        highcharter::highchart() %>%
-            highcharter::hc_add_dependency("modules/heatmap") %>%
-            highcharter::hc_chart(type = "heatmap") %>%
-            highcharter::hc_title(text = "Average Transition Matrix") %>%
-            highcharter::hc_xAxis(categories = paste0("S",1:K), title = list(text = "To")) %>%
-            highcharter::hc_yAxis(categories = paste0("S",1:K), title = list(text = "From"), reversed = TRUE) %>%
-            highcharter::hc_colorAxis(min = 0, max = 1) %>%
-            highcharter::hc_add_series(data = highcharter::list_parse2(hm_df[,c("x","y","value")]), keys=c("x","y","value")) %>%
-            highcharter::hc_tooltip(pointFormat = "{point.series.yAxis.categories[this.point.y]} → {point.series.xAxis.categories[this.point.x]}: <b>{point.value:.2f}</b>") #%>%
+        highchart() %>%
+            hc_add_dependency("modules/heatmap") %>%
+            hc_chart(type = "heatmap") %>%
+            hc_title(text = "Average Transition Matrix") %>%
+            hc_xAxis(categories = paste0("S",1:K), title = list(text = "To")) %>%
+            hc_yAxis(categories = paste0("S",1:K), title = list(text = "From"), reversed = TRUE) %>%
+            hc_colorAxis(min = 0, max = 1, minColor = "#d9f2ff", maxColor = "#00aaff") %>%
+            hc_add_series(data = list_parse2(hm_df[,c("x","y","value")]), keys=c("x","y","value")) %>%
+            hc_tooltip(
+                useHTML = TRUE,
+                formatter = JS("
+                    function () {
+                      const from = this.series.yAxis.categories[this.point.y];
+                      const to   = this.series.xAxis.categories[this.point.x];
+                      const val  = Highcharts.numberFormat(this.point.value, 2);
+                      return 'Average ' + from + '→' + to + ' Probability: <b>' + val + '</b>';
+                    }
+                  ")
+            )
             #highcharter::hc_dataLabels(enabled = TRUE, format = "{point.value:.2f}")
     })
     
-    ### Transition Heatmap Based on Current State
+    ### Transition Heatmap Based on Current State ----
     output$tpm_time <- renderHighchart({
-        b <- current(); xi <- b$P_time; K <- dim(xi)[2]; Tm1 <- dim(xi)[1]
+        b <- current()
+        xi <- b$P_time
+        K <- dim(xi)[2]
+        Tm1 <- dim(xi)[1]
         years_eff <- b$years_P
-        # rebuild long df (masked): active from-state at t is viterbi[t]
+        
+        #labs   <- state_labels(b)
+        #y_cats <- as.vector(outer(labs, labs, function(a,b) paste0(a,"→",b)))
         y_cats <- as.vector(outer(paste0("S",1:K), paste0("S",1:K), function(a,b) paste0(a,"→",b)))
+        
+        # rebuild long df (masked): active from-state at t is viterbi[t]
         df <- lapply(seq_len(Tm1), function(t){
             expand.grid(i=1:K, j=1:K) %>%
                 mutate(x = t-1L,
@@ -2940,72 +3215,186 @@ server <- function(input, output, session) {
             filter(is.finite(value)) %>%
             dplyr::select(x,y,value)
         
-        highcharter::highchart() %>%
-            highcharter::hc_add_dependency("modules/heatmap") %>%
-            highcharter::hc_chart(type = "heatmap") %>%
-            highcharter::hc_title(text = "Transition probabilities over time") %>%
-            highcharter::hc_subtitle(text = "Only the Viterbi from-state row is shown per column") %>%
-            highcharter::hc_xAxis(categories = years_eff, title = list(text = "Year")) %>%
-            highcharter::hc_yAxis(categories = y_cats, title = list(text = "From → To"), reversed = TRUE) %>%
-            highcharter::hc_colorAxis(min = 0, max = 1) %>%
-            highcharter::hc_add_series(data = highcharter::list_parse2(df), keys=c("x","y","value"), turboThreshold=0) %>%
-            highcharter::hc_tooltip(pointFormat = "{point.series.yAxis.categories[this.point.y]} at {point.series.xAxis.categories[this.point.x]}: <b>{point.value:.2f}</b>")
+        highchart() %>%
+            hc_add_dependency("modules/heatmap") %>%
+            hc_chart(type = "heatmap") %>%
+            hc_title(text = "Transition probabilities over time") %>%
+            #hc_subtitle(text = "Only the Viterbi from-state row is shown per column") %>%
+            hc_xAxis(categories = b$years_P, title = list(text = "Year")) %>%
+            hc_yAxis(categories = y_cats, title = list(text = "From → To"), reversed = TRUE) %>%
+            hc_colorAxis(min = 0, max = 1, minColor = "#96dcff", maxColor = "#00aaff") %>%
+            hc_add_series(data = list_parse2(df), keys=c("x","y","value"), turboThreshold=0) %>%
+            hc_tooltip(
+                useHTML = TRUE,
+                formatter = JS("
+                            function () {
+                              const pair = this.series.yAxis.categories[this.point.y];   // e.g., 'High→Low'
+                              const val  = Highcharts.numberFormat(this.point.value, 2);
+                              return pair + ': <b>' + val + '</b>';
+                            }
+                  ")
+            )
     })
     
-    ### True Transition matrix ----
-    true_transition_matrix <- '
-        <div style="font-size:250%; text-align:center;">
-          $$\n\\begin{bmatrix}
-             0.719 & 0.186 & 0.095 \\\\\n
-             0.167 & 0.750 & 0.083 \\\\\n
-             0.142 & 0.000 & 0.858
-           \\end{bmatrix}
-          $$
-          <table class="matrix-overlay" style="position:absolute; top:50%; left:50%;
-                                                transform: translate(-50%, -50%);
-                                                border:0; border-spacing:0;">
-            <tr>
-              <td><span id="P11" class="matrix-cell"></span></td>
-              <td><span id="P12" class="matrix-cell"></span></td>
-              <td><span id="P13" class="matrix-cell"></span></td>
-            </tr>
-            <tr>
-              <td><span id="P21" class="matrix-cell"></span></td>
-              <td><span id="P22" class="matrix-cell"></span></td>
-              <td><span id="P23" class="matrix-cell"></span></td>
-            </tr>
-            <tr>
-              <td><span id="P31" class="matrix-cell"></span></td>
-              <td><span id="P32" class="matrix-cell"></span></td>
-              <td><span id="P33" class="matrix-cell"></span></td>
-            </tr>
-          </table>
-        </div>'
+    ### Best HMM Fan Chart ----
+    
+    output$hmm_fan <- renderHighchart({
+        b <- current()
+        
+        # --- SETTINGS ---
+        H   <- 8L        # forecast horizons (years ahead)
+        N   <- 2000L     # number of simulated paths for fan quantiles
+        use_last_tpm <- TRUE  # TRUE: last-period TPM; FALSE: average TPM
+        
+        # --- Extract pieces from bundle ---
+        years_hist <- b$posterior$year
+        y_hist     <- dplyr::arrange(full_dataset, Year) |>
+            dplyr::filter(Year %in% years_hist) |>
+            dplyr::pull(consumer_sentiment)
 
-    output$transition_mat <- renderUI({
-        withMathJax(
-            div(
-                HTML("<h4 style='text-align:center;
-                             padding: 0px;
-                             height: 0px;'>Consumer Sentiment Transition Matrix</h4>"),
-                div(
-                    style = "
-                                display: flex;
-                                justify-content: center;
-                                align-items: flex-start;   /* or center */
-                                height: 100px;             /* adjust container height */
-                                padding-top: 10px;         /* optional: add some top padding */
-                              ",
-                    HTML(true_transition_matrix)
-                )
-            )
+        # Transition probabilities (K=2)
+        if (use_last_tpm && length(dim(b$P_time)) == 3) {
+            Pt_last <- b$P_time[ dim(b$P_time)[1], , ]  # K x K at T (t->t+1)
+            TPM <- Pt_last
+        } else {
+            TPM <- b$P_avg
+        }
+        # Emission params (state 1..K)
+        K <- nrow(TPM)
+        mu <- b$emis$mu
+        sd <- b$emis$sd
+        
+        # Initial state distribution: use last posterior state probs (S1,S2) at T
+        p0 <- as.numeric(tail(b$posterior[, c("S1","S2")], 1))
+        p0 <- p0 / sum(p0)
+
+        # --- Simulate future paths ---
+        set.seed(123)
+        sim_mat <- matrix(NA_real_, nrow = H, ncol = N)
+        
+        # Pre-draw normals to avoid R overhead
+        Z <- matrix(rnorm(H * N), nrow = H, ncol = N)
+        
+        # draw states via categorical transitions
+        draw_state <- function(prob) {
+            # prob length K (sum=1)
+            u <- runif(1)
+            print(c("u", u))
+            if (u <= prob[1]) 1L else 2L
+        }
+        
+        K <- 2L
+        TPM <- b$P_avg
+        if (!is.null(b$P_time) && length(dim(b$P_time)) == 3) {
+            good <- which(apply(b$P_time, 1, function(i) all(is.finite(b$P_time[i, , ]))))
+            if (length(good)) TPM <- b$P_time[max(good), , ]
+        }
+        
+        # sanitize TPM: clamp to [0,1], replace NA by 0, row-normalize
+        TPM <- as.matrix(TPM)
+        TPM[!is.finite(TPM)] <- 0
+        TPM[TPM < 0] <- 0; TPM[TPM > 1] <- 1
+        rs <- rowSums(TPM)
+        TPM[rs <= .Machine$double.eps, ] <- 1 / K
+        rs <- rowSums(TPM)
+        TPM <- TPM / rs
+        
+        for (n in 1:N) {
+            # draw initial state from p0
+            s <- if (runif(1) <= p0[1]) 1L else 2L
+            for (h in 1:H) {
+                # emission for this step
+                sim_mat[h, n] <- mu[s] + sd[s] * Z[h, n]
+                # next state (time-homogeneous under our choice of TPM)
+                s <- if (runif(1) <= TPM[s, 1]) 1L else 2L
+            }
+        }
+        
+        
+        # --- Summarize to fan quantiles per horizon ---
+        qs <- t(apply(sim_mat, 1, function(x) {
+            quantile(x, probs = c(.05, .10, .25, .50, .75, .90, .95), na.rm = TRUE)
+        }))
+        colnames(qs) <- c("p05","p10","p25","p50","p75","p90","p95")
+        
+        # Build future year axis
+        last_year  <- max(years_hist, na.rm = TRUE)
+        years_fut  <- seq.int(from = last_year + 1L, by = 1L, length.out = H)
+        
+        # --- Highcharts fan chart (bands + median) ---
+        hc <- highchart() %>%
+            hc_add_dependency("modules/series-label") %>%
+            hc_add_dependency("modules/accessibility") %>%
+            hc_chart(type = "line") %>%
+            hc_title(text = sprintf("HMM forecast fan — %s", b$model_id)) %>%
+            hc_subtitle(text = if (use_last_tpm) "Conditional on last-period transition matrix"
+                        else "Unconditional (average transition matrix)") %>%
+            hc_xAxis(categories = c(years_hist, years_fut),
+                     tickmarkPlacement = "on", title = list(text = NULL)) %>%
+            hc_yAxis(title = list(text = "Consumer Sentiment"),
+                     plotLines = list(list(value = 0, color = "#aaa", width = 1)))
+        
+        df90 <- data.frame(low = as.numeric(qs[, "p05"]), high = as.numeric(qs[, "p95"]))
+        df80 <- data.frame(low = as.numeric(qs[, "p10"]), high = as.numeric(qs[, "p90"]))
+        df50 <- data.frame(low = as.numeric(qs[, "p25"]), high = as.numeric(qs[, "p75"]))
+        
+        # Add bands (arearange takes [low, high] when using pointStart)
+        hc <- hc %>% hc_add_series(
+            name = "90% band", type = "arearange",
+            data = highcharter::list_parse2(df90),
+            keys = c("low","high"),
+            pointStart = length(years_hist),  # start right after history
+            color = "#7cb5ec", fillOpacity = 0.25, lineWidth = 0, zIndex = 1,
+            tooltip = list(pointFormat = "90% band: <b>{point.low:.1f}–{point.high:.1f}</b>")
+        )
+        
+        hc <- hc %>% hc_add_series(
+            name = "80% band", type = "arearange",
+            data = highcharter::list_parse2(df80),
+            keys = c("low","high"),
+            pointStart = length(years_hist),
+            color = "#90ed7d", fillOpacity = 0.25, lineWidth = 0, zIndex = 2,
+            tooltip = list(pointFormat = "80% band: <b>{point.low:.1f}–{point.high:.1f}</b>")
+        )
+        
+        hc <- hc %>% hc_add_series(
+            name = "50% band", type = "arearange",
+            data = highcharter::list_parse2(df50),
+            keys = c("low","high"),
+            pointStart = length(years_hist),
+            color = "#f7a35c", fillOpacity = 0.25, lineWidth = 0, zIndex = 3,
+            tooltip = list(pointFormat = "50% band: <b>{point.low:.1f}–{point.high:.1f}</b>")
+        )
+        
+        # Median
+        hc <- hc %>% hc_add_series(
+            name = "Median (simulated)", type = "line",
+            data = as.numeric(qs[, "p50"]), pointStart = length(years_hist),
+            color = "#c00000", zIndex = 5, tooltip = list(valueDecimals = 1)
+        )
+        
+        hc
+    })
+    
+    observeEvent(input$emiss_btn, {
+        shinyjs::hide("transition_probs")
+        shinyjs::show("emission_probs")
+
+        session$sendCustomMessage(
+            "segmented-set-active",
+            list(id = session$ns("emiss_btn"))
         )
     })
     
-    
-    
-    
-    
+    observeEvent(input$trans_btn, {
+        shinyjs::hide("emission_probs")
+        shinyjs::show("transition_probs")
+        
+        session$sendCustomMessage(
+            "segmented-set-active",
+            list(id = session$ns("trans_btn"))
+        )
+    })
     
 }
 
