@@ -35,7 +35,6 @@ full_dataset <- readRDS("full_dataset.rds")
 plot_df <- readRDS("plot_top5_delta_ll.rds")
 posterior_all_df <- readRDS("posterior_all_models.rds")
 sent_hmm <- readRDS("sent_hmm.rds")
-tsne_result <- readRDS("tnse_data.rds")
 emiss_obs <- readRDS("emissions_observations.rds")
 bundle <- readRDS("hmm_models_bundle.rds")
 
@@ -1155,7 +1154,7 @@ ui <- bs4DashPage(
                                         width = 6,
                                         div(
                                             style = "display:flex; flex-direction:column; height: calc(100vh - 220px);",
-                                            highchartOutput("hmm_fan", height = "100%", width = "100%")
+                                            highchartOutput("state_plot", height = "100%", width = "100%")
                                             # Server later: maybe a small multiples panel or response curves
                                         )
                                     )
@@ -2961,113 +2960,174 @@ server <- function(input, output, session) {
     
     ### 3D TSNE PLOT ----
     output$state_plot <- renderHighchart({
+ 
+        b <- bundle[["M4"]]           
+        stopifnot(!is.null(b))
+        hi <- as.integer(b$hi_state)
+
+        dbs  <- scaled_data %>% arrange(Year)
+        vars <- b$vars
+        lags <- b$lags
+        stopifnot(length(vars) == length(lags))
         
-        # reading in data
+        X_all <- sapply(seq_along(vars), function(i) {
+            v <- dbs[[vars[i]]]
+            L <- as.integer(lags[i])
+            if (L > 0L) v <- c(rep(NA_real_, L), v)[1:length(v)]
+            v
+        })
+        X_all <- as.matrix(X_all)
+        colnames(X_all) <- paste0(vars, "_L", lags)
         
-        fit_hmm = fit(sent_hmm)
-        predicted_states <- posterior(fit_hmm)$state
+        yrs_used <- b$posterior$year
+        idx <- match(yrs_used, dbs$Year)
+        X_used <- X_all[idx, , drop = FALSE]
+        keep   <- stats::complete.cases(X_used)
+        X_tsne <- X_used[keep, , drop = FALSE]
+
+        state_path <- b$viterbi[keep]
+        grp <- ifelse(state_path == hi, "High", "Low")
+        
+        set.seed(42)
+        n <- nrow(X_tsne)
+        perp <- max(2, min(30, floor((n - 1) / 3)))
+        ts <- Rtsne(X_tsne, dims = 3, perplexity = perp, verbose = FALSE, max_iter = 750)
         
         tsne_df <- data.frame(
-            x = tsne_result$Y[, 1],
-            y = tsne_result$Y[, 2],
-            z = tsne_result$Y[, 3],
-            group = factor(predicted_states)
+            x = round(ts$Y[,1], 3),
+            y = round(ts$Y[,2], 3),
+            z = round(ts$Y[,3], 3),
+            group = factor(grp, levels = c("Low","High"))
         )
         
+        low_mat  <- tsne_df[tsne_df$group == "Low",  c("x","y","z")]
+        high_mat <- tsne_df[tsne_df$group == "High", c("x","y","z")]
+        
+        low_sc  <- scale(low_mat,  center = TRUE, scale = TRUE)
+        high_sc <- scale(high_mat, center = TRUE, scale = TRUE)
+        
+        med_or1 <- function(d) { m <- stats::median(d[upper.tri(d)], na.rm = TRUE); if (!is.finite(m) || m <= 0) 1 else m }
+        low_bw  <- med_or1(as.matrix(dist(low_sc)))
+        high_bw <- med_or1(as.matrix(dist(high_sc)))
+        
+        low_D2   <- as.matrix(dist(low_sc))^2
+        high_D2  <- as.matrix(dist(high_sc))^2
+        low_w    <- rowSums(exp(-0.9 * low_D2  / (low_bw^2)));   low_w[!is.finite(low_w)]   <- .Machine$double.eps
+        high_w   <- rowSums(exp(-0.9 * high_D2 / (high_bw^2)));  high_w[!is.finite(high_w)] <- .Machine$double.eps
+        
+        cent_low  <- colSums(as.matrix(low_mat)  * low_w)  / sum(low_w)
+        cent_high <- colSums(as.matrix(high_mat) * high_w) / sum(high_w)
+        
+        df_low_cent  <- data.frame(x = cent_low[1],  y = cent_low[2],  z = cent_low[3])
+        df_high_cent <- data.frame(x = cent_high[1], y = cent_high[2], z = cent_high[3])
+        
+        
         hc <- highchart() %>%
+            hc_add_dependency("highcharts-3d") %>%
             hc_chart(
                 type = "scatter3d",
                 options3d = list(
-                    enabled = TRUE,
-                    alpha = 10, # Vertical rotation of the chart
-                    beta = 30,  # Horizontal rotation of the chart
-                    depth = 250, # Depth of the chart
-                    viewDistance = 5, # Distance from the camera to the chart
-                    # Enable mouse interaction for rotation
-                    frame = list(
-                        bottom = list(size = 1, color = 'transparent'),
-                        back = list(size = 1, color = 'transparent'),
-                        side = list(size = 1, color = 'transparent')
-                    )
+                    enabled = TRUE, alpha = 10, beta = 30, depth = 250, viewDistance = 5,
+                    frame = list(bottom = list(size = 1, color = 'transparent'),
+                                 back   = list(size = 1, color = 'transparent'),
+                                 side   = list(size = 1, color = 'transparent'))
                 ),
-                # Add a load event to the chart that injects the JavaScript for dragging.
+                events = list(load = JS("
+                    function () {
+                      var chart = this, H = Highcharts;
+                      var startX, startY, alpha0, beta0, dragging = false, sens = 5;
                 
-                events = list(
-                    load = JS("function () {
-                        // Add mouse and touch events for rotation
-                        var chart = this;
-                        var H = Highcharts;
-                        function dragStart(eStart) {
-                            eStart = chart.pointer.normalize(eStart);
-                            const posX = eStart.chartX,
-                                posY = eStart.chartY,
-                                alpha = chart.options.chart.options3d.alpha,
-                                beta = chart.options.chart.options3d.beta,
-                                sensitivity = 5,
-                                handlers = [];
-                            function drag(e) {
-                                // Get e.chartX and e.chartY
-                                e = chart.pointer.normalize(e);
-                                chart.update({
-                                    chart: {
-                                        options3d: {
-                                            alpha: alpha + (e.chartY - posY) / sensitivity,
-                                            beta: beta + (posX - e.chartX) / sensitivity
-                                        }
-                                    }
-                                }, undefined, undefined, false);
-                            }
-                            function unbindAll() {
-                                handlers.forEach(function (unbind) {
-                                    if (unbind) {
-                                        unbind();
-                                    }
-                                });
-                                handlers.length = 0;
-                            }
-                            handlers.push(H.addEvent(document, 'mousemove', drag));
-                            handlers.push(H.addEvent(document, 'touchmove', drag));
-                            handlers.push(H.addEvent(document, 'mouseup', unbindAll));
-                            handlers.push(H.addEvent(document, 'touchend', unbindAll));
-                        }
-                        H.addEvent(chart.container, 'mousedown', dragStart);
-                        H.addEvent(chart.container, 'touchstart', dragStart);
-                      }")
-                )
+                      function onMove(e){
+                        if (!dragging) return;
+                        e = chart.pointer.normalize(e);
+                        var a = alpha0 + (e.chartY - startY) / sens;
+                        var b = beta0  + (startX - e.chartX) / sens;
+                        chart.update({ chart: { options3d: { alpha: a, beta: b } } }, true, false, false);
+                      }
+                
+                      function endDrag(){
+                        if (!dragging) return;
+                        dragging = false;
+                        H.removeEvent(document, 'mousemove', onMove);
+                        H.removeEvent(document, 'touchmove', onMove);
+                      }
+                
+                      H.addEvent(chart.container, 'mousedown', function (e) {
+                        e = chart.pointer.normalize(e);
+                        startX = e.chartX; startY = e.chartY;
+                        alpha0 = chart.options.chart.options3d.alpha;
+                        beta0  = chart.options.chart.options3d.beta;
+                        dragging = true;
+                        H.addEvent(document, 'mousemove', onMove);
+                        H.addEvent(document, 'touchmove', onMove);
+                        H.addEvent(document, 'mouseup',   endDrag);
+                        H.addEvent(document, 'touchend',  endDrag);
+                      });
+                
+                      H.addEvent(chart.container, 'touchstart', function (e) {
+                        e = chart.pointer.normalize(e.touches[0] || e.changedTouches[0]);
+                        startX = e.chartX; startY = e.chartY;
+                        alpha0 = chart.options.chart.options3d.alpha;
+                        beta0  = chart.options.chart.options3d.beta;
+                        dragging = true;
+                        H.addEvent(document, 'mousemove', onMove);
+                        H.addEvent(document, 'touchmove', onMove);
+                        H.addEvent(document, 'mouseup',   endDrag);
+                        H.addEvent(document, 'touchend',  endDrag);
+                      });
+                    }
+                  "))
             ) %>%
-            # Set the main title and subtitle of the chart.
-            hc_title(text = "t-SNE Results") %>%
-            hc_subtitle(text = "Sample Data by Group") %>%
-            hc_plotOptions(
-                scatter = list(
-                    width = 10,
-                    height = 10,
-                    depth = 10
-                )
-            ) %>%
-            # Add the data series. The 'hcaes' function maps data columns to chart aesthetics.
-            # The `group` variable is used to separate the points into different series,
-            # allowing for different colors and legends.
+            hc_title(text = "t-SNE of Best Model Indicators (scaled)") %>%
+            hc_subtitle(text = "Colored by M4 Viterbi state (High vs Low)") %>%
+            hc_xAxis(title = list(text = "t-SNE 1")) %>%
+            hc_yAxis(title = list(text = "t-SNE 2")) %>%
+            hc_zAxis(title = list(text = "t-SNE 3")) %>%
+            hc_plotOptions(scatter = list(marker = list(radius = 5))) %>%
+            # Two series to control colors/legend by group
+            hc_add_series(tsne_df |> dplyr::filter(group=="Low"),
+                          type = "scatter3d", name = "Low", color = "#e74c3c",
+                          hcaes(x = x, y = y, z = z)) %>%
+            hc_add_series(tsne_df |> dplyr::filter(group=="High"),
+                          type = "scatter3d", name = "High", color = "#28a745",
+                          hcaes(x = x, y = y, z = z)) %>%
+            hc_tooltip(pointFormat = 'X: {point.x}<br>Y: {point.y}<br>Z: {point.z}<br>State: {series.name}') %>%
+            
+            # LOW halos
             hc_add_series(
-                data = tsne_df,
-                type = "scatter3d",
-                marker = list(radius = 6),
-                hcaes(x = round(x, 3), y = round(y, 3), z = round(z, 3), group = group)
+                type = "scatter3d", name = "", showInLegend = FALSE,
+                data = highcharter::list_parse2(df_low_cent), keys = c("x","y","z"),
+                color = "rgba(231,76,60,0.16)",
+                marker = list(symbol = "circle", radius = 26),
+                enableMouseTracking = FALSE, states = list(hover = list(enabled = FALSE)),
+                zIndex = 0
+            ) %>%
+            hc_add_series(
+                type = "scatter3d", name = "", showInLegend = FALSE,
+                data = highcharter::list_parse2(df_low_cent), keys = c("x","y","z"),
+                color = "rgba(231,76,60,0.10)",
+                marker = list(symbol = "circle", radius = 76),
+                enableMouseTracking = FALSE, states = list(hover = list(enabled = FALSE)),
+                zIndex = 0
             ) %>%
             
-            hc_xAxis(title = list(text = "t-SNE Axis 1")) %>%
-            hc_yAxis(title = list(text = "t-SNE Axis 2")) %>%
-            hc_zAxis(title = list(text = "t-SNE Axis 3")) %>%
-            
-            # Customize the tooltip that appears on hover.
-            hc_tooltip(
-                pointFormat = 'X: {point.x}<br>
-                               Y: {point.y}<br>
-                               Z: {point.z}<br>
-                               Group: {point.group}'
+            # HIGH halos
+            hc_add_series(
+                type = "scatter3d", name = "", showInLegend = FALSE,
+                data = highcharter::list_parse2(df_high_cent), keys = c("x","y","z"),
+                color = "rgba(40,167,69,0.16)",
+                marker = list(symbol = "circle", radius = 26),
+                enableMouseTracking = FALSE, states = list(hover = list(enabled = FALSE)),
+                zIndex = 0
+            ) %>%
+            hc_add_series(
+                type = "scatter3d", name = "", showInLegend = FALSE,
+                data = highcharter::list_parse2(df_high_cent), keys = c("x","y","z"),
+                color = "rgba(40,167,69,0.10)",
+                marker = list(symbol = "circle", radius = 76),
+                enableMouseTracking = FALSE, states = list(hover = list(enabled = FALSE)),
+                zIndex = 0
             )
-        hc
-        
     })
     
     
@@ -3236,145 +3296,6 @@ server <- function(input, output, session) {
             )
     })
     
-    ### Best HMM Fan Chart ----
-    
-    output$hmm_fan <- renderHighchart({
-        b <- current()
-        
-        # --- SETTINGS ---
-        H   <- 8L        # forecast horizons (years ahead)
-        N   <- 2000L     # number of simulated paths for fan quantiles
-        use_last_tpm <- TRUE  # TRUE: last-period TPM; FALSE: average TPM
-        
-        # --- Extract pieces from bundle ---
-        years_hist <- b$posterior$year
-        y_hist     <- dplyr::arrange(full_dataset, Year) |>
-            dplyr::filter(Year %in% years_hist) |>
-            dplyr::pull(consumer_sentiment)
-
-        # Transition probabilities (K=2)
-        if (use_last_tpm && length(dim(b$P_time)) == 3) {
-            Pt_last <- b$P_time[ dim(b$P_time)[1], , ]  # K x K at T (t->t+1)
-            TPM <- Pt_last
-        } else {
-            TPM <- b$P_avg
-        }
-        # Emission params (state 1..K)
-        K <- nrow(TPM)
-        mu <- b$emis$mu
-        sd <- b$emis$sd
-        
-        # Initial state distribution: use last posterior state probs (S1,S2) at T
-        p0 <- as.numeric(tail(b$posterior[, c("S1","S2")], 1))
-        p0 <- p0 / sum(p0)
-
-        # --- Simulate future paths ---
-        set.seed(123)
-        sim_mat <- matrix(NA_real_, nrow = H, ncol = N)
-        
-        # Pre-draw normals to avoid R overhead
-        Z <- matrix(rnorm(H * N), nrow = H, ncol = N)
-        
-        # draw states via categorical transitions
-        draw_state <- function(prob) {
-            # prob length K (sum=1)
-            u <- runif(1)
-            print(c("u", u))
-            if (u <= prob[1]) 1L else 2L
-        }
-        
-        K <- 2L
-        TPM <- b$P_avg
-        if (!is.null(b$P_time) && length(dim(b$P_time)) == 3) {
-            good <- which(apply(b$P_time, 1, function(i) all(is.finite(b$P_time[i, , ]))))
-            if (length(good)) TPM <- b$P_time[max(good), , ]
-        }
-        
-        # sanitize TPM: clamp to [0,1], replace NA by 0, row-normalize
-        TPM <- as.matrix(TPM)
-        TPM[!is.finite(TPM)] <- 0
-        TPM[TPM < 0] <- 0; TPM[TPM > 1] <- 1
-        rs <- rowSums(TPM)
-        TPM[rs <= .Machine$double.eps, ] <- 1 / K
-        rs <- rowSums(TPM)
-        TPM <- TPM / rs
-        
-        for (n in 1:N) {
-            # draw initial state from p0
-            s <- if (runif(1) <= p0[1]) 1L else 2L
-            for (h in 1:H) {
-                # emission for this step
-                sim_mat[h, n] <- mu[s] + sd[s] * Z[h, n]
-                # next state (time-homogeneous under our choice of TPM)
-                s <- if (runif(1) <= TPM[s, 1]) 1L else 2L
-            }
-        }
-        
-        
-        # --- Summarize to fan quantiles per horizon ---
-        qs <- t(apply(sim_mat, 1, function(x) {
-            quantile(x, probs = c(.05, .10, .25, .50, .75, .90, .95), na.rm = TRUE)
-        }))
-        colnames(qs) <- c("p05","p10","p25","p50","p75","p90","p95")
-        
-        # Build future year axis
-        last_year  <- max(years_hist, na.rm = TRUE)
-        years_fut  <- seq.int(from = last_year + 1L, by = 1L, length.out = H)
-        
-        # --- Highcharts fan chart (bands + median) ---
-        hc <- highchart() %>%
-            hc_add_dependency("modules/series-label") %>%
-            hc_add_dependency("modules/accessibility") %>%
-            hc_chart(type = "line") %>%
-            hc_title(text = sprintf("HMM forecast fan — %s", b$model_id)) %>%
-            hc_subtitle(text = if (use_last_tpm) "Conditional on last-period transition matrix"
-                        else "Unconditional (average transition matrix)") %>%
-            hc_xAxis(categories = c(years_hist, years_fut),
-                     tickmarkPlacement = "on", title = list(text = NULL)) %>%
-            hc_yAxis(title = list(text = "Consumer Sentiment"),
-                     plotLines = list(list(value = 0, color = "#aaa", width = 1)))
-        
-        df90 <- data.frame(low = as.numeric(qs[, "p05"]), high = as.numeric(qs[, "p95"]))
-        df80 <- data.frame(low = as.numeric(qs[, "p10"]), high = as.numeric(qs[, "p90"]))
-        df50 <- data.frame(low = as.numeric(qs[, "p25"]), high = as.numeric(qs[, "p75"]))
-        
-        # Add bands (arearange takes [low, high] when using pointStart)
-        hc <- hc %>% hc_add_series(
-            name = "90% band", type = "arearange",
-            data = highcharter::list_parse2(df90),
-            keys = c("low","high"),
-            pointStart = length(years_hist),  # start right after history
-            color = "#7cb5ec", fillOpacity = 0.25, lineWidth = 0, zIndex = 1,
-            tooltip = list(pointFormat = "90% band: <b>{point.low:.1f}–{point.high:.1f}</b>")
-        )
-        
-        hc <- hc %>% hc_add_series(
-            name = "80% band", type = "arearange",
-            data = highcharter::list_parse2(df80),
-            keys = c("low","high"),
-            pointStart = length(years_hist),
-            color = "#90ed7d", fillOpacity = 0.25, lineWidth = 0, zIndex = 2,
-            tooltip = list(pointFormat = "80% band: <b>{point.low:.1f}–{point.high:.1f}</b>")
-        )
-        
-        hc <- hc %>% hc_add_series(
-            name = "50% band", type = "arearange",
-            data = highcharter::list_parse2(df50),
-            keys = c("low","high"),
-            pointStart = length(years_hist),
-            color = "#f7a35c", fillOpacity = 0.25, lineWidth = 0, zIndex = 3,
-            tooltip = list(pointFormat = "50% band: <b>{point.low:.1f}–{point.high:.1f}</b>")
-        )
-        
-        # Median
-        hc <- hc %>% hc_add_series(
-            name = "Median (simulated)", type = "line",
-            data = as.numeric(qs[, "p50"]), pointStart = length(years_hist),
-            color = "#c00000", zIndex = 5, tooltip = list(valueDecimals = 1)
-        )
-        
-        hc
-    })
     
     observeEvent(input$emiss_btn, {
         shinyjs::hide("transition_probs")
