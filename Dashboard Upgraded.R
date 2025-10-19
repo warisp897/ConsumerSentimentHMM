@@ -21,9 +21,9 @@ library(RColorBrewer)
 library(Rtsne)
 library(shinyjs)
 library(here)
-library(rhandsontable)
 library(shinyjs)
 library(reactable)
+#library(jsonlite)
 
 #library(ggplot2)
 library(depmixS4)
@@ -34,9 +34,9 @@ scaled_data <- readRDS("scaled_dataset.rds")
 full_dataset <- readRDS("full_dataset.rds")
 plot_df <- readRDS("plot_top5_delta_ll.rds")
 posterior_all_df <- readRDS("posterior_all_models.rds")
-sent_hmm <- readRDS("sent_hmm.rds")
 emiss_obs <- readRDS("emissions_observations.rds")
 bundle <- readRDS("hmm_models_bundle.rds")
+cons_sent_monthly <- readRDS("cons_sent_monthly.rds")
 
 # All Text Used in Dashboard ----
 
@@ -146,7 +146,8 @@ output_analysis <- HTML('
           Strong Real GDP growth suggests rising real wages and employment, which typically boost consumer sentiment. 
           Conversely, flat or negative Real GDP growth often coincides with weaker confidence and lower spending.</li>
       </ul>
-      <p>Because consumer spending accounts for roughly two‑thirds of GDP, shifts in these output measures quickly feed back into how households view their personal finances and the broader economy.</p>
+      <p>Because consumer spending accounts for roughly two‑thirds of GDP, shifts in these output measures quickly 
+      feed back into how households view their personal finances and the broader economy.</p>
     ')
 
 labor_analysis <- HTML('
@@ -161,7 +162,8 @@ labor_analysis <- HTML('
         <li><strong>Unemployment claims:</strong> weekly filings for jobless benefits. 
           Spikes in initial claims often presage layoffs and can spook consumers, while declines point to a stable labor market and support higher sentiment.</li>
       </ul>
-      <p>Together, these indicators tell you how tight or slack the jobs market is, a key driver of household incomes and therefore consumer attitudes toward spending and saving.</p>
+      <p>Together, these indicators tell you how tight or slack the jobs market is, a key driver of household incomes and therefore consumer attitudes 
+      toward spending and saving.</p>
     ')
 
 price_analysis <- HTML('
@@ -194,7 +196,8 @@ monetary_analysis <- HTML('
         <li><strong>M2 money supply:</strong> the total of cash, checking deposits, and easily convertible near‑money instruments. 
           Rapid M2 growth can signal easy credit (boosting sentiment), while slow growth or contraction may reflect monetary tightening and dampen sentiment.</li>
       </ul>
-      <p>Higher interest rates generally translate into higher borrowing costs and squeeze household budgets, whereas easier policy (lower rates, faster money growth) tends to buoy consumer confidence.</p>
+      <p>Higher interest rates generally translate into higher borrowing costs and squeeze household budgets, whereas easier policy (lower rates, faster money growth) 
+      tends to buoy consumer confidence.</p>
     ')
 
 housing_analysis <- HTML('
@@ -391,7 +394,9 @@ emission_matrix_text <- HTML(
         </ul>
         
         <p>
-        Preference was given to models that deliver a higher average log-likelihood—indicating better predictive performance—with lower variability across folds, highlighting their ability to generalize reliably across different economic cycles. Where lags were selected, they consistently improved these out-of-sample scores.
+        Preference was given to models that deliver a higher average log-likelihood—indicating better predictive performance—with 
+        lower variability across folds, highlighting their ability to generalize reliably across different economic cycles. 
+        Where lags were selected, they consistently improved these out-of-sample scores.
         </p>
         "
     )
@@ -400,27 +405,23 @@ model_result_info <- HTML(
     "<div style='font-size:18px; line-height:1.6;'>
     
     <p>
-    The model specified as <b>(Real GDP, PCE Price Index, Federal Surplus/Deficit)</b> delivered the strongest out-of-sample 
-    improvement over the baseline across the rolling train/test windows. This particular specification proved superior at 
-    anticipating when consumer sentiment would shift regimes in unseen historical periods, and it did so with greater consistency 
-    than alternative candidate models.
+The best model (Real GDP (t-1), PCE Price Index, Federal Surplus/Deficit (t-1)) delivered the strongest out-of-sample improvement 
+over the baseline across the rolling train/test windows. This candidate was superior at anticipating when consumer sentiment would shift 
+regimes in unseen historical periods, and it did so with greater consistency than alternative candidate models.
     </p>
   
     <p>
-    The strength of this model lies in its use of <b>complementary signals, not duplication.</b> Real GDP (using a lagged reading) 
-    captures broad economic momentum, the PCE Price Index reflects contemporaneous price pressure and cost-of-living impacts, and the 
-    Federal Surplus/Deficit (also lagged) summarizes significant policy tailwinds or headwinds. Since each variable contributes
-    distinct information to the model, this combination accurately moves the switching odds in a way that simpler or more overlapping 
-    sets of indicators could not.
+The strength of this model lies in its use of complementary signals. Real GDP (using a lagged reading) captures broad economic momentum, 
+the PCE Price Index reflects contemporaneous price pressure and cost-of-living impacts, and the Federal Surplus/Deficit (also lagged) 
+summarizes significant policy tailwinds or headwinds. This combination accurately moves the switching odds in a way that 
+simpler or more overlapping sets of indicators could not.
     </p>
   
     <p>
-    This chosen model also demonstrates a superior ability to <b>generalize across periods</b>. While competing models exhibited 
-    moments of strong fit in isolated historical slices, this specification consistently produced a larger average performance gain 
-    with fewer fold-to-fold swings in reliability. Furthermore, the timing of the indicators—using lagged readings for GDP and 
-    fiscal balance while incorporating prices contemporaneously—plausibly matches the transmission of economic news to households. 
-    Ultimately, this parsimonious model of three well-chosen indicators achieved the necessary lift in predictive power 
-    without the noise associated with more complex and less stable mixtures.
+A t-SNE transformation was applied to the three predictors, and each point was categorized as being during the high regime or the 
+low regime, and our model was successful in identifying two disinct clusters. This shows that the model is not arbitrarily dividing 
+the data, it is successfully identifying and labeling two different economic environments.
+
     </p>
         </div>
         "
@@ -1173,6 +1174,8 @@ ui <- bs4DashPage(
                                      "> <b> Model Conclusion </b> </span>'),
                     width = 12,
                     fluidRow(
+                        highchartOutput("consumer_sent_monthly"),
+                        highchartOutput("conc_state_means")
                     )
                 )
             )
@@ -1990,9 +1993,14 @@ server <- function(input, output, session) {
         <div style="font-size: 18px; font-family: Helvetica;">
     <h4>Step 1: Initialize Parameters</h4>
     <p>
-      The algorithm begins by making an initial guess for the model\'s parameters, collectively known as \\(\\theta\\). These parameters define the model\'s starting beliefs about the system.
+      The algorithm begins by making an initial guess for the model\'s parameters, collectively known as \\(\\theta\\). 
+      These parameters define the model\'s starting beliefs about the system.
       $$ \\theta = \\{\\pi, A, B \\} $$
-      This includes \\(\\pi\\), the probability of starting in each hidden state; <b>A</b>, the probability of transitioning between hidden states; and <b>B</b>, the probability of seeing an observation from a given hidden state. For our weather example, we might guess there\'s a 50% chance the first day is <em>Sunny</em> (\\(\\pi\\)), a 10% chance a <em>Sunny</em> day is followed by a <em>Rainy</em> one (in matrix A), and an 80% chance a <em>Sunny</em> day results in an <em>Arid</em> observation (in matrix B).
+      This includes \\(\\pi\\), the probability of starting in each hidden state; <b>A</b>, the probability of transitioning 
+      between hidden states; and <b>B</b>, the probability of seeing an observation from a given hidden state. For our weather 
+      example, we might guess there\'s a 50% chance the first day is <em>Sunny</em> (\\(\\pi\\)), a 10% chance a <em>Sunny</em> 
+      day is followed by a <em>Rainy</em> one (in matrix A), and an 80% chance a <em>Sunny</em> day results in an <em>Arid</em> 
+      observation (in matrix B).
     </p>
         </div>',
         
@@ -2000,9 +2008,13 @@ server <- function(input, output, session) {
         <div style="font-size: 18px; font-family: Helvetica;">
     <h4>Step 2: The E-Step (Expectation)</h4>
     <p>
-      Using its current parameters, the model calculates the probability of each hidden state being the true state for every point in our observed data sequence. It does this using a formula for \\(\\gamma_t(i)\\):
+      Using its current parameters, the model calculates the probability of each hidden state being the true state for every point in 
+      our observed data sequence. It does this using a formula for \\(\\gamma_t(i)\\):
       $$ \\gamma_t(i) = P(z_t=i | X, \\theta) $$
-      This equation calculates the probability that the hidden state \\(z\\) at time \\(t\\) was state \\(i\\) (e.g., <em>Sunny</em>), given the entire sequence of observations \\(X\\) (e.g., Arid, Humid, Humid...). Rather than making a hard decision, it creates a soft, probabilistic map. For a day we observed <em>Arid</em> conditions, this step might conclude there\'s an 85% probability the underlying state was <em>Sunny</em> and a 15% probability it was <em>Rainy</em>.
+      This equation calculates the probability that the hidden state \\(z\\) at time \\(t\\) was state \\(i\\) (e.g., <em>Sunny</em>), 
+      given the entire sequence of observations \\(X\\) (e.g., Arid, Humid, Humid...). Rather than making a hard decision, it creates 
+      a soft, probabilistic map. For a day we observed <em>Arid</em> conditions, this step might conclude there\'s an 85% probability 
+      the underlying state was <em>Sunny</em> and a 15% probability it was <em>Rainy</em>.
     </p>
         </div>',
         
@@ -2010,9 +2022,12 @@ server <- function(input, output, session) {
         <div style="font-size: 18px; font-family: Helvetica;">
     <h4>Step 3: The M-Step (Maximization)</h4>
     <p>
-      With the probabilistic map from the E-step, the model updates its parameters to better explain the data. For example, the transition probabilities in matrix <b>A</b> are re-calculated based on the expected number of transitions that occurred.
+      With the probabilistic map from the E-step, the model updates its parameters to better explain the data. For example, the 
+      transition probabilities in matrix <b>A</b> are re-calculated based on the expected number of transitions that occurred.
        $$ A_{ij} = \\frac{\\text{Expected # of transitions from }i \\text{ to } j}{\\text{Expected # of transitions from } i} $$
-      If the E-step frequently found that a high-probability <em>Sunny</em> day was followed by a high-probability <em>Rainy</em> day, this M-step will increase the value for the <em>Sunny</em> → <em>Rainy</em> transition. The same logic is applied to update the initial state (\\(\\pi\\)) and emission (<b>B</b>) probabilities, ensuring the new parameters are a better fit for the data.
+      If the E-step frequently found that a high-probability <em>Sunny</em> day was followed by a high-probability <em>Rainy</em> day, 
+      this M-step will increase the value for the <em>Sunny</em> → <em>Rainy</em> transition. The same logic is applied to update the 
+      initial state (\\(\\pi\\)) and emission (<b>B</b>) probabilities, ensuring the new parameters are a better fit for the data.
     </p>
         </div>',
         
@@ -2020,9 +2035,12 @@ server <- function(input, output, session) {
         <div style="font-size: 18px; font-family: Helvetica;">
     <h4>Step 4: Compute Log-Likelihood</h4>
     <p>
-      After updating the parameters, the algorithm "scores" how well the new model explains the observed data by calculating the log-likelihood.
+      After updating the parameters, the algorithm "scores" how well the new model explains the observed data by calculating the 
+      log-likelihood.
       $$ L(\\theta) = \\log P(X|\\theta) $$
-      This value, \\(L(\\theta)\\), is the logarithm of the total probability of observing our specific sequence of data (e.g., Arid, Humid, Humid...) given the current model parameters. In a properly functioning EM algorithm, this score should increase with each iteration, signaling that the model is getting progressively better.
+      This value, \\(L(\\theta)\\), is the logarithm of the total probability of observing our specific sequence of data 
+      (e.g., Arid, Humid, Humid...) given the current model parameters. In a properly functioning EM algorithm, this score 
+      should increase with each iteration, signaling that the model is getting progressively better.
     </p>
         </div>',
         
@@ -2030,9 +2048,11 @@ server <- function(input, output, session) {
         <div style="font-size: 18px; font-family: Helvetica;">
     <h4>Step 5: Check for Convergence</h4>
     <p>
-      The algorithm must decide whether to stop or perform another iteration. It stops if the improvement in the log-likelihood score becomes negligible, or if a maximum number of cycles is reached.
-      $$ \\Delta L < \\epsilon $$
-      This condition checks if the change in log-likelihood (\\(\\Delta L\\)) is less than a tiny tolerance value (\\(\\epsilon\\)). When the probabilities for <em>Sunny/Rainy</em> transitions and <em>Arid/Humid</em> emissions barely change from one cycle to the next, we can be confident the model has converged on a stable, locally optimal solution.
+      The algorithm must decide whether to stop or perform another iteration. It stops if the improvement in the log-likelihood score becomes 
+      negligible, or if a maximum number of cycles is reached. $$ \\Delta L < \\epsilon $$
+      This condition checks if the change in log-likelihood (\\(\\Delta L\\)) is less than a tiny tolerance value (\\(\\epsilon\\)). 
+      When the probabilities for <em>Sunny/Rainy</em> transitions and <em>Arid/Humid</em> emissions barely change from one cycle to the
+      next, we can be confident the model has converged on a stable, locally optimal solution.
     </p>
         </div>',
         
@@ -2040,11 +2060,16 @@ server <- function(input, output, session) {
         <div style="font-size: 18px; font-family: Helvetica;">
         <h4>Repeat Cycle: Iterative Refinement</h4>
   <p>
-    If the model has not yet converged, the algorithm loops back to the E-step to begin a new cycle. This iterative process is the heart of how the model learns. The refined parameters from the previous M-step are now used as the new "current" parameters for the E-step.
+    If the model has not yet converged, the algorithm loops back to the E-step to begin a new cycle. This iterative process is the heart 
+    of how the 
+    model learns. The refined parameters from the previous M-step are now used as the new "current" parameters for the E-step.
   </p>
   <p>
     $$ \\theta_{old} \\rightarrow \\text{E-Step} \\rightarrow \\text{M-Step} \\rightarrow \\theta_{new} $$
-            Because the new parameters (e.g., the updated probability of a <i>Sunny</i> to <i>Rainy</i> transition) are guaranteed to be a better fit for the data, the subsequent E-step will produce a more accurate probabilistic map of the hidden states. This improved map, in turn, allows the next M-step to find an even better set of parameters, further increasing the log-likelihood score. This cycle of refinement continues, with each loop bringing the model closer to an optimal solution.
+            Because the new parameters (e.g., the updated probability of a <i>Sunny</i> to <i>Rainy</i> transition) are guaranteed to be a better 
+            fit for the data, the subsequent E-step will produce a more accurate probabilistic map of the hidden states. This improved map, in turn, 
+            allows the next M-step to find an even better set of parameters, further increasing the log-likelihood score. 
+            This cycle of refinement continues, with each loop bringing the model closer to an optimal solution.
         </p>
         </div>
         ',
@@ -2053,7 +2078,11 @@ server <- function(input, output, session) {
         <div style="font-size: 18px; font-family: Helvetica;">
     <h4>Step 6: Algorithm Complete</h4>
     <p>
-      Once convergence is reached, the algorithm terminates. The final set of parameters, \\(\\theta^*\\), represents the fully trained model. These optimized probabilities capture the underlying structure of the training data. For example, the final model might have learned that a <em>Sunny</em> day has a 95% chance of being followed by another <em>Sunny</em> day, and an 85% chance of producing an <em>Arid</em> observation. This trained model can now be used for analysis or to predict hidden states from new data.
+      Once convergence is reached, the algorithm terminates. The final set of parameters, \\(\\theta^*\\), 
+      represents the fully trained model. These optimized probabilities capture the underlying structure of the training data. 
+      For example, the final model might have learned that a <em>Sunny</em> day has a 95% chance of being followed by another 
+      <em>Sunny</em> day, and an 85% chance of producing an <em>Arid</em> observation. This trained model can now be used for 
+      analysis or to predict hidden states from new data.
     </p>
         </div>'
     ), HTML)
@@ -2651,12 +2680,12 @@ server <- function(input, output, session) {
                 dataLabels = list(enabled = TRUE, format = "{point.y:.3f}",
                                   style = list(color = "#000", textOutline = "none"))
             )) %>%
-            hc_add_series(name = "Δ mean LL", data = data_list, showInLegend = FALSE) %>%
+            hc_tooltip(pointFormat = "<b>{series.name}</b>: {point.y:.3f}") %>%
+            hc_add_series(name = "Δ Mean LL", data = data_list, showInLegend = FALSE) %>%
             hc_add_series(type = "errorbar", name = "95% CI", data = JS(err_js), showInLegend = FALSE) %>%
             # Custom handler to move only the band
             htmlwidgets::onRender("
                               function(el, x) {
-                                // --- robustly get the Highcharts chart instance for this widget ---
                                 function getChart() {
                                   if (window.Highcharts && Highcharts.charts) {
                                     var idx = +el.getAttribute('data-highcharts-chart');
@@ -2673,7 +2702,6 @@ server <- function(input, output, session) {
                                 var chart = getChart();
                                 if (!chart) { console.warn('No Highcharts chart found for', el.id); return; }
                             
-                                // Listen on the Shiny output container id (your highchartOutput id)
                                 var channel = 'hc-bar-select-' + el.id;
                             
                                 Shiny.addCustomMessageHandler(channel, function(msg){
@@ -3078,18 +3106,18 @@ server <- function(input, output, session) {
                     }
                   "))
             ) %>%
-            hc_title(text = "t-SNE of Best Model Indicators (scaled)") %>%
-            hc_subtitle(text = "Colored by M4 Viterbi state (High vs Low)") %>%
-            hc_xAxis(title = list(text = "t-SNE 1")) %>%
-            hc_yAxis(title = list(text = "t-SNE 2")) %>%
-            hc_zAxis(title = list(text = "t-SNE 3")) %>%
+            hc_title(text = "t-SNE of Best Model") %>%
+            hc_subtitle(text = "Colored by HMM State") %>%
+            #hc_xAxis(title = list(text = "t-SNE 1")) %>%
+            #hc_yAxis(title = list(text = "t-SNE 2")) %>%
+            #hc_zAxis(title = list(text = "t-SNE 3")) %>%
             hc_plotOptions(scatter = list(marker = list(radius = 5))) %>%
             # Two series to control colors/legend by group
             hc_add_series(tsne_df |> dplyr::filter(group=="Low"),
-                          type = "scatter3d", name = "Low", color = "#e74c3c",
+                          type = "scatter3d", name = "State 2", color = "#e74c3c",
                           hcaes(x = x, y = y, z = z)) %>%
             hc_add_series(tsne_df |> dplyr::filter(group=="High"),
-                          type = "scatter3d", name = "High", color = "#28a745",
+                          type = "scatter3d", name = "State 1", color = "#28a745",
                           hcaes(x = x, y = y, z = z)) %>%
             hc_tooltip(pointFormat = 'X: {point.x}<br>Y: {point.y}<br>Z: {point.z}<br>State: {series.name}') %>%
             
@@ -3316,6 +3344,178 @@ server <- function(input, output, session) {
             list(id = session$ns("trans_btn"))
         )
     })
+    
+    ## Conclusion Code ----
+    
+    ### Time series Conclusion ----
+    
+    # --- bolder vertical stripes for macro windows ---
+    stripe_days  <- 28
+    gap_days     <- 6
+    stripe_color <- "rgba(30,30,30,0.35)"
+    edge_color   <- "rgba(30,30,30,0.55)"
+    edge_width   <- 1
+    
+    make_stripes <- function(start_date, end_date) {
+        s <- as.Date(start_date); e <- as.Date(end_date)
+        xs <- seq(s, e, by = gap_days + stripe_days)
+        lapply(xs, function(x0){
+            x1 <- min(x0 + stripe_days, e)
+            list(
+                from        = datetime_to_timestamp(x0),
+                to          = datetime_to_timestamp(x1),
+                color       = stripe_color,
+                borderColor = edge_color,        # <<< new
+                borderWidth = edge_width,        # <<< new
+                zIndex      = 3
+            )
+        })
+    }
+    
+    js_quote <- function(s) paste0("'", gsub("(['\\\\])", "\\\\\\1", s), "'")
+    macro_items <- vapply(seq_len(nrow(recessions)), function(k){
+        from_ts <- datetime_to_timestamp(as.Date(recessions$start[k]))
+        to_ts   <- datetime_to_timestamp(as.Date(recessions$end[k]))
+        nm      <- js_quote(recessions$name[k])
+        sprintf("{from:%s,to:%s,name:%s}", from_ts, to_ts, nm)
+    }, character(1))
+    bands_js <- paste0("[", paste(macro_items, collapse = ","), "]")
+    
+    
+    output$consumer_sent_monthly <- renderHighchart({
+        b <- bundle[["M4"]]; req(b, cons_sent_monthly)
+        
+        # state map -> monthly
+        yr_map <- tibble(year = as.integer(b$years), state = as.integer(b$viterbi)) |>
+            mutate(regime = ifelse(state == b$hi_state, "High", "Low")) |>
+            dplyr::select(year, regime)
+        
+        dfm <- cons_sent_monthly |>
+            transmute(date = as.Date(observation_date),
+                      year = as.integer(format(observation_date, "%Y")),
+                      sentiment = as.numeric(UMCSENT)) |>
+            left_join(yr_map, by = "year") |>
+            mutate(regime = ifelse(is.na(regime), "Low", regime)) |>
+            arrange(date)
+        
+        # RLE state bands
+        runs <- rle(dfm$regime); ends <- cumsum(runs$lengths); starts <- c(1, head(ends,-1)+1)
+        col_reg <- c(High="rgba(40,167,69,0.18)", Low="rgba(231,76,60,0.18)")
+        state_bands <- Map(function(i,j,lab) list(
+            from  = datetime_to_timestamp(dfm$date[i]),
+            to    = datetime_to_timestamp(dfm$date[j]) + 24*3600*1000 - 1,
+            color = col_reg[[lab]], zIndex = 1
+        ), starts, ends, runs$values)
+        
+        
+        macro_stripes <- unlist(lapply(seq_len(nrow(recessions)), function(k){
+            make_stripes(as.Date(recessions$start[k]), as.Date(recessions$end[k]))
+        }), recursive = FALSE)
+        
+        line_pts <- dfm |>
+            transmute(x = datetime_to_timestamp(date), y = sentiment, regime = regime) |>
+            pmap(function(x,y,regime) list(x=x,y=y,regime=regime))
+        
+        # use original names in tooltip
+        bands_info <- lapply(seq_len(nrow(recessions)), function(k){
+            list(from = datetime_to_timestamp(as.Date(recessions$start[k])),
+                 to   = datetime_to_timestamp(as.Date(recessions$end[k])),
+                 name = recessions$name[k])
+        })
+        
+        highchart() %>%
+            hc_chart(zoomType = "x") %>%
+            hc_title(text = sprintf("Consumer Sentiment — %s", b$label)) %>%
+            hc_subtitle(text = "Background = HMM state (High/Low). Vertical stripes = macro event windows.") %>%
+            hc_xAxis(type = "datetime", plotBands = c(state_bands, macro_stripes)) %>%
+            hc_yAxis(title = list(text = "Index Value"),
+                     plotLines = list(list(value=100,color="#888",width=2,dashStyle="Dash",
+                                           label=list(text="Baseline (1966)", style=list(color="#666"))))) %>%
+            hc_add_series(data = line_pts, type = "line", name = "Sentiment",
+                          color = "#111", lineWidth = 2, marker = list(enabled = FALSE),
+                          zIndex = 5, showInLegend = FALSE) %>%
+            hc_tooltip(
+                useHTML = TRUE,
+                formatter = JS(sprintf("
+    function () {
+      var x=this.x,y=this.y,rg=(this.point&&this.point.regime)?this.point.regime:'—';
+      var tag='', bands=%s;
+      for (var i=0;i<bands.length;i++){
+        if(x>=bands[i].from && x<=bands[i].to){ tag='<br><b>'+bands[i].name+'</b>'; break; }
+      }
+      return Highcharts.dateFormat('%%b %%e, %%Y', x) +
+             '<br>Index: <b>'+Highcharts.numberFormat(y,1)+'</b>' +
+             '<br>State: <b>'+rg+'</b>'+tag;
+    }", bands_js))
+            ) %>%
+            hc_legend(enabled = FALSE) %>%
+            hc_credits(enabled = FALSE)
+    })
+    
+    
+    ### Indicator Means
+    output$conc_state_means <- renderHighchart({
+        b  <- bundle[[ selected_model_id() ]]; req(b)
+        db <- full_dataset[order(full_dataset$Year), ]
+        
+        # ---- align lagged X to posterior years ----
+        X_all   <- lagged_X_for_model(db, b); req(!is.null(X_all), ncol(X_all) > 0)
+        yrs_use <- b$posterior$year; idx <- match(yrs_use, db$Year)
+        X       <- X_all[idx, , drop = FALSE]
+        
+        # ---- standardize to z ----
+        mu <- colMeans(X, na.rm = TRUE)
+        sd <- apply(X, 2, sd, na.rm = TRUE); sd[!is.finite(sd) | sd == 0] <- 1
+        Z  <- sweep(sweep(X, 2, mu, "-"), 2, sd, "/"); colnames(Z) <- colnames(X)
+        
+        # ---- robust "high" state + posterior weights ----
+        pcols <- grep("^S[0-9]+$", names(b$posterior), value = TRUE); req(length(pcols) >= 2)
+        hi <- b$hi_state
+        if (is.null(hi) || !is.finite(hi) || !(hi %in% seq_along(pcols))) {
+            hi <- which.max(b$emis$mu)  # fallback
+        }
+        lo <- setdiff(seq_along(pcols), hi)[1]
+        
+        p_hi <- as.numeric(b$posterior[[ pcols[hi] ]]); req(length(p_hi) == nrow(Z))
+        p_lo <- as.numeric(b$posterior[[ pcols[lo] ]])
+        
+        # ---- weighted moments ----
+        wmean <- function(z, w) sum(z*w, na.rm = TRUE) / sum(w, na.rm = TRUE)
+        wsd   <- function(z, w) { m <- wmean(z, w); sqrt(sum(w*(z-m)^2, na.rm=TRUE) / sum(w, na.rm=TRUE)) }
+        
+        m_hi <- apply(Z, 2, wmean, w = p_hi); s_hi <- pmax(1e-9, apply(Z, 2, wsd, w = p_hi))
+        m_lo <- apply(Z, 2, wmean, w = p_lo); s_lo <- pmax(1e-9, apply(Z, 2, wsd, w = p_lo))
+        
+        # ---- pretty x labels (map base name -> label) ----
+        pretty_x <- vapply(colnames(Z), function(cn){
+            base <- sub("_L[0-9]+$", "", cn)
+            lbl  <- unname(pretty_map[base])
+            if (is.na(lbl)) cn else lbl
+        }, character(1))
+        
+        # ---- build chart ----
+        cats   <- as.vector(pretty_x)
+        ser_hi <- lapply(seq_along(cats), function(i) list(y = unname(m_hi[i]), color = "#28a745"))
+        ser_lo <- lapply(seq_along(cats), function(i) list(y = unname(m_lo[i]), color = "#e74c3c"))
+        err_hi <- JS(sprintf("[%s]", paste(sprintf("[%.6f,%.6f]", m_hi - s_hi, m_hi + s_hi), collapse=",")))
+        err_lo <- JS(sprintf("[%s]", paste(sprintf("[%.6f,%.6f]", m_lo - s_lo, m_lo + s_lo), collapse=",")))
+        
+        highchart() %>%
+            hc_title(text = "Indicator means ± SD by regime (z-scores)") %>%
+            hc_subtitle(text = "Posterior-weighted within the model’s sample") %>%
+            hc_xAxis(categories = cats, title = list(text = NULL)) %>%
+            hc_yAxis(title = list(text = "Standardized units (z)"),
+                     plotLines = list(list(value = 0, color = "#999", width = 1))) %>%
+            hc_plotOptions(series = list(pointPadding = 0.05, groupPadding = 0.12,
+                                         dataLabels = list(enabled = TRUE, format = "{point.y:.2f}", style = list(color="#000", textOutline="none")))) %>%
+            hc_add_series(name = "High", type = "column", data = ser_hi) %>%
+            hc_add_series(name = "Low",  type = "column", data = ser_lo) %>%
+            hc_add_series(type = "errorbar", name = "High ±1 SD", data = err_hi, linkedTo=":previous") %>%
+            hc_add_series(type = "errorbar", name = "Low ±1 SD",  data = err_lo,  linkedTo=":previous") %>%
+            hc_tooltip(shared = TRUE, valueDecimals = 2)
+    })
+    
+    
     
 }
 
