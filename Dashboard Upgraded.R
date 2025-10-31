@@ -176,41 +176,54 @@ price_analysis <- HTML('
           Because it better reflects changing consumption patterns, PCEPI can give early warning of shifts in real household outlays and sentiment.</li>
         <li><strong>Robust PCEPI:</strong> excludes volatile food and energy. 
           This “core” measure helps isolate underlying inflation trends that more directly influence long‑term consumer expectations.</li>
-        <li><strong>PPI:</strong> producer prices at the wholesale level. 
-          Rising PPI often foreshadows higher CPI and can signal incoming price pressures that eventually filter through consumers’ wallets.</li>
       </ul>
       <p>When consumers see news of accelerating prices-especially core inflation, they may feel their real incomes shrinking, pulling down sentiment.  
       Conversely, stable or falling inflation tends to reassure.</p>
     ')
 
-monetary_analysis <- HTML('
-      <p><strong>Monetary & fiscal indicators:</strong> measures of borrowing costs and government finances.</p>
+monetary_analysis <- HTML("
+      <p><strong>Monetary and fiscal indicators:</strong> measures of borrowing costs and government finances.</p>
       <ul>
         <li><strong>Federal funds rate:</strong> the Fed’s overnight bank‑to‑bank lending rate. 
           A higher rate makes all loans-home, auto, business-more expensive, cooling borrowing and spending. 
           Cutting the rate tends to spur activity and lift consumer confidence.</li>
+          
         <li><strong>Three‑month Treasury yield:</strong> short‑term government borrowing cost. 
           Rising yields can reflect higher inflation expectations and tighter financial conditions, which may weaken sentiment.</li>
-        <li><strong>Ten‑year Treasury yield:</strong> longer‑term borrowing cost, influenced by growth and inflation expectations. 
-          An inverted yield curve (short rates above long rates) often signals recession risk and can pre‑empt lower consumer sentiment.</li>
+          
         <li><strong>M2 money supply:</strong> the total of cash, checking deposits, and easily convertible near‑money instruments. 
-          Rapid M2 growth can signal easy credit (boosting sentiment), while slow growth or contraction may reflect monetary tightening and dampen sentiment.</li>
+          Rapid M2 growth can signal easy credit (boosting sentiment), while slow growth or contraction may reflect 
+          monetary tightening and dampen sentiment.</li>
+          
+        <li><strong>Federal Spending:</strong> The sum of government expenditures in a given year. This can show growth in the economy
+        though the volume of government contracts and gontracts, or demonstrate retractionary policy with spending cuts.</li>
+        
+        <li><strong>Federal Debt:</strong> Divides the U.S. government's spending by its total accumulated debt. This analyzes how sustainable
+         current spending habits are.... </li>
+          
       </ul>
+      
       <p>Higher interest rates generally translate into higher borrowing costs and squeeze household budgets, whereas easier policy (lower rates, faster money growth) 
       tends to buoy consumer confidence.</p>
-    ')
+    ")
 
 housing_analysis <- HTML('
       <p><strong>Housing & construction indicators:</strong> gauges of residential building and sales activity.</p>
       <ul>
+      
         <li><strong>New private houses:</strong> volume of single‑family homes built. 
           A pickup in home construction suggests builders expect strong demand-often reflecting and reinforcing higher consumer sentiment.</li>
+          
         <li><strong>New permits:</strong> approvals for future building. 
           Rising permits indicate confidence among developers and signal that the housing market-and thus consumer confidence-is on solid ground.</li>
+          
         <li><strong>House sales:</strong> number of homes sold. 
           Strong sales often coincide with easy credit and consumer optimism; a slump may reflect tighter lending standards or weaker sentiment.</li>
+          
         <li><strong>Case‑Shiller Index:</strong> a repeat‑sales index tracking home price changes. 
-          Rising home prices build household wealth (the “wealth effect”), boosting consumer sentiment; falling prices can have the opposite effect.</li>
+          Rising home prices build household wealth (the “wealth effect”), boosting consumer sentiment, 
+          while falling prices can have the opposite effect.</li>
+          
       </ul>
       <p>Because housing is a large share of household wealth and spending, swings in these indicators can move consumer attitudes sharply, especially on big‑ticket purchases.</p>
     ')
@@ -240,9 +253,9 @@ intro_hmm_text <- HTML(
     </p>
     
     <p>
-    Think of it like trying to guess the weather on another planet. You can't see if it's sunny 
-    or rainy from where you are, but if you are told the humidity is low, there is a high-pressure system, and wind speeds are low, 
-    so you can make a good guess that it is likely calm weather right now.
+    Think of it like trying to guess the weather somewhere on another planet. You can't see the weather from where you are, 
+    but if you are told the humidity is low, there is a high-pressure system, and wind speeds are low, 
+    so you can make a good guess that it is likely calm weather at the moment.
     </p>
     
     <p>
@@ -368,6 +381,7 @@ emission_matrix_text <- HTML(
 
     model_selection_text <- HTML(
         "
+        <div style='font-size:18px; line-height:1.6;'>
         <p>
         To optimize the interpretability and numerical stability of the model, the macroeconomic indicators were first filtered. 
         This ensured that no single economic category was overrepresented, which would inadvertently bias the model. This process 
@@ -398,69 +412,62 @@ emission_matrix_text <- HTML(
         lower variability across folds, highlighting their ability to generalize reliably across different economic cycles. 
         Where lags were selected, they consistently improved these out-of-sample scores.
         </p>
+            </div>
         "
     )
 
-model_result_info <- HTML(
-    "<div style='font-size:18px; line-height:1.6;'>
-    
-    <p>
-The best model (Real GDP (t-1), PCE Price Index, Federal Surplus/Deficit (t-1)) delivered the strongest out-of-sample improvement 
-over the baseline across the rolling train/test windows. This candidate was superior at anticipating when consumer sentiment would shift 
-regimes in unseen historical periods, and it did so with greater consistency than alternative candidate models.
-    </p>
-  
-    <p>
-The strength of this model lies in its use of complementary signals. Real GDP (using a lagged reading) captures broad economic momentum, 
-the PCE Price Index reflects contemporaneous price pressure and cost-of-living impacts, and the Federal Surplus/Deficit (also lagged) 
-summarizes significant policy tailwinds or headwinds. This combination accurately moves the switching odds in a way that 
-simpler or more overlapping sets of indicators could not.
-    </p>
-  
-    <p>
-A t-SNE transformation was applied to the three predictors, and each point was categorized as being during the high regime or the 
-low regime, and our model was successful in identifying two disinct clusters. This shows that the model is not arbitrarily dividing 
-the data, it is successfully identifying and labeling two different economic environments.
+model_result_info <- withMathJax(HTML(
+    "<div style='font-size:18px; line-height:1.6; margin-top:30px;'>
 
+    <p>
+    The model utilizing <b>Lagged Real GDP (\\(t-1\\))</b>, 
+    the <b>PCE Price Index (\\(t\\))</b>, and the 
+    <b>Lagged Federal Surplus/Deficit (\\(t-1\\))</b> 
+    was identified as the most effective combination.
+    It consistently delivered the strongest <b>out-of-sample improvement</b>
+    over the baseline, proving superior and more consistent at <b>anticipating Consumer Sentiment regime shifts</b>
+    in unseen historical periods than alternative models. The strength of this combination lies in its ability to non-redundantly capture the three key economic
+    levers influencing households:
     </p>
-        </div>
-        "
-)
 
-## Model Conclusion Text
+    <ul>
+      <li><b>Real productivity</b> (lagged Real GDP captures income/jobs momentum)</li>
+      <li><b>Cost of living</b> (PCE Price Index reflects contemporaneous inflation/price pressure)</li>
+      <li><b>Public finance backdrop</b> (lagged Federal Surplus/Deficit proxies for policy stance and stress)</li>
+    </ul>
+
+    <p>
+    By combining these complementary signals, the model successfully identifies two distinct, non-arbitrary clusters corresponding
+    to the <b>High</b> and <b>Low</b> sentiment regimes (as visualized by a t-SNE transformation), accurately moving the transition
+    probabilities based on what households can afford, whether they're earning, and the perceived strain of the policy environment.
+    </p>
+
+  </div>"
+))
+
+# model_result_info <- withMathJax(
+#     HTML("The model utilizing <i>Lagged Real GDP</i> (<i>t-1</i>), the <i>PCE Price Index</i> (<i>t</i>), and the <i>Lagged Federal Surplus/Deficit</i> (<i>t-1</i>) was identified as the most effective combination. It consistently delivered the **strongest out-of-sample improvement** over the baseline, proving superior and more consistent at **anticipating Consumer Sentiment regime shifts** in unseen historical periods than alternative models. The strength of this combination lies in its ability to non-redundantly capture the three key economic levers influencing households: **Real productivity** (lagged Real GDP captures income/jobs momentum), **Cost of living** (PCE Price Index reflects contemporaneous inflation/price pressure), and the **Public finance backdrop** (lagged Federal Surplus/Deficit proxies for policy stance and stress). By combining these complementary signals, the model successfully identifies two distinct, non-arbitrary clusters corresponding to the **High** and **Low** sentiment regimes (as visualized by a t-SNE transformation), accurately moving the transition probabilities based on what households can afford, whether they're earning, and the perceived strain of the policy environment.")
+# )
+
+## Model Conclusion Text ----
 
 regime_conclusion <- HTML(
-    "<div style='font-size:18px; line-height:1.6;'>
+    "<div style='font-size:18px; line-height:1.6; margin-left: 85px; margin-right: 85px; font-family: Helvetica; margin-top:20px'>
     
     <p>
-    The Hidden Markov Model was able to successfully identify two distinct regimes in the Consumer Sentiment Index, correlating to 
-    times of economic prosperity and uncertainty. The use of a state to state analysis strengthened the algorithm to time dependent 
-    explanatory data and response, allowing it to better analyze the relationships and trends without {the pitfalls of a strongly 
-    related dataset and response variable). Through this, the model found that...
+    The Hidden Markov Model was able to successfully identify two distinct regimes in the Consumer Sentiment Index, a High state associated 
+    with steady growth and tailwinds, and a Low state tied to stress periods. The model’s regimes line up with economic downturns and their 
+    immediate aftermath, but it also catches transitions on the way in and out, not just the troughs. The use of a state to state analysis 
+    strengthened the algorithm to time dependent explanatory data and response, allowing it to better analyze the relationships and trends
+    without the typical issues of a strongly related dataset.
     </p>
     
     <p>
-    Consistent with most Markov models, Consumer Sentiment is more likely to remain in its current state than transition to a new one. 
-    Once the idea sets in that the economy is in a specific period, this tends to have a cascading affect that lasts years with changes 
-    in interest rates, employment, and productivity.
-    </p>
-        </div>
-    "
-)
-
-indicator_conclusion <- HTML(
-    "<div style='font-size:18px; line-height:1.6;'>
-    
-    <p>
-    The model was able to identify that among many significant macroeconomic indicators, the ones that best explained the changes in 
-    consumer sentiment were lagged real GDP, the PCEPI, and lagged federal surplus/deficit. Each of these variables tells {explains?} 
-    a {story?} about the average consumer in America, as they most heavily weigh the overall wellbeing of the economy, the cost of goods, 
-    and in recent years, the total amount of federal debt(,?) in considering how confident they are in the future. 
-    </p>
-    
-    <p>
-    {Importantly, these values do not have an immediate affect, as there is a significant period between when the value is 
-    measured, and when it is reported to the people.}
+    The High regime clusters well above the long-run baseline while the Low regime sits significantly below it. Consistent with most Markov 
+    models, states persist for long stretches, as self-transition probabilities dominate, and switches are asymmetric. Moves into Low tend 
+    to be abrupt during stress events, while recoveries back to High are steadier as activity firms and price pressure cools paired 
+    with cascading affect that lasts years with changes in interest rates, employment, and productivity. The inferred state often turns 
+    before official recession dates and remains informative through the early expansion, which gives a peek of where the economy is heading.
     </p>
         </div>
     "
@@ -468,11 +475,16 @@ indicator_conclusion <- HTML(
 
 future_conclusion <- HTML(
     "
-    <div style='font-size:18px; line-height:1.6; margin-left: 15px; margin-right: 15px;'>
+    <div style='font-size:18px; line-height:1.6; margin-top: 45px; font-family: Helvetica;'>
     
     <p>
-    The U.S. economy has been in a period of limbo since COVID, with a recession that has supposedly been 
-    looming over the horizon for years. With investment continuing to boom with AI and record breaking deals continually being made,..
+    The U.S. economy has been in an odd position COVID, with a recession that has supposedly been looming over the horizon for years. 
+    With the Dow Jones hitting news highs, and record breaking investment deals being made, getting the full picture on where we stand 
+    now requires a deeper analysis beyond checking the usual trends. This model provides a useful historical analysis in what consumers 
+    prioritize, but it can be extended to forecasting regime shifts. New data from these indicators can be piped in, allowing for new 
+    state predictions and alerts for potential changes and which variables or relationships are driving the changes. With alerts after 
+    significant changes of a sustained period of time, paired with a rolling window to continually update the metrics, regime changes
+    can be quickly identified allowing policy makers to act swiftly in response, ensuring stability.
     </p>
         </div>
     "
@@ -905,7 +917,7 @@ ui <- bs4DashPage(
                         title = HTML('<b> Economic Indicators </b>'),
 
                             div(
-                                style = "min-height: 80vh; font-size:18px; line-height:1.5; display:flex; flex-direction:column;",
+                                style = "min-height: 80vh; font-size:18px; line-height:1.5; display:flex; flex-direction:column; font-family: Helvetica;",
                                 
                                 # selector stays on top
                                 selectInput("select1", "Indicator Category", choices = c(
@@ -1014,8 +1026,8 @@ ui <- bs4DashPage(
                                         column(
                                             width = 6,
                                             div(
-                                                class = "d-flex align-items-center",      # vertical center (cross-axis)
-                                                style = "min-height:70vh;",               # match the left chart height
+                                                class = "d-flex align-items-center",
+                                                style = "min-height:70vh;",
                                                 div(style = "width:100%;", uiOutput("em_step_details"))
                                             )
                                         )                                    )
@@ -1062,7 +1074,6 @@ ui <- bs4DashPage(
                                                     sliderInput("hmm_T", "Sequence length", min = 15, max = 45, value = 20, step = 1),
                                                     actionButton("hmm_run_demo", "Simulate Hidden Markov Model", class = "btn btn-success btn-block"),
                                                     
-                                                    # Reserve the space BEFORE the chart renders
                                                     div(id = "hmm_chart_shell",
                                                         style = "height:40vh; min-height:420px;",
                                                         highchartOutput("hmm_demo_timeline", height = "100%")
@@ -1076,7 +1087,6 @@ ui <- bs4DashPage(
                                 )
                             ),
                             
-                            # DETAILS VIEW (full width)
                             shinyjs::hidden(
                                 div(
                                     id = "details_shell",
@@ -1106,7 +1116,6 @@ ui <- bs4DashPage(
                         width = 12,
                         status = "success",
                         
-                        # Three subtabs
                         bs4Dash::tabsetPanel(
                             id   = "model_analysis_tabs",
                             type = "pills",
@@ -1114,15 +1123,13 @@ ui <- bs4DashPage(
                             tabPanel(
                                 "Model Selection",
                                 fluidRow(
-                                    # Left: explanatory text
                                     column(
                                         width = 6,
                                         div(
-                                            style = "padding:10px; font-size:18px; line-height:1.5; overflow-y:auto;",
-                                            model_selection_text   # <-- your existing HTML blurb with lag note
+                                            style = "padding:10px; font-size:18px; line-height:1.5; overflow-y:auto; font-family: Helvetica;",
+                                            model_selection_text
                                         )
                                     ),
-                                    # Right: one time-series with ALL 5 indicators overlaid
                                     column(
                                         width = 6,
                                         div(
@@ -1160,7 +1167,6 @@ ui <- bs4DashPage(
                                         width = 6,
                                         highchartOutput("model_selection_plot", height = "850px"),
                                     ),
-                                    # Right: CS regime plot + metrics table (room to add more later)
                                     column(
                                         width = 6,
                                         div(
@@ -1173,43 +1179,35 @@ ui <- bs4DashPage(
                                         div(
                                             id = "emission_probs",
                                             
-                                            #this sets the highchart output to not display initially (and display once the button is pressed)
+                                            # this sets the highchart output to not display initially 
+                                            # (and display once the button is pressed)
                                             style = "display: none;", 
                                             highchartOutput("emis_dens", height = "340px"),
                                             highchartOutput("state_means_scaled", height = "340px"),
                                             highchartOutput("state_prob_heatmap", height = "340px")
-                                        ),
-                                        
-                                        
-                                        # REACH: Add a third table to display metrics in a plain table
-                                        #br(),
-                                        #tableOutput("metrics_table")
-                                        # (Add more plots below when ready)
-                                    )
-                                )
-                            ),
-                            tabPanel(
-                                "Top Indicators",
-                                fluidRow(
-                                    # Left: explanatory text about the winning indicators (human labels + lags)
-                                    column(
-                                        width = 6,
-                                        div(
-                                            style = "padding:10px; font-size:18px; line-height:1.5; overflow-y:auto;",
-                                            model_result_info   # <-- your existing text object for this section
-                                        )
-                                    ),
-                                    # Right: reserved space for a plot (to be wired later)
-                                    column(
-                                        width = 6,
-                                        div(
-                                            style = "display:flex; flex-direction:column; height: calc(100vh - 220px);",
-                                            highchartOutput("state_plot", height = "100%", width = "100%")
-                                            # Server later: maybe a small multiples panel or response curves
                                         )
                                     )
                                 )
                             )
+                            # tabPanel(
+                            #     "Top Indicators",
+                            #     fluidRow(
+                            #         column(
+                            #             width = 6,
+                            #             div(
+                            #                 style = "padding:10px; font-size:18px; line-height:1.5; overflow-y:auto; font-family: Helvetica;",
+                            #                 model_result_info
+                            #             )
+                            #         ),
+                            #         column(
+                            #             width = 6,
+                            #             div(
+                            #                 style = "display:flex; flex-direction:column; height: calc(100vh - 220px);",
+                            #                 highchartOutput("state_plot", height = "100%", width = "100%")
+                            #             )
+                            #         )
+                            #     )
+                            # )
                         )
                     )
                 )
@@ -1230,7 +1228,16 @@ ui <- bs4DashPage(
                                     type = "pills",
                                     tabPanel(
                                         "Sentiment Regimes",
-                                        highchartOutput("consumer_sent_monthly"),
+                                        fluidRow(
+                                            column(
+                                                width = 12,
+                                                highchartOutput("consumer_sent_monthly")
+                                            ),
+                                            # column(
+                                            #     width = 6,
+                                            #     highchartOutput("state_plot")
+                                            # )
+                                        ),
                                         regime_conclusion
                                     ),
                                     tabPanel(
@@ -1238,29 +1245,42 @@ ui <- bs4DashPage(
                                         fluidRow(
                                             column(
                                                 width = 6,
-                                                indicator_conclusion
+                                                model_result_info
                                             ),
                                             column(
                                                 width = 6,
-                                                highchartOutput("best_tpm_time")
+                                                highchartOutput("state_plot"),
+                                                highchartOutput("state_means_real_M4")
                                             )
                                         )
                                     ),
                                     tabPanel(
                                         "For the Future",
-                                        future_conclusion
+                                        fluidRow(
+                                            column(
+                                                width = 4,
+                                                future_conclusion
+                                            ),
+                                            
+                                            column(
+                                                width = 8,
+                                                div(
+                                                    highchartOutput("hmm_oos_full",  height = "350px"),
+                                                    tags$br(),
+                                                    highchartOutput("hmm_oos_short", height = "350px"),
+                                                )
+                                                
+                                            )
+                                        )
                                     )
                                 )
+                            )
                         )
                     )
                 )
-
-                        #highchartOutput("consumer_sent_monthly"),
-                        #highchartOutput("conc_state_means")
-        )
+            )
         )
     )
-)
 
 
 # Server function ----
@@ -1543,8 +1563,6 @@ server <- function(input, output, session) {
     #### Selected Indicators over Time Plot ----
     output$category_plot_hc <- renderHighchart({
         CAT_PLOT_LOADED <<- T
-        #session$ns("category_plot_hc_loaded")
-        
         
         plot_df <- scaled %>%
             left_join(full, by = c("Year","Indicator")) %>%
@@ -1577,72 +1595,101 @@ server <- function(input, output, session) {
         
         default_cat <- isolate(input$select1)
         
+        dec_year <- function(d) {
+            y <- year(d)
+            start <- as.Date(paste0(y, "-01-01"))
+            y + as.numeric(d - start) / (365 + leap_year(d))
+        }
+        
+        # build plot bands in decimal-year space (no labels)
+        plot_bands_year <- lapply(seq_len(nrow(recessions)), function(i) {
+            s <- as.Date(recessions$start[i]); e <- as.Date(recessions$end[i])
+            list(
+                from  = dec_year(s),
+                to    = dec_year(e),
+                color = recessions$color[i],
+                zIndex = 0
+            )
+        })
+        
+        # make a tiny JS array for tooltip checks (no jsonlite)
+        bands_js <- {
+            items <- vapply(seq_len(nrow(recessions)), function(i) {
+                s <- dec_year(as.Date(recessions$start[i]))
+                e <- dec_year(as.Date(recessions$end[i]))
+                nm <- gsub("(['\\\\])", "\\\\\\1", recessions$name[i])
+                sprintf("{from:%s,to:%s,name:'%s'}", format(s, scientific = FALSE), format(e, scientific = FALSE), nm)
+            }, character(1))
+            paste0("[", paste(items, collapse = ","), "]")
+        }
+        
         highchart() %>%
             hc_chart(zoomType = "x") %>%
-            hc_chart(
-                type    = "line",
-                spacing = list(top=10, right=10, bottom=20, left=10)
-            ) %>%
+            hc_chart(type = "line",
+                     spacing = list(top = 10, right = 10, bottom = 20, left = 10)) %>%
             hc_plotOptions(series = list(
                 events = list(
                     legendItemClick = JS(
                         "function() {
-                           // find the bar chart
-                           var bc = Highcharts.charts.find(c => c.renderTo.id==='pearsons_plot_hc');
-                           
-                           if (!bc) return true;
-                           
-                           // find the matching bar series
-                           var bs = bc.get(this.options.id);
-                           
-                           if (bs) {
-                             // if the line *was* visible, we've just hidden it => make bar translucent
-                             // otherwise, we've just shown it => make bar solid
-                             
-                             var newColor = this.visible ? bs.options.inactiveColor : bs.options.origColor;
-                             bs.update({ color: newColor }, true);
-                           }
-                           
-                           return true;  // still toggle the line
-                         }"
+           var bc = Highcharts.charts.find(c => c.renderTo.id==='pearsons_plot_hc');
+           if (!bc) return true;
+           var bs = bc.get(this.options.id);
+           if (bs) {
+             var newColor = this.visible ? bs.options.inactiveColor : bs.options.origColor;
+             bs.update({ color: newColor }, true);
+           }
+           return true;
+         }"
                     )
                 )
             )) %>%
             hc_add_series_list(series_list) %>%
             hc_legend(
-                layout        = "horizontal",
-                align         = "center",
+                layout = "horizontal",
+                align = "center",
                 verticalAlign = "bottom",
-                itemWidth     = 100,      # forces more columns
-                itemStyle     = list(fontSize = "0.8em")
+                itemWidth = 100,
+                itemStyle = list(fontSize = "0.8em")
             ) %>%
             hc_tooltip(
-                useHTML   = TRUE,
-                formatter = JS("function () {
-                      var fmt = this.point.format || '';
-                      var v   = this.point.trueValue;
-                      var txt;
-                      if (fmt === '$') {
-                        var sign = (v < 0 ? '-' : '');
-                        var absv = Highcharts.numberFormat(Math.abs(v), 2);
-                        txt = sign + '$' + absv;  // -$ before digits
-                      } else if (fmt === '%') {
-                        txt = Highcharts.numberFormat(v, 2) + '%';
-                      } else {
-                        txt = Highcharts.numberFormat(v, 2);
-                      }
-                      return '<b>' + this.series.name + '</b><br>' +
-                             'Year: ' + this.x + '<br>' +
-                             'Value: ' + txt;
-                    }"
-                )
+                useHTML = TRUE,
+                formatter = JS(sprintf("
+      (function(){
+        var bands = %s;
+        return function () {
+          var fmt = this.point.format || '';
+          var v   = this.point.trueValue;
+          var txt;
+          if (fmt === '$') {
+            var sign = (v < 0 ? '-' : '');
+            var absv = Highcharts.numberFormat(Math.abs(v), 2);
+            txt = sign + '$' + absv;
+          } else if (fmt === '%%') {
+            txt = Highcharts.numberFormat(v, 2) + '%%';
+          } else {
+            txt = Highcharts.numberFormat(v, 2);
+          }
+
+          var yr = this.x; // numeric (year or decimal-year)
+          var tag = '';
+          for (var i=0;i<bands.length;i++){
+            if (yr >= bands[i].from && yr <= bands[i].to) {
+              tag = '<br><span style=\"color:#e74c3c\"><b>'+bands[i].name+'</b></span>';
+              break;
+            }
+          }
+          return '<b>' + this.series.name + '</b><br>' +
+                 'Year: ' + yr + '<br>' +
+                 'Value: ' + txt + tag;
+        }
+      })()
+    ", bands_js))
             ) %>%
-            hc_yAxis(
-                labels = list(enabled = FALSE),
-                title = list(text = "")
+            hc_yAxis(labels = list(enabled = FALSE), title = list(text = "")) %>%
+            hc_xAxis(
+                title = list(text = "Year"),
+                plotBands = plot_bands_year    # precise bands (decimal-year)
             ) %>%
-            hc_xAxis(title = list(text = "Year")) %>%
-            #hc_yAxis(title = list(text = "Scaled Value")) %>%
             hc_subtitle(text = "All indicators are scaled for visual cohesiveness") %>%
             hc_title(text = paste(default_cat, "Over Time"))
     })
@@ -2914,7 +2961,7 @@ server <- function(input, output, session) {
             )
     })
     
-    ### Emissions Vector ----
+    ### Emissions Bar Chart ----
     output$state_means_scaled <- renderHighchart({
         b   <- current()
         dbs <- dplyr::arrange(scaled_data, Year)
@@ -3096,19 +3143,20 @@ server <- function(input, output, session) {
     
     current <- reactive({ bundle[[ selected_model_id() ]] })
     
-    ### Emissions Bar Chart ----
-    output$emis_bars <- renderHighchart({
-        b <- current(); ep <- b$emis
-        series_mu <- data.frame(x = seq_len(nrow(ep)) - 1L, y = ep$mu)
-        err_js <- sprintf("[%s]", paste(sprintf("[%.6f,%.6f]", ep$mu - 2*ep$sd, ep$mu + 2*ep$sd), collapse = ","))
-        highchart() %>%
-            hc_title(text = "State emission parameters (Gaussian)") %>%
-            hc_subtitle(text = "Bars: Average Observed Index  |  Whiskers: μ ± 2σ") %>%
-            hc_xAxis(categories = ep$state) %>%
-            hc_yAxis(title = list(text = "Average Observed Index")) %>%
-            hc_add_series(type = "column", name = "Average Observed Index", data = list_parse2(series_mu)) %>%
-            hc_add_series(type = "errorbar", name = "μ ± 2σ", data = JS(err_js), showInLegend = FALSE)
-    })
+    ### Emissions Bar Chart ---
+    # output$emis_bars <- renderHighchart({
+    #     b <- current()
+    #     ep <- b$emis
+    #     series_mu <- data.frame(x = seq_len(nrow(ep)) - 1L, y = ep$mu)
+    #     err_js <- sprintf("[%s]", paste(sprintf("[%.6f,%.6f]", ep$mu - 2*ep$sd, ep$mu + 2*ep$sd), collapse = ","))
+    #     highchart() %>%
+    #         hc_title(text = "State emission parameters (Gaussian)") %>%
+    #         hc_subtitle(text = "Bars: Average Observed Index  |  Whiskers: μ ± 2σ") %>%
+    #         hc_xAxis(categories = ep$state) %>%
+    #         hc_yAxis(title = list(text = "Average Observed Index")) %>%
+    #         hc_add_series(type = "column", name = "Average Observed Index", data = list_parse2(series_mu)) %>%
+    #         hc_add_series(type = "errorbar", name = "μ ± 2σ", data = JS(err_js), showInLegend = FALSE)
+    # })
     
     ### Emissions Density Chart ----
     output$emis_dens <- renderHighchart({
@@ -3130,54 +3178,62 @@ server <- function(input, output, session) {
         dens_list <- lapply(seq_len(nrow(ep)), function(i){
             data.frame(x = x_grid, y = dnorm(x_grid, mean = ep$mu[i], sd = ep$sd[i]))
         })
+
+        is_high1 <- (b$hi_state == 1L)
         
-        # Colors (optional): green for High, red for Low (consistent across dashboard)
-        col_high <- "#28a745"
-        col_low  <- "#e74c3c"
-        series_colors <- c(col_high, col_low)  # assumes i=1 is "High", i=2 is "Low" AFTER labs mapping
-        # labs[i] corresponds to state i because hi_state mapping above orders labs as S1->labs[1], S2->labs[2]
+        lab1 <- if (is_high1) "High" else "Low"     # label for S1
+        lab2 <- if (is_high1) "Low"  else "High"    # label for S2
+        col1 <- if (is_high1) "#28a745" else "#e74c3c"  # color for S1
+        col2 <- if (is_high1) "#e74c3c" else "#28a745"  # color for S2
         
-        # Dashed vertical plotLines at peaks (μ)
-        peak_lines <- lapply(seq_len(nrow(ep)), function(i){
+        ## dashed μ lines for S1/S2 with correct labels/colors
+        peak_lines <- list(
             list(
-                value = ep$mu[i],
-                color = series_colors[i],
-                width = 2,
-                dashStyle = "ShortDash",
-                zIndex = 5,
+                value = ep$mu[1], color = col1, width = 2, dashStyle = "ShortDash", zIndex = 5,
                 label = list(
-                    text = sprintf("%s peak: μ=%.2f", labs[i], ep$mu[i]),
+                    text = sprintf("%s peak: μ=%.2f", lab1, ep$mu[1]),
                     rotation = 0, align = "left", y = -5, x = 5,
-                    style = list(color = series_colors[i], fontWeight = "bold")
+                    style = list(color = col1, fontWeight = "bold")
+                )
+            ),
+            list(
+                value = ep$mu[2], color = col2, width = 2, dashStyle = "ShortDash", zIndex = 5,
+                label = list(
+                    text = sprintf("%s peak: μ=%.2f", lab2, ep$mu[2]),
+                    rotation = 0, align = "left", y = -5, x = 5,
+                    style = list(color = col2, fontWeight = "bold")
                 )
             )
-        })
-        
-        highchart() %>%
+        )
+
+        hc <- highchart() %>%
             hc_chart(type = "areaspline") %>%
             hc_title(text = "Emission Densities by State") %>%
             hc_subtitle(text = "Theoretical Densities: y | State s ~ N(μₛ, σₛ²)") %>%
             hc_xAxis(title = list(text = "Average Observed Index"),
-                     min = x_min, max = x_max,
-                     plotLines = peak_lines) %>%   # <-- dashed lines at μ
+                     min = x_min, max = x_max, plotLines = peak_lines) %>%
             hc_yAxis(title = list(text = "Density")) %>%
-            hc_plotOptions(series = list(marker = list(enabled = FALSE), animation = TRUE)) %>%
-            # Add series for each state
-            hc_add_series_list(lapply(seq_along(dens_list), function(i){
-                list(
-                    name = labs[i],
-                    type = "areaspline",
-                    data = list_parse2(dens_list[[i]][, c("x","y")]),  # pass x,y pairs
-                    keys = c("x","y"),
-                    color = series_colors[i],
-                    tooltip = list(valueDecimals = 3)
-                )
-            })) %>%
-            hc_tooltip(shared = TRUE, useHTML = TRUE,
-                       headerFormat = "<b>{point.key:.2f}</b><br/>",
-                       pointFormat  = "{series.name}: <b>{point.y:.3f}</b><br/>") %>%
-            hc_legend(enabled = TRUE) %>%
-            hc_exporting(enabled = TRUE)
+            hc_plotOptions(series = list(marker = list(enabled = FALSE), animation = TRUE))
+        
+        if (is_high1) {
+            hc <- hc %>%
+                hc_add_series(name = "High", type = "areaspline",
+                              data = list_parse2(dens_list[[1]][, c("x","y")]), keys = c("x","y"),
+                              color = "#28a745", tooltip = list(valueDecimals = 3)) %>%
+                hc_add_series(name = "Low",  type = "areaspline",
+                              data = list_parse2(dens_list[[2]][, c("x","y")]), keys = c("x","y"),
+                              color = "#e74c3c", tooltip = list(valueDecimals = 3))
+        } else {
+            hc <- hc %>%
+                hc_add_series(name = "High", type = "areaspline",
+                              data = list_parse2(dens_list[[2]][, c("x","y")]), keys = c("x","y"),
+                              color = "#28a745", tooltip = list(valueDecimals = 3)) %>%
+                hc_add_series(name = "Low",  type = "areaspline",
+                              data = list_parse2(dens_list[[1]][, c("x","y")]), keys = c("x","y"),
+                              color = "#e74c3c", tooltip = list(valueDecimals = 3))
+        }
+        
+        hc
     })
     
     ### 3D TSNE PLOT ----
@@ -3246,10 +3302,11 @@ server <- function(input, output, session) {
         
         hc <- highchart() %>%
             hc_add_dependency("highcharts-3d") %>%
+            
             hc_chart(
                 type = "scatter3d",
                 options3d = list(
-                    enabled = TRUE, alpha = 10, beta = 30, depth = 250, viewDistance = 5,
+                    enabled = TRUE, alpha = 10, beta = 30, depth = 250, viewDistance = 40, fitToPlot = FALSE,
                     frame = list(bottom = list(size = 1, color = 'transparent'),
                                  back   = list(size = 1, color = 'transparent'),
                                  side   = list(size = 1, color = 'transparent'))
@@ -3483,55 +3540,295 @@ server <- function(input, output, session) {
     })
     
     
-    ### Transition Probability Timeline for Best Model ----
-    output$best_tpm_time <- renderHighchart({
+    # Helper function to create lagged covariates
+    build_X_all <- function(df, vars, lags) {
+        stopifnot(length(vars) == length(lags))
+        n <- nrow(df)
+        X <- Map(function(v, L) {
+            x <- df[[v]]
+            if (L > 0L) x <- c(rep(NA_real_, L), x)[1:n]
+            x
+        }, vars, lags) |> as.data.frame()
+        colnames(X) <- paste0(vars, "_L", lags)
+        X
+    }
+    
+    ### Means Bar Chart for Best Model ----
+    
+    output$state_means_real_M4 <- renderHighchart({
         b <- bundle[["M4"]]
-        P <- b$P_avg
-        K <- nrow(P)
+
+        dbs <- dplyr::arrange(scaled_data, Year)
+        dbr <- dplyr::arrange(full_dataset, Year)
         
-        xcats <- paste0("S", 1:K)
-        ycats <- paste0("S", 1:K)
+        vars <- b$vars
+        lags <- b$lags
+        stopifnot(length(vars) == length(lags))
         
-        # build long frame without rep.int()
-        hm_df <- transform(
-            expand.grid(y = 0:(K-1), x = 0:(K-1)),   # rows=from (y), cols=to (x)
-            value = as.vector(P)
-        )
-        
-        # for K = 2 (S1 green, S2 red)
-        df_to1 <- subset(hm_df, x == 0)  # -> S1
-        df_to2 <- subset(hm_df, x == 1)  # -> S2
-        
-        highchart() %>%
-            hc_add_dependency("modules/heatmap") %>%
-            hc_chart(type = "heatmap") %>%
-            hc_title(text = "Average Transition Matrix") %>%
-            hc_xAxis(categories = xcats, title = list(text = "To")) %>%
-            hc_yAxis(categories = ycats, title = list(text = "From"), reversed = TRUE) %>%
-            hc_colorAxis(list(
-                list(min = 0, max = 1, nullColor = "rgba(0,0,0,0)",
-                     stops = list(list(0, "#e9f7ef"), list(1, "#27ae60"))),  # green
-                list(min = 0, max = 1, nullColor = "rgba(0,0,0,0)",
-                     stops = list(list(0, "#fdeaea"), list(1, "#e74c3c")))   # red
-            )) %>%
-            hc_add_series(type = "heatmap", name = "P(→ S1)",
-                          data = highcharter::list_parse2(df_to1), keys = c("x","y","value"),
-                          colorAxis = 0, borderWidth = 0, turboThreshold = 0) %>%
-            hc_add_series(type = "heatmap", name = "P(→ S2)",
-                          data = highcharter::list_parse2(df_to2), keys = c("x","y","value"),
-                          colorAxis = 1, borderWidth = 0, turboThreshold = 0) %>%
-            hc_tooltip(
-                useHTML = TRUE,
-                formatter = JS("
-        function () {
-          var from = this.series.yAxis.categories[this.point.y];
-          var to   = this.series.xAxis.categories[this.point.x];
-          var val  = Highcharts.numberFormat(this.point.value, 2);
-          return 'Average ' + from + '→' + to + ' Probability: <b>' + val + '</b>';
+        mk_lag <- function(df) {
+            M <- sapply(seq_along(vars), function(i){
+                v <- df[[vars[i]]]
+                L <- as.integer(lags[i])
+                if (L > 0L) v <- c(rep(NA_real_, L), v)[1:length(v)]
+                v
+            })
+            colnames(M) <- paste0(vars, "_L", lags)
+            as.matrix(M)
         }
-      ")
+        
+        Xz <- mk_lag(dbs)
+        Xr <- mk_lag(dbr)
+        
+        idx <- match(b$posterior$year, dbs$Year)
+        Xz  <- Xz[idx, , drop = FALSE]
+        Xr  <- Xr[idx, , drop = FALSE]
+        
+        P1 <- b$posterior$S1; P2 <- b$posterior$S2
+        P_high <- if (b$hi_state == 1L) P1 else P2
+        P_low  <- if (b$hi_state == 1L) P2 else P1
+        
+        wmean <- function(x, w){ ok <- is.finite(x)&is.finite(w); if(!any(ok)) return(NA_real_); sum(w[ok]*x[ok])/sum(w[ok]) }
+        wsd   <- function(x, w, m){ ok <- is.finite(x)&is.finite(w); if(!any(ok)) return(NA_real_); sqrt(sum(w[ok]*(x[ok]-m)^2)/sum(w[ok])) }
+        
+        mu_H <- apply(Xz, 2, function(col) wmean(col, P_high))
+        mu_L <- apply(Xz, 2, function(col) wmean(col, P_low))
+        sd_H <- mapply(function(col, m) wsd(col, P_high, m), as.data.frame(Xz), mu_H)
+        sd_L <- mapply(function(col, m) wsd(col, P_low,  m), as.data.frame(Xz), mu_L)
+        
+        r_H  <- apply(Xr, 2, function(col) wmean(col, P_high))
+        r_L  <- apply(Xr, 2, function(col) wmean(col, P_low))
+        
+        base_names   <- vars
+        pretty_final <- unname(pretty_map[base_names])
+        miss <- is.na(pretty_final)
+        if (any(miss)) pretty_final[miss] <- base_names[miss]
+        cats <- as.character(pretty_final)
+        
+        hi_pts <- lapply(seq_along(mu_H), function(i) list(
+            y = as.numeric(mu_H[i]), real = as.numeric(r_H[i])
+        ))
+        lo_pts <- lapply(seq_along(mu_L), function(i) list(
+            y = as.numeric(mu_L[i]), real = as.numeric(r_L[i])
+        ))
+        
+        err_high <- Map(function(m, s) c(m - s, m + s), as.numeric(mu_H), as.numeric(sd_H))
+        err_low  <- Map(function(m, s) c(m - s, m + s), as.numeric(mu_L), as.numeric(sd_L))
+
+        highchart() %>%
+            hc_add_dependency("highcharts-more") %>%
+            hc_chart(type = "column") %>%
+            hc_title(text = "Indicator Means ± SD (scaled)") %>%
+            hc_subtitle(text = "Posterior-weighted by state; bars are z-scores; tooltip shows real units") %>%
+            hc_xAxis(categories = cats, type = "category", tickPositions = 0:(length(cats) - 1)) %>%
+            hc_yAxis(title = list(text = NULL), labels = list(enabled = FALSE),
+                     plotLines = list(list(value = 0, color = "#666", width = 1))) %>%
+            hc_plotOptions(column = list(pointPadding = 0.1, groupPadding = 0.08)) %>%
+            hc_add_series(name = "High", id = "s_high", data = hi_pts, color = "#28a745", zIndex = 2) %>%
+            hc_add_series(name = "Low",  id = "s_low",  data = lo_pts, color = "#e74c3c", zIndex = 2) %>%
+            hc_add_series(type = "errorbar", name = "High ±1 SD", data = err_high,
+                          linkedTo = "s_high", color = "#1b5e20", whiskerLength = "30%", zIndex = 1) %>%
+            hc_add_series(type = "errorbar", name = "Low ±1 SD",  data = err_low,
+                          linkedTo = "s_low",  color = "#7f1d1d",  whiskerLength = "30%", zIndex = 1) %>%
+            hc_tooltip(
+                shared = TRUE, useHTML = TRUE,
+                formatter = JS("
+                                function () {
+                                  var cat = this.x;
+                            
+                                  function fmtDollarFront(v){
+                                    return '$' + Highcharts.numberFormat(v, 2);
+                                  }
+                                  function fmtDollarNegAfter(v){
+                                    var neg = v < 0;
+                                    var s = Highcharts.numberFormat(Math.abs(v), 2);
+                                    return (neg ? '-' : '') + '$' + s;   // -$1,234.56
+                                  }
+                                  function fmtPct(v){
+                                    return Highcharts.numberFormat(v, 2) + '%';
+                                  }
+                            
+                                  var s = '<b>' + cat + '</b><br/>';
+                                  (this.points || [this.point]).forEach(function(pt){
+                                    var real = (pt.point && pt.point.real != null) ? pt.point.real : pt.y;
+                                    var val;
+                            
+                                    if (/Real\\s*GDP/i.test(cat)) {
+                                      val = fmtDollarFront(real);                       // GDP → $ at the front
+                                    } else if (/(Federal\\s*Surplus\\/?Deficit|FYFSD)/i.test(cat)) {
+                                      val = fmtDollarNegAfter(real);                    // Surplus/Deficit → -$…
+                                    } else if (/PCE\\s*Price|PCEPI/i.test(cat)) {
+                                      val = fmtPct(real);                               // PCEPI → %
+                                    } else {
+                                      val = Highcharts.numberFormat(real, 2);
+                                    }
+                            
+                                    s += pt.series.name + ': <b>' + val + '</b><br/>';
+                                  });
+                                  return s;
+                                }
+                        ")
+            )
+    })
+    
+    
+    ### Best Model Tested Post 2007 ----
+    
+    set.seed(42)
+    vars <- c("real_GDP","PCEPI","FYFSD")
+    lags <- c(1L, 0L, 1L)
+    
+    dat <- full_dataset %>% dplyr::arrange(Year)
+    X   <- build_X_all(dat, vars, lags)
+    df0 <- cbind.data.frame(
+        Year = dat$Year,
+        y    = dat$consumer_sentiment,
+        X
+    ) %>% dplyr::filter(stats::complete.cases(.))
+    
+    tr <- df0$Year >= 1987 & df0$Year <= 2006
+    colsX <- setdiff(names(df0), c("Year","y"))
+    
+    mu  <- sapply(df0[tr, colsX, drop=FALSE], mean)
+    sdx <- pmax(1e-9, sapply(df0[tr, colsX, drop=FALSE], sd))
+    Z   <- as.data.frame(sweep(sweep(df0[, colsX, drop=FALSE], 2, mu, "-"), 2, sdx, "/"))
+    D   <- cbind.data.frame(Year=df0$Year, y=df0$y, Z)
+    
+    trans_form <- as.formula(paste("~", paste(colsX, collapse=" + ")))
+    
+    mod_tr <- depmixS4::depmix(y ~ 1, data = D[tr,], nstates = 2,
+                               family = gaussian(), transition = trans_form)
+    fit_tr <- depmixS4::fit(mod_tr, verbose = FALSE,
+                            emcontrol = depmixS4::em.control(random.start = TRUE, maxit = 1000))
+    
+    emis_mu  <- vapply(1:2, function(s) depmixS4::getpars(fit_tr@response[[s]][[1]])[1], numeric(1))
+    hi_state <- which.max(emis_mu)
+    
+    mod_full <- depmix(y ~ 1, data = D, nstates = 2,
+                                 family = gaussian(), transition = trans_form)
+    mod_full <- depmixS4::setpars(mod_full, depmixS4::getpars(fit_tr))
+    fb       <- depmixS4::forwardbackward(mod_full)
+    post     <- as.data.frame(fb$gamma); names(post) <- c("S1","S2")
+    viterbi  <- ifelse(post$S1 >= post$S2, 1L, 2L)
+    
+    b_frozen_m4 <- list(
+        years    = D$Year,
+        viterbi  = viterbi,
+        hi_state = hi_state
+    )
+    
+    b_full  <- bundle[["M4"]]
+    b_short <- b_frozen_m4
+    
+    start_oos <- as.Date("2007-01-01")
+    end_oos   <- as.Date("2024-12-31")
+    
+    # monthly base for 2007–2024
+    cs <- cons_sent_monthly %>%
+        dplyr::transmute(
+            date = as.Date(observation_date),
+            year = as.integer(format(as.Date(observation_date), "%Y")),
+            # be strict: parse as numeric and keep only finite rows
+            y    = suppressWarnings(as.numeric(UMCSENT))
+        ) %>%
+        dplyr::filter(date >= start_oos, date <= end_oos) %>%
+        dplyr::filter(!is.na(y) & is.finite(y)) %>%   # <-- important
+        dplyr::arrange(date)
+    
+    # build plot bands from a model (years, viterbi, hi_state)
+    to_bands <- function(model, cs_df,
+                         fill_hi = "rgba(40,167,69,0.18)",
+                         fill_lo = "rgba(231,76,60,0.18)") {
+        yr_map <- tibble::tibble(
+            year  = as.integer(model$years),
+            state = as.integer(model$viterbi)
+        ) %>%
+            dplyr::mutate(regime = ifelse(state == model$hi_state, "High", "Low")) %>%
+            dplyr::select(year, regime)
+        
+        dfm <- cs_df %>%
+            dplyr::left_join(yr_map, by = "year") %>%
+            dplyr::mutate(regime = ifelse(is.na(regime), "Low", regime))
+        
+        r      <- rle(dfm$regime)
+        ends   <- cumsum(r$lengths)
+        starts <- c(1, head(ends, -1) + 1)
+        
+        Map(function(i, j, lab){
+            list(
+                from   = datetime_to_timestamp(dfm$date[i]),
+                to     = datetime_to_timestamp(dfm$date[j]) + 24*3600*1000 - 1,
+                color  = if (lab == "High") fill_hi else fill_lo,
+                zIndex = 1
+            )
+        }, starts, ends, r$values)
+    }
+    
+    bands_full  <- to_bands(b_full,  cs)
+    bands_short <- to_bands(b_short, cs)
+    
+    series_line <- cs %>%
+        dplyr::transmute(x = datetime_to_timestamp(date), y = y) %>%
+        list_parse2()
+    
+    tooltip_fn <- htmlwidgets::JS("
+    function () {
+      return Highcharts.dateFormat('%b %e, %Y', this.x) +
+             '<br/>Index: <b>' + Highcharts.numberFormat(this.y, 2) + '</b>';
+    }
+  ")
+    
+    # top chart: full model regimes
+    output$hmm_oos_full <- renderHighchart({
+        highchart() %>%
+            hc_chart(zoomType = "x") %>%
+            hc_title(text = "Full Consumer Sentiment Regimes From Best Model") %>%
+            hc_xAxis(
+                type = "datetime",
+                min  = datetime_to_timestamp(start_oos),
+                max  = datetime_to_timestamp(end_oos),
+                plotBands = bands_full
             ) %>%
-            hc_legend(enabled = TRUE)
+            hc_yAxis(
+                title = list(text = "Index Value"),
+                plotLines = list(list(
+                    value = 100, color = "#999", width = 2, dashStyle = "Dash",
+                    label = list(text = "Baseline (1966)", style = list(color = "#777"))
+                ))
+            ) %>%
+            hc_add_series(
+                data = series_line, type = "line", name = "Consumer Sentiment",
+                color = "#111", lineWidth = 2, marker = list(enabled = FALSE),
+                zIndex = 5
+            ) %>%
+            hc_tooltip(shared = FALSE, useHTML = TRUE, formatter = tooltip_fn) %>%
+            hc_legend(enabled = FALSE) %>%
+            hc_credits(enabled = FALSE)
+    })
+    
+    # bottom chart: frozen-2006 model regimes
+    output$hmm_oos_short <- renderHighchart({
+        highchart() %>%
+            hc_chart(zoomType = "x") %>%
+            #hc_title(text = "Consumer Sentiment — Short-trained regimes (train 1987–2006)") %>%
+            hc_subtitle(text = "Best Model Trained From 1986-2007, trained from 2007-Onwards") %>%
+            hc_xAxis(
+                type = "datetime",
+                min  = datetime_to_timestamp(start_oos),
+                max  = datetime_to_timestamp(end_oos),
+                plotBands = bands_short
+            ) %>%
+            hc_yAxis(
+                title = list(text = NULL),
+                plotLines = list(list(value = 100, color = "#999", width = 2, dashStyle = "Dash"))
+            ) %>%
+            hc_add_series(
+                data = series_line, type = "line", name = "Consumer Sentiment",
+                color = "#1f78d1", lineWidth = 2, marker = list(enabled = FALSE),
+                zIndex = 5
+            ) %>%
+            hc_tooltip(shared = FALSE, useHTML = TRUE, formatter = tooltip_fn) %>%
+            hc_legend(enabled = FALSE) %>%
+            hc_credits(enabled = FALSE)
     })
     
     
