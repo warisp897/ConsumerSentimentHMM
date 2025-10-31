@@ -422,7 +422,7 @@ model_result_info <- withMathJax(HTML(
     <p>
     The model utilizing <b>Lagged Real GDP (\\(t-1\\))</b>, 
     the <b>PCE Price Index (\\(t\\))</b>, and the 
-    <b>Lagged Federal Surplus/Deficit (\\(t-1\\))</b> 
+    <b>Lagged Federal Surplus/Deficit (\\(t-1\\))</b> (<b>Model 1</b>) 
     was identified as the most effective combination.
     It consistently delivered the strongest <b>out-of-sample improvement</b>
     over the baseline, proving superior and more consistent at <b>anticipating Consumer Sentiment regime shifts</b>
@@ -1265,9 +1265,9 @@ ui <- bs4DashPage(
                                             column(
                                                 width = 8,
                                                 div(
-                                                    highchartOutput("hmm_oos_full",  height = "350px"),
+                                                    #highchartOutput("hmm_oos_full",  height = "350px"),
                                                     tags$br(),
-                                                    highchartOutput("hmm_oos_short", height = "350px"),
+                                                    highchartOutput("hmm_oos_short")#, height = "350px"),
                                                 )
                                                 
                                             )
@@ -1326,6 +1326,7 @@ server <- function(input, output, session) {
         })
         
         highchart() %>%
+            hc_add_theme(hc_theme_elementary()) %>%
             hc_chart(zoomType = "x") %>%
             hc_title(text = "Consumer Sentiment Over Time",
                      style = list(fontSize = "28px")) %>%
@@ -1624,6 +1625,7 @@ server <- function(input, output, session) {
         }
         
         highchart() %>%
+            hc_add_theme(hc_theme_elementary()) %>%
             hc_chart(zoomType = "x") %>%
             hc_chart(type = "line",
                      spacing = list(top = 10, right = 10, bottom = 20, left = 10)) %>%
@@ -1889,6 +1891,7 @@ server <- function(input, output, session) {
         })
         
         highchart() %>%
+            hc_add_theme(hc_theme_elementary()) %>%
             hc_chart(type = "bar") %>%
             hc_xAxis(categories = unname(cor_df$Label), reversed = TRUE) %>%
             hc_yAxis(title = list(text = "Pearson's r")) %>%
@@ -2369,6 +2372,7 @@ server <- function(input, output, session) {
         )
         
         hc <- highchart() %>%
+            hc_add_theme(hc_theme_elementary()) %>%
             hc_chart(
                 type = "scatter",
                 spacingLeft = 8, spacingRight = 8,
@@ -2647,54 +2651,122 @@ server <- function(input, output, session) {
         
         z_all <- as.data.frame(lapply(df_all, function(col) as.numeric(scale(col))))
         
-        hc <- highchart() %>%
-            hc_chart(zoomType = "x") %>%
-            hc_credits(enabled = FALSE) %>%
-            hc_title(text = NULL) %>%
-            hc_xAxis(type = "datetime") %>%
-            hc_yAxis(
-                title = list(text = "z-score")            ) %>%
-            hc_plotOptions(series = list(marker = list(enabled = FALSE)))
-        
-        col_cs   <- "#2E3138"
-        cols_ind <- c("#00BFA6", "#2CC8BB", "#54D7CA", "#7FE3D7", "#A7EFE4")
-        
-        hc <- hc %>% hc_add_series(
-            type = "line", name = "Consumer Sentiment",
-            data = purrr::transpose(list(x = x_keep, y = z_all$cs)),
-            color = col_cs, lineWidth = 3, showInLegend = TRUE
-        )
-        
-        i <- 0
-        for (nm in overview_vars) {
-            i <- i + 1
-            nm_pretty <- if (nm %in% names(pretty_map)) pretty_map[[nm]] else nm
+        output$overview_ts <- renderHighchart({
+            overview_vars <- c("real_GDP", "PCEPI", "FYFSD", "unemployment_rate", "case_schiller_val")
+            lag_map <- c(real_GDP = 1, PCEPI = 0, FYFSD = 1, unemployment_rate = 1, case_schiller_val = 1)
+            
+            dat <- full_dataset[order(full_dataset$Year), ]
+            x_ts <- datetime_to_timestamp(as.Date(paste0(dat$Year, "-01-01")))
+            
+            series_list <- list()
+            for (nm in overview_vars) {
+                v <- dat[[nm]]
+                L <- if (nm %in% names(lag_map)) lag_map[[nm]] else 0L
+                if (L > 0) v <- c(rep(NA_real_, L), head(v, -L))
+                series_list[[nm]] <- v
+            }
+            cs <- dat$consumer_sentiment
+            
+            df_all <- cbind(cs = cs, as.data.frame(series_list))
+            keep    <- stats::complete.cases(df_all)
+            df_all <- df_all[keep, , drop = FALSE]
+            x_keep <- x_ts[keep]
+            
+            z_all <- as.data.frame(lapply(df_all, function(col) as.numeric(scale(col))))
+            
+            col_cs <- "#000000" 
+            cols_ind <- c("#66C7B4", "#FFB45A", "#8D6E63", "#EA7369", "#8A9AFB")
+            
+            hc <- highchart() %>%
+                hc_add_theme(hc_theme_elementary()) %>% 
+                hc_title(
+                    text = "Consumer Sentiment and Selected Economic Indicators",
+                    style = list(fontWeight = "bold", fontSize = "16px")
+                ) %>%
+                hc_subtitle(
+                    text = "All series are standardized for comparison"
+                ) %>%
+                hc_chart(zoomType = "x") %>%
+                hc_credits(enabled = FALSE) %>%
+                hc_xAxis(
+                    type = "datetime",
+                    gridLineDashStyle = "Dot",
+                    gridLineColor = "#E0E0E0",
+                    crosshair = TRUE
+                ) %>%
+                hc_yAxis(
+                    title = list(text = "z-score"),
+                    gridLineDashStyle = "Dot",
+                    gridLineColor = "#E0E0E0",
+                    crosshair = TRUE
+                ) %>%
+                hc_legend(
+                    align = "center",
+                    verticalAlign = "bottom",
+                    layout = "horizontal"
+                ) %>%
+                hc_plotOptions(
+                    series = list(
+                        marker = list(enabled = FALSE),
+                        states = list(
+                            hover = list(
+                                lineWidthPlus = 1.5 
+                            ),
+                            inactive = list(
+                                opacity = 0.2
+                            )
+                        )
+                    )
+                )
+            
             hc <- hc %>% hc_add_series(
-                type = "line", name = nm_pretty,
-                data = purrr::transpose(list(x = x_keep, y = z_all[[nm]])),
-                color = cols_ind[(i - 1) %% length(cols_ind) + 1],
-                lineWidth = 1.6, showInLegend = TRUE
+                type = "line", 
+                name = "Consumer Sentiment",
+                data = purrr::transpose(list(x = x_keep, y = z_all$cs)),
+                color = col_cs, 
+                lineWidth = 3.5,
+                zIndex = 10,
+                showInLegend = TRUE
             )
-        }
-        
-        hc %>%
-            hc_tooltip(
-                useHTML = TRUE,
-                backgroundColor = "rgba(255,255,255,1)",
-                borderColor = "#333333",
-                style = list(color = "#000000"),
-                shared = TRUE,
-                formatter = JS("
-                    function () {
-                      var s = '<b>' + Highcharts.dateFormat('%Y', this.x) + '</b><br/>';
-                      this.points.forEach(function(p){
+            
+            i <- 0
+            for (nm in overview_vars) {
+                i <- i + 1
+                nm_pretty <- if (exists("pretty_map") && nm %in% names(pretty_map)) pretty_map[[nm]] else nm
+                hc <- hc %>% hc_add_series(
+                    type = "line", 
+                    name = nm_pretty,
+                    data = purrr::transpose(list(x = x_keep, y = z_all[[nm]])),
+                    color = cols_ind[(i - 1) %% length(cols_ind) + 1],
+                    lineWidth = 1.8,
+                    opacity = 0.75,
+                    showInLegend = TRUE
+                )
+            }
+            
+            hc %>%
+                hc_tooltip(
+                    shared = TRUE,
+                    crosshairs = TRUE,
+                    useHTML = TRUE,
+                    backgroundColor = "rgba(255, 255, 255, 0.95)",
+                    borderColor = "#B0B0B0",
+                    borderRadius = 8,
+                    borderWidth = 1,
+                    shadow = TRUE,
+                    style = list(color = "#333333", fontSize = "12px"),
+                    formatter = JS("
+                function () {
+                    var s = '<b>' + Highcharts.dateFormat('%Y', this.x) + '</b><br/>';
+                    this.points.forEach(function(p){
                         s += '<span style=\"color:' + p.series.color + '\">' + p.series.name +
                              '</span>: <b>' + Highcharts.numberFormat(p.y, 2) + '</b><br/>';
-                      });
-                      return s;
-                    }
-      ")
-            )
+                    });
+                    return s;
+                }
+            ")
+                )
+        })
     })    
     
     # Map button clicks -> index 1..5 based on *current* plot_df ordering
@@ -2730,6 +2802,7 @@ server <- function(input, output, session) {
         err_js <- sprintf("[%s]", paste(sprintf("[%.6f,%.6f]", ci_lo, ci_hi), collapse = ","))
         
         highchart() %>%
+            hc_add_theme(hc_theme_elementary()) %>%
             hc_chart(type = "bar", id = session$ns("model_selection_plot_chart")) %>%
             hc_chart(type = "bar") %>%
             hc_title(text = "Mean Test Log-Likelihood vs Baseline") %>%
@@ -2866,6 +2939,7 @@ server <- function(input, output, session) {
             )
         
         highchart() %>%
+            hc_add_theme(hc_theme_elementary()) %>%
             hc_chart(zoomType = "x") %>%
             hc_title(text = paste0("Predicted Consumer Sentiment Regimes")) %>%
             hc_subtitle(text = paste0("Threshold: P(High) ≥ 0.5")) %>%
@@ -2895,6 +2969,7 @@ server <- function(input, output, session) {
             pair = y_cats
         )
         highchart() %>%
+            hc_add_theme(hc_theme_elementary()) %>%
             hc_add_dependency("modules/heatmap") %>%
             hc_chart(type = "heatmap") %>%
             hc_title(text = "Average Transition Matrix") %>%
@@ -2941,6 +3016,7 @@ server <- function(input, output, session) {
             dplyr::select(x,y,value)
         
         highchart() %>%
+            hc_add_theme(hc_theme_elementary()) %>%
             hc_add_dependency("modules/heatmap") %>%
             hc_chart(type = "heatmap") %>%
             hc_title(text = "Transition probabilities over time") %>%
@@ -3013,6 +3089,7 @@ server <- function(input, output, session) {
         err_low  <- Map(function(m, s) c(m - s, m + s), as.numeric(mu_L), as.numeric(sd_L))
         
         highchart() %>%
+            hc_add_theme(hc_theme_elementary()) %>%
             hc_add_dependency("highcharts-more") %>%
             hc_chart(type = "column") %>%
             hc_title(text = sprintf("Indicator Means ± SD (scaled)")) %>%
@@ -3115,6 +3192,7 @@ server <- function(input, output, session) {
             stringsAsFactors = FALSE
     )
         highchart() %>%
+            hc_add_theme(hc_theme_elementary()) %>%
             hc_add_dependency("modules/heatmap") %>%
             hc_chart(type = "heatmap") %>%
             hc_title(text = sprintf("Correlation to Indicators per State")) %>%
@@ -3207,6 +3285,7 @@ server <- function(input, output, session) {
         )
 
         hc <- highchart() %>%
+            hc_add_theme(hc_theme_elementary()) %>%
             hc_chart(type = "areaspline") %>%
             hc_title(text = "Emission Densities by State") %>%
             hc_subtitle(text = "Theoretical Densities: y | State s ~ N(μₛ, σₛ²)") %>%
@@ -3301,6 +3380,7 @@ server <- function(input, output, session) {
         
         
         hc <- highchart() %>%
+            hc_add_theme(hc_theme_elementary()) %>%
             hc_add_dependency("highcharts-3d") %>%
             
             hc_chart(
@@ -3495,6 +3575,7 @@ server <- function(input, output, session) {
         bands_js <- paste0("[", paste(macro_items, collapse = ","), "]")
         
         highchart() %>%
+            hc_add_theme(hc_theme_elementary()) %>%
             hc_chart(zoomType = "x") %>%
             hc_title(text = ("Consumer Sentiment with Regime Bands"),
                      style = list(
@@ -3615,6 +3696,7 @@ server <- function(input, output, session) {
         err_low  <- Map(function(m, s) c(m - s, m + s), as.numeric(mu_L), as.numeric(sd_L))
 
         highchart() %>%
+            hc_add_theme(hc_theme_elementary()) %>%
             hc_add_dependency("highcharts-more") %>%
             hc_chart(type = "column") %>%
             hc_title(text = "Indicator Means ± SD (scaled)") %>%
@@ -3780,6 +3862,7 @@ server <- function(input, output, session) {
     # top chart: full model regimes
     output$hmm_oos_full <- renderHighchart({
         highchart() %>%
+            hc_add_theme(hc_theme_elementary()) %>%
             hc_chart(zoomType = "x") %>%
             hc_title(text = "Full Consumer Sentiment Regimes From Best Model") %>%
             hc_xAxis(
@@ -3808,9 +3891,10 @@ server <- function(input, output, session) {
     # bottom chart: frozen-2006 model regimes
     output$hmm_oos_short <- renderHighchart({
         highchart() %>%
+            hc_add_theme(hc_theme_elementary()) %>%
             hc_chart(zoomType = "x") %>%
-            #hc_title(text = "Consumer Sentiment — Short-trained regimes (train 1987–2006)") %>%
-            hc_subtitle(text = "Best Model Trained From 1986-2007, trained from 2007-Onwards") %>%
+            hc_title(text = "Consumer Sentiment Model Trained until 2007 and Extrapolated After") %>%
+            #hc_subtitle(text = "Best Model Trained From 1986-2007, trained from 2007-Onwards") %>%
             hc_xAxis(
                 type = "datetime",
                 min  = datetime_to_timestamp(start_oos),
