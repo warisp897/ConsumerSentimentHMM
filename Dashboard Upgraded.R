@@ -413,7 +413,7 @@ emission_matrix_text <- HTML(
         </ul>
         
         <p>
-        Preference was given to models that deliver a higher average log-likelihood—indicating better predictive performance—with 
+        Preference was given to models that deliver a higher average log-likelihood, indicating better predictive performance, with 
         lower variability across folds, highlighting their ability to generalize reliably across different economic cycles. 
         Where lags were selected, they consistently improved these out-of-sample scores.
         </p>
@@ -1809,7 +1809,7 @@ server <- function(input, output, session) {
       transition probabilities in matrix <b>A</b> are re-calculated based on the expected number of transitions that occurred.
        $$ A_{ij} = \\frac{\\text{Expected # of transitions from }i \\text{ to } j}{\\text{Expected # of transitions from } i} $$
       If the E-step frequently found that a high-probability <em>Sunny</em> day was followed by a high-probability <em>Rainy</em> day, 
-      this M-step will increase the value for the <em>Sunny</em> → <em>Rainy</em> transition. The same logic is applied to update the 
+      this M-step will increase the value for the <em>Sunny</em> to <em>Rainy</em> transition. The same logic is applied to update the 
       initial state (\\(\\pi\\)) and emission (<b>B</b>) probabilities, ensuring the new parameters are a better fit for the data.
     </p>
         </div>',
@@ -1889,8 +1889,8 @@ server <- function(input, output, session) {
               \\left[
               \\begin{array}{c|cc}
                   & ☀ & 🌧 \\\\ \\hline
-                ☀  & P_{☀→☀} & P_{☀→🌧} \\\\
-                🌧 & P_{🌧→☀} & P_{🌧→🌧}
+                ☀  & P_{☀to☀} & P_{☀to🌧} \\\\
+                🌧 & P_{🌧to☀} & P_{🌧to🌧}
               \\end{array}
               \\right]
             \\]
@@ -2163,20 +2163,20 @@ server <- function(input, output, session) {
         
         # transitions A
         list(id="p11", cls="trans", left=10, top=57, col="#e74c3c",
-             label="P(Sunny → Sunny)",
-             info="<b>P(Sunny → Sunny)</b> = The probability it will be <b> Sunny </b> tomorrow
+             label="P(Sunny to Sunny)",
+             info="<b>P(Sunny to Sunny)</b> = The probability it will be <b> Sunny </b> tomorrow
              given that it is <b> Sunny </b> today"),
         list(id="p12", cls="trans", left=50, top=46.5, col="#e74c3c",
-             label="P(Sunny → Rainy)",
-             info="<b>P(Sunny → Rainy)</b> = The probability it will be <b> Rainy </b> tomorrow
+             label="P(Sunny to Rainy)",
+             info="<b>P(Sunny to Rainy)</b> = The probability it will be <b> Rainy </b> tomorrow
              given that it is <b> Sunny </b> today"),
         list(id="p21", cls="trans", left=50, top=70, col="#e74c3c",
-             label="P(Rainy → Sunny)",
-             info="<b>P(Rainy → Sunny)</b> = The probability it will be <b> Sunny </b> tomorrow
+             label="P(Rainy to Sunny)",
+             info="<b>P(Rainy to Sunny)</b> = The probability it will be <b> Sunny </b> tomorrow
              given that it is <b> Rainy </b> today"),
         list(id="p22", cls="trans", left=80, top=57, col="#e74c3c",
-             label="P(Rainy → Rainy)",
-             info="<b>P(Rainy → Rainy)</b> = The probability it will be <b> Rainy </b> tomorrow
+             label="P(Rainy to Rainy)",
+             info="<b>P(Rainy to Rainy)</b> = The probability it will be <b> Rainy </b> tomorrow
              given that it is <b> Rainy </b> today"),
         
         # emissions B
@@ -2239,7 +2239,7 @@ server <- function(input, output, session) {
         A <- dd$A; B <- dd$B
         n <- length(dd$t)
         
-        # factor → strings/indices
+        # factor to strings/indices
         z_chr  <- as.character(dd$z)
         x_chr  <- as.character(dd$x)
         zh_chr <- as.character(dd$zh)
@@ -2256,7 +2256,7 @@ server <- function(input, output, session) {
         
         data.frame(
             Time        = dd$t,
-            Transition  = c("—", paste0(state_sym[z_chr[-n]], " → ", state_sym[z_chr[-1]])),
+            Transition  = c("-", paste0(state_sym[z_chr[-n]], " → ", state_sym[z_chr[-1]])),
             A_prob      = round(trans_prob, 3),
             Observation = paste0(obs_name[x_chr], " | ", state_name[z_chr]),
             B_prob      = round(emit_prob, 3),
@@ -2279,7 +2279,7 @@ server <- function(input, output, session) {
             highlight  = TRUE,
             defaultColDef = reactable::colDef(align = "center"),
             columns = list(
-                Transition  = reactable::colDef(header = "z(t−1) → z(t)"),
+                Transition  = reactable::colDef(header = "z(t−1) to z(t)"),
                 A_prob      = reactable::colDef(
                     name  = "A[z(t−1), z(t)]",
                     style = function(value) prob_style(value),
@@ -2728,7 +2728,7 @@ server <- function(input, output, session) {
         P <- b$P_avg
         K <- nrow(P)
         
-        y_cats <- as.vector(outer(paste0("S",1:K), paste0("S",1:K), function(a,b) paste0(a,"→",b)))
+        y_cats <- as.vector(outer(paste0("S",1:K), paste0("S",1:K), function(a,b) paste0(a,"to",b)))
         hm_df <- data.frame(
             x = rep(0:(K-1), times = K),
             y = rep(0:(K-1), each  = K),
@@ -2761,7 +2761,7 @@ server <- function(input, output, session) {
                       const from = this.series.yAxis.categories[this.point.y];
                       const to   = this.series.xAxis.categories[this.point.x];
                       const val  = Highcharts.numberFormat(this.point.value, 2);
-                      return 'Average ' + from + '→' + to + ' Probability: <b>' + val + '</b>';
+                      return 'Average ' + from + 'to' + to + ' Probability: <b>' + val + '</b>';
                     }
                   ")
             )
@@ -2776,14 +2776,14 @@ server <- function(input, output, session) {
         years_eff <- b$years_P
         
         #labs   <- state_labels(b)
-        #y_cats <- as.vector(outer(labs, labs, function(a,b) paste0(a,"→",b)))
-        y_cats <- as.vector(outer(paste0("S",1:K), paste0("S",1:K), function(a,b) paste0(a,"→",b)))
+        #y_cats <- as.vector(outer(labs, labs, function(a,b) paste0(a,"to",b)))
+        y_cats <- as.vector(outer(paste0("S",1:K), paste0("S",1:K), function(a,b) paste0(a,"to",b)))
         
         # rebuild long df (masked): active from-state at t is viterbi[t]
         df <- lapply(seq_len(Tm1), function(t){
             expand.grid(i=1:K, j=1:K) %>%
                 mutate(x = t-1L,
-                       pair = paste0("S",i,"→S",j),
+                       pair = paste0("S",i,"toS",j),
                        value = as.vector(xi[t,,]),
                        from_idx = i)
         }) %>% bind_rows() %>%
@@ -2800,7 +2800,7 @@ server <- function(input, output, session) {
                      style = list(fontWeight = "bold", fontSize = "16px")) %>%
             #hc_subtitle(text = "Only the Viterbi from-state row is shown per column") %>%
             hc_xAxis(categories = b$years_P, title = list(text = "Year")) %>%
-            hc_yAxis(categories = y_cats, title = list(text = "From → To"), reversed = TRUE) %>%
+            hc_yAxis(categories = y_cats, title = list(text = "From to To"), reversed = TRUE) %>%
             hc_colorAxis(min = 0, max = 1, minColor = "#d9ffd9", maxColor = "#30c953") %>%
             hc_add_series(data = list_parse2(df), keys=c("x","y","value"), turboThreshold=0) %>%
             hc_legend(
@@ -2816,7 +2816,7 @@ server <- function(input, output, session) {
                 useHTML = TRUE,
                 formatter = JS("
                             function () {
-                              const pair = this.series.yAxis.categories[this.point.y];   // e.g., 'High→Low'
+                              const pair = this.series.yAxis.categories[this.point.y];   // e.g., 'HightoLow'
                               const val  = Highcharts.numberFormat(this.point.value, 2);
                               return pair + ': <b>' + val + '</b>';
                             }
@@ -3253,7 +3253,7 @@ server <- function(input, output, session) {
                 useHTML = TRUE,
                 formatter = JS(sprintf("
                                         function () {
-                                          var x=this.x, y=this.y, rg=(this.point&&this.point.regime)?this.point.regime:'—';
+                                          var x=this.x, y=this.y, rg=(this.point&&this.point.regime)?this.point.regime:'-';
                                           var rgColor = (rg==='High') ? '#28a745' : '#e74c3c';
                                           var tag='', bands=%s;
                                           for (var i=0;i<bands.length;i++){
@@ -3643,7 +3643,7 @@ server <- function(input, output, session) {
                                           var x = this.x, y = this.y;
                                 
                                           // infer regime from plotBands if point doesn't carry it
-                                          var bands = %s, rg = '—';
+                                          var bands = %s, rg = '-';
                                           for (var i=0;i<bands.length;i++){
                                             if (x >= bands[i].from && x <= bands[i].to) { rg = bands[i].regime; break; }
                                           }
