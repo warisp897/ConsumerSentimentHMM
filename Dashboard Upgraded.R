@@ -4,28 +4,14 @@
 # Imported libraries ----
 library(shiny)
 library(bs4Dash)
-library(plotly)
-library(dygraphs)
-library(zoo)
-library(xts)
 library(highcharter)
 library(tidyverse)
 library(DT)
 library(visNetwork)
-library(bslib)
 library(fresh)
-library(dplyr)
-library(tidyr)
-library(purrr)
 library(RColorBrewer)
-library(Rtsne)
-library(shinyjs)
-library(here)
 library(shinyjs)
 library(reactable)
-#library(jsonlite)
-
-#library(ggplot2)
 library(depmixS4)
 
 # Data Files Read in ----
@@ -830,10 +816,7 @@ ui <- bs4DashPage(
                     )
                 )
             ),
-            
-            #bs4TabItem(
-            #    tabName = "model_select",
-            #),
+
             
             ### Model Analysis Tab ----
             bs4TabItem(
@@ -946,11 +929,7 @@ ui <- bs4DashPage(
                                                 column(
                                                     width = 12,
                                                     highchartOutput("consumer_sent_monthly")
-                                                ),
-                                                # column(
-                                                #     width = 6,
-                                                #     highchartOutput("state_plot")
-                                                # )
+                                                )
                                             ),
                                             regime_conclusion
                                         ),
@@ -1208,7 +1187,7 @@ server <- function(input, output, session) {
         "Labor Market"             = "Greens",
         "Price Levels"             = "Purples",
         "Monetary and Fiscal"      = "Reds",
-        "Housing and Construction" = "Oranges",
+        "Housing and Construction" = "BuGn",
         "Trade"                    = "PuBu"
     )
     
@@ -1900,7 +1879,7 @@ server <- function(input, output, session) {
 
     output$emissions_mat <- renderUI({
         withMathJax(HTML('
-          <div id="trans-mx" class="mx" style="font-size:160%; text-align:center;">
+          <div id="emiss-mx" class="mx" style="font-size:160%; text-align:center;">
             \\[
               \\left[
               \\begin{array}{c|cc}
@@ -2556,7 +2535,6 @@ server <- function(input, output, session) {
         highchart() %>%
             hc_add_theme(hc_theme_elementary()) %>%
             hc_chart(type = "bar", id = session$ns("model_selection_plot_chart")) %>%
-            hc_chart(type = "bar") %>%
             hc_title(text = "Mean Test Log-Likelihood vs Baseline",
                      style = list(fontWeight = "bold", fontSize = "16px")) %>%
             hc_subtitle(text = "Bars: Δ Mean Test LL <br> Whiskers: 95% CI") %>%
