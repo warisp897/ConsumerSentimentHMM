@@ -38,6 +38,9 @@ emiss_obs <- readRDS("emissions_observations.rds")
 bundle <- readRDS("hmm_models_bundle.rds")
 cons_sent_monthly <- readRDS("cons_sent_monthly.rds")
 b_frozen_m4 <- readRDS("post_2007_model.rds")
+tsne_data <- readRDS("tsne_M4.rds")
+
+#set.seed(42)
 
 # All Text Used in Dashboard ----
 
@@ -103,18 +106,17 @@ cs_data_collection<- HTML(
     "
     <p> </p>
     
-    <p>For this analysis, a series of 20 macroeconomic indicators were collected from the 
+    <p>For this analysis, a set of 17 macroeconomic indicators were collected from the 
     <strong>Federal Reserve of St. Louis (FRED)</strong>, a widely respected source for accurate, up-to-date economic data.
-    Data was collected from the period of from 1987 to 2024, provides a robust dataset for the Hidden Markov Model (HMM), 
-    striking a balance of the length of the time to learn from and providing quality data representing many economic sectors
-    This period  The selection of indicators is critical as they serve as the 
-    <strong>observed variables</strong> in the HMM, providing the data to train the model and identify the complex, 
-    non-linear relationships and their effect on sentiment.</p>
+    Data from 1987 to 2024 was collected for modeling and analysis, striking a good balance for the amount of time to learn from
+    and the quality of available data, ensuring many economic sectors were well represented. The selection of indicators is critical as they 
+    serve as the <strong>observed variables</strong> in the HMM, providing the data to train the model and identify the complex, 
+    non-linear relationships.</p>
     
     
      <p>The indicators are categorized as the following:</p>
      <ul>
-     <li><strong>Output</strong>: Measures of economic activity which reflect the overall health of the economy.</li>
+     <li><strong>Output</strong>: Measures of economic productivity which reflect the overall health of the economy.</li>
      
      <li> <strong>Labor Market</strong>: Indicators measuring employment, which directly impact people's financial 
      security and future outlook.
@@ -123,7 +125,7 @@ cs_data_collection<- HTML(
      
      <li><strong>Price Levels</strong>: Inflation metrics which greatly affect purchasing power and consumer confidence.</li>
      
-     <li><strong>Monetary and Fiscal</strong>: Data on interest rates and government spending, which 
+     <li><strong>Monetary and Fiscal</strong>: Interest rates and government spending, which 
      shape the financial environment and economic policy.</li>
      
      <li><strong>Housing and Construction</strong>: Indicators such as housing starts and building permits, which serve as leading 
@@ -140,13 +142,16 @@ cs_data_collection<- HTML(
 output_analysis <- HTML('
       <p><strong>Output indicators:</strong> variables that measure the U.S.\'s total economic production.</p>
       <ul>
-        <li><strong>Nominal GDP:</strong> the raw dollar value of all goods and services produced. 
+      
+        <li><strong>Nominal GDP:</strong> The raw dollar value of all goods and services produced. 
           An increase means more dollars are changing hands-often signaling higher incomes and business investment. 
-          When Nominal GDP is rising, consumers generally feel richer and more willing to spend; a slowdown can sap confidence.</li>
+          When Nominal GDP is rising, consumers generally feel richer and more willing to spend, while a slowdown can sap confidence.</li>
+          
         <li><strong>Real GDP:</strong> Nominal GDP adjusted for inflation. 
           Growth here reflects true increases in volume of production. 
           Strong Real GDP growth suggests rising real wages and employment, which typically boost consumer sentiment. 
-          Conversely, flat or negative Real GDP growth often coincides with weaker confidence and lower spending.</li>
+          Conversely, flat or negative Real GDP growth often coincides with weaker confidence and lower buying power.</li>
+          
       </ul>
       <p>Because consumer spending accounts for roughly two‑thirds of GDP, shifts in these output measures quickly 
       feed back into how households view their personal finances and the broader economy.</p>
@@ -155,47 +160,57 @@ output_analysis <- HTML('
 labor_analysis <- HTML('
       <p><strong>Labor market indicators:</strong> measures of how easily people find and keep jobs.</p>
       <ul>
-        <li><strong>Unemployment rate:</strong> percent of the labor force without a job. 
+      
+        <li><strong>Unemployment rate:</strong> Percent of the labor force without a job. 
           Rising unemployment often reflects businesses cutting back. This tends to dent consumer sentiment as job security erodes. 
           Falling unemployment generally lifts confidence and spending.</li>
-        <li><strong>Participation rate:</strong> share of working‑age people in the labor force. 
-          A rising participation rate can signal optimism that jobs are available, bolstering sentiment; 
+          
+        <li><strong>Participation rate:</strong> Share of working‑age people in the labor force. 
+          A rising participation rate can signal optimism that jobs are available, bolstering sentiment, while 
           a falling rate may reflect discouraged workers leaving the market, dampening overall confidence.</li>
-        <li><strong>Unemployment claims:</strong> weekly filings for jobless benefits. 
-          Spikes in initial claims often presage layoffs and can spook consumers, while declines point to a stable labor market and support higher sentiment.</li>
+          
+        <li><strong>Unemployment claims:</strong> Weekly filings for jobless benefits. 
+          Spikes in initial claims often presage layoffs and can spook consumers, while declines point to a stable 
+          labor market.</li>
+          
       </ul>
-      <p>Together, these indicators tell you how tight or slack the jobs market is, a key driver of household incomes and therefore consumer attitudes 
+      <p>Together, these indicators demonstrate how tight or slack the jobs market is, a key driver of household incomes and therefore consumer attitudes 
       toward spending and saving.</p>
     ')
 
 price_analysis <- HTML('
       <p><strong>Price levels/inflation indicators:</strong> gauges of how fast prices are rising.</p>
       <ul>
-        <li><strong>CPI:</strong> tracks the cost of a fixed basket of goods for the average urban consumer. 
-          Rapid CPI increases erode purchasing power and often hurt consumer sentiment; 
-          moderate, predictable inflation is less damaging. (Baseline: 1982-1984 = 100)</li>
-        <li><strong>PCEPI:</strong> measures prices for what people actually buy (a dynamic basket). 
+      
+        <li><strong>CPI:</strong> Tracks the cost of a fixed basket of goods for the average urban consumer. 
+          Rapid CPI increases erode purchasing power and often hurt consumer sentiment.
+          Moderate, predictable inflation is less damaging. (Baseline: 1982-1984 = 100)</li>
+          
+        <li><strong>PCEPI:</strong> Measures prices for what people actually buy (a dynamic basket). 
           Because it better reflects changing consumption patterns, PCEPI can give early warning of 
           shifts in real household outlays and sentiment. (Baseline: 2017 = 100)</li>
-        <li><strong>Robust PCEPI:</strong> excludes volatile food and energy. 
-          This “core” measure helps isolate underlying inflation trends that more 
+          
+        <li><strong>Robust PCEPI:</strong> Excludes volatile food and energy. 
+          This focused measure helps isolate underlying inflation trends that more 
           directly influence long‑term consumer expectations. (Baseline: 2017 = 100)</li>
+          
       </ul>
-      <p>When consumers see news of accelerating prices-especially core inflation, they may feel their real incomes shrinking, pulling down sentiment.  
-      Conversely, stable or falling inflation tends to reassure.</p>
+      <p>When consumers see news of accelerating prices-especially core inflation, they may feel their buying power shrinking, pulling down sentiment.  
+      Conversely, stable or falling inflation tends to reassure people.</p>
     ')
 
 monetary_analysis <- HTML("
       <p><strong>Monetary and fiscal indicators:</strong> measures of borrowing costs and government finances.</p>
       <ul>
-        <li><strong>Federal funds rate:</strong> the Fed’s overnight bank‑to‑bank lending rate. 
-          A higher rate makes all loans-home, auto, business-more expensive, cooling borrowing and spending. 
+      
+        <li><strong>Federal funds rate:</strong> The Fed’s overnight bank‑to‑bank lending rate. 
+          A higher rate makes all loans (home, auto, business) more expensive, reducing borrowing and spending. 
           Cutting the rate tends to spur activity and lift consumer confidence.</li>
           
-        <li><strong>Three‑month Treasury yield:</strong> short‑term government borrowing cost. 
+        <li><strong>Three‑month Treasury yield:</strong> Short‑term government borrowing cost. 
           Rising yields can reflect higher inflation expectations and tighter financial conditions, which may weaken sentiment.</li>
           
-        <li><strong>M2 money supply:</strong> the total of cash, checking deposits, and easily convertible near‑money instruments. 
+        <li><strong>M2 money supply:</strong> The total of cash, checking deposits, and easily convertible near‑money instruments. 
           Rapid M2 growth can signal easy credit (boosting sentiment), while slow growth or contraction may reflect 
           monetary tightening and dampen sentiment.</li>
           
@@ -216,36 +231,22 @@ housing_analysis <- HTML('
       <p><strong>Housing & construction indicators:</strong> gauges of residential building and sales activity.</p>
       <ul>
       
-        <li><strong>New private houses:</strong> volume of single‑family homes built. 
+        <li><strong>New private houses:</strong> Volume of single‑family homes built. 
           A pickup in home construction suggests builders expect strong demand, often reinforcing higher consumer sentiment.</li>
           
-        <li><strong>New permits:</strong> approvals for future building. 
+        <li><strong>New permits:</strong> Approvals for future building. 
           Rising permits indicate confidence among developers and signal that the housing market, and thus consumer confidence, is on solid ground.</li>
           
-        <li><strong>House sales:</strong> number of homes sold. 
-          Strong sales often coincide with easy credit and consumer optimism; a slump may reflect tighter lending standards or weaker sentiment.</li>
+        <li><strong>House sales:</strong> Number of homes sold. 
+          Strong sales often coincide with easy credit and consumer optimism, while a slump may reflect tighter lending standards or weaker sentiment.</li>
           
-        <li><strong>Case‑Shiller Index:</strong> a repeat‑sales index tracking home price changes. 
-          Rising home prices build household wealth (the “wealth effect”), boosting consumer sentiment, 
+        <li><strong>Case‑Shiller Index:</strong> A repeat‑sales index tracking home price changes. 
+          Rising home prices build household wealth, boosting consumer sentiment, 
           while falling prices can have the opposite effect. (Baseline: 2000 = 100)</li>
           
       </ul>
       <p>Because housing is a large share of household wealth and spending, swings in these indicators can move consumer attitudes sharply, especially on big‑ticket purchases.</p>
     ')
-
-# trade_analysis <- HTML('
-#       <p><strong>Trade indicators:</strong> the flow of goods and services across borders.</p>
-#       <ul>
-#         <li><strong>Imports:</strong> value of foreign goods and services purchased domestically. 
-#           Rising imports can signal strong domestic demand (positive for sentiment), but persistent trade deficits may feed concerns about domestic manufacturing and jobs.</li>
-#         <li><strong>Exports:</strong> value of domestic goods sold abroad. 
-#           Higher exports support U.S. production and jobs, which can lift consumer sentiment, especially in manufacturing regions.</li>
-#         <li><strong>Current account balance:</strong> net of exports minus imports plus foreign income. 
-#           A surplus indicates net foreign demand for U.S. output-often a positive for aggregate production and therefore consumer confidence.</li>
-#       </ul>
-#       <p>Trade balances reflect global demand for U.S. goods and services.  
-#       Strong export growth often bolsters jobs and incomes, lifting sentiment, while widening trade deficits can raise questions about competitiveness and growth.</p>
-#     ')
 
 ## Hidden Markov Model Text ----
 
@@ -425,34 +426,34 @@ model_result_info <- withMathJax(HTML(
     "<div style='font-size:18px; line-height:1.6; margin-top:30px;'>
 
     <p>
-    The model utilizing <b>Lagged Real GDP ((12 month lag))</b>, 
+    The model utilizing <b>Lagged Real GDP (12 month lag)</b>, 
     the <b>PCE Price Index </b>, and the 
-    <b>Lagged Federal Surplus/Deficit ((12 month lag))</b> (<b>Model 1</b>) 
+    <b>Lagged Federal Surplus/Deficit (12 month lag)</b> (<b>Model 1</b>) 
     was identified as the most effective combination.
-    It consistently delivered the strongest <b>out-of-sample improvement</b>
-    over the baseline, proving superior and more consistent at <b>anticipating Consumer Sentiment regime shifts</b>
+    It consistently delivered the strongest out-of-sample improvement
+    over the baseline, proving superior and more consistent at anticipating Consumer Sentiment regime shifts
     in unseen historical periods than alternative models. The strength of this combination lies in its ability to non-redundantly capture the three key economic
     levers influencing households:
     </p>
 
     <ul>
-      <li><b>Real productivity</b> (lagged Real GDP captures income/jobs momentum)</li>
-      <li><b>Cost of living</b> (PCE Price Index reflects contemporaneous inflation/price pressure)</li>
-      <li><b>Public finance backdrop</b> (lagged Federal Surplus/Deficit proxies for policy stance and stress)</li>
+      <li><b>Real Productivity</b> (lagged Real GDP captures income/jobs momentum as consumers feel it)</li>
+      <li><b>Cost of Living</b> (PCE Price Index reflects inflation/price pressure)</li>
+      <li><b>Public Finance </b> (lagged Federal Surplus/Deficit proxies for policy stance and stress as people learn about it)</li>
     </ul>
 
     <p>
-    By combining these complementary signals, the model successfully identifies two distinct, non-arbitrary clusters corresponding
-    to the <b>High</b> and <b>Low</b> sentiment regimes (as visualized by a t-SNE transformation), accurately moving the transition
-    probabilities based on what households can afford, whether they're earning, and the perceived strain of the policy environment.
+    t-SNE compresses the three selected indicators <b> (Real GDP, PCE Price Index, and Federal Surplus/Deficit </b>) into a 
+    3-D map by preserving local neighborhoods. Years that look similar across those variables are placed near each other, and dissimilar 
+    years are pushed apart. By analyzing the clustering and separation, we can get a better understanding of the relationship of the 
+    variables. In our plot, the groups align with the model's High and Low states, indicating the chosen indicators naturally form two 
+    regimes with limited overlap. Points between or on the fringes of clusters likely mark transition years and lower classification 
+    confidence. This demonstrates separability, and that the regimes are truly two distinct periods.
+    
     </p>
 
   </div>"
 ))
-
-# model_result_info <- withMathJax(
-#     HTML("The model utilizing <i>Lagged Real GDP</i> (<i>t-1</i>), the <i>PCE Price Index</i> (<i>t</i>), and the <i>Lagged Federal Surplus/Deficit</i> (<i>t-1</i>) was identified as the most effective combination. It consistently delivered the **strongest out-of-sample improvement** over the baseline, proving superior and more consistent at **anticipating Consumer Sentiment regime shifts** in unseen historical periods than alternative models. The strength of this combination lies in its ability to non-redundantly capture the three key economic levers influencing households: **Real productivity** (lagged Real GDP captures income/jobs momentum), **Cost of living** (PCE Price Index reflects contemporaneous inflation/price pressure), and the **Public finance backdrop** (lagged Federal Surplus/Deficit proxies for policy stance and stress). By combining these complementary signals, the model successfully identifies two distinct, non-arbitrary clusters corresponding to the **High** and **Low** sentiment regimes (as visualized by a t-SNE transformation), accurately moving the transition probabilities based on what households can afford, whether they're earning, and the perceived strain of the policy environment.")
-# )
 
 ## Model Conclusion Text ----
 
@@ -552,11 +553,11 @@ ui <- bs4DashPage(
         bs4SidebarMenu(
             id = "dashboard_tabs", # ID of Sidebar menu
             bs4SidebarMenuItem("Overview", tabName = "overview", icon = icon("dashboard")),
-            bs4SidebarMenuItem("Economic Indicators", tabName = "indicator_analysis", icon = icon("chart-line")),
+            bs4SidebarMenuItem("Economic Indicators", tabName = "indicator_analysis", icon = icon("money-bill-trend-up")),
             bs4SidebarMenuItem("Hidden Markov Model", tabName = "model_intro", icon = icon("project-diagram")),
             #bs4SidebarMenuItem("Model Selection", tabName = "model_select", icon = icon("project-diagram")),
             bs4SidebarMenuItem("Analysis", tabName = "model_analysis", icon = icon("chart-line")),
-            bs4SidebarMenuItem("Conclusion", tabName = "model_conclusion", icon = icon("chart-line"))
+            bs4SidebarMenuItem("Conclusion", tabName = "model_conclusion", icon = icon("newspaper"))
         )
     ),
     
@@ -942,7 +943,7 @@ ui <- bs4DashPage(
                                 # selector stays on top
                                 selectInput("select1", "Indicator Category", choices = c(
                                     "Output", "Labor Market", "Price Levels",
-                                    "Monetary and Fiscal", "Housing and Construction"#, "Trade"
+                                    "Monetary and Fiscal", "Housing and Construction"
                                 )),
                                 
                                 # TEXT SHELL (default)
@@ -1348,7 +1349,7 @@ server <- function(input, output, session) {
         highchart() %>%
             hc_add_theme(hc_theme_elementary()) %>%
             hc_chart(zoomType = "x") %>%
-            hc_title(text = "Consumer Sentiment Over Time",
+            hc_title(text = "<b> Consumer Sentiment Over Time </b>",
                      style = list(fontSize = "28px")) %>%
             hc_xAxis(type = "datetime", 
                      plotBands = plot_bands,
@@ -1357,7 +1358,7 @@ server <- function(input, output, session) {
                 title = list(text = "Index Value"),
                 plotLines = list(list(
                     value = 100, color = "grey", dashStyle = "Dash", width = 3, zIndex = 5,
-                    label = list(text = "UMich ICS Baseline: 1966 = 100", align = "left",
+                    label = list(text = "<b> Index Baseline: 1966 = 100 </b>", align = "left",
                                  style = list(color = "red", fontSize = "16px"))
                 ))
             ) %>%
@@ -1402,6 +1403,7 @@ server <- function(input, output, session) {
     full   <- full_dataset %>%
         pivot_longer(-Year, names_to = "Indicator", values_to = "True")
     
+    
     ### Preliminary Analysis Switching Functionality ----
     output$category_summary <- renderUI({
         summary_text <- switch(input$select1,
@@ -1422,23 +1424,6 @@ server <- function(input, output, session) {
         )
     })
     
-    output$recession_name <- renderText({
-        range <- input$consumer_sentiment_plot_date_window  # provided by dygraph
-        req(range)
-        
-        range <- as.Date(range)
-        
-        rec <- recessions %>%
-            filter(as.Date(paste0(start, "-01-01")) <= range[2],
-                   as.Date(paste0(end, "-12-31")) >= range[1])
-        
-        if (nrow(rec) > 0) {
-            paste("Recession:", rec$name)
-        } else {
-            "No recession in selected range."
-        }
-    })
-    
     format_value <- function(val, fmt) {
         if (is.na(val)) return(NA)
         switch(fmt,
@@ -1451,62 +1436,23 @@ server <- function(input, output, session) {
         )
     }
     
-    format_true <- function(val, ind) {
-        if (!ind %in% names(indicator_formats)) return(round(val, 2))
-        fmt <- indicator_formats[[ind]]
-        if (is.na(val)) return(NA)
-        if (fmt == "$") {
-            s <- formatC(abs(val), format = "f", digits = 2, big.mark = ",")
-            paste0(ifelse(val < 0, "-", ""), "$", s)
-        } else if (fmt == "%") {
-            paste0(formatC(val, format = "f", digits = 2), "%")
-        } else {
-            round(val, 2)
-        }
-    }
-    
-    # map for nicer indicator names
-    indicator_names_map <- c(
-        consumer_sentiment = "Consumer Sentiment",
-        nominal_GDP = "Nominal GDP",
-        real_GDP = "Real GDP",
-        unemployment_rate = "Unemployment Rate",
-        participation_rate = "Labor Participation Rate",
-        claims = "Unemployment Claims Filed",
-        CPI = "Consumer Price Index (CPI)",
-        PCEPI = "PCEPI",
-        PCEPI_ROBUST = "PCEPI (Adjusted for Volatile Prices)",
-        federal_funds_rate = "Federal Funds Rate",
-        three_month_rate = "3-Month Treasury Yield",
-        M2 = "M2",
-        FYFSD = "Federal Surplus / Deficit",
-        federal_debt = "Federal Debt",
-        new_houses = "New Private Houses Built",
-        new_permits = "New Housing Permits",
-        house_sales = "New Private Houses Sold",
-        case_schiller_val = "Case-Schiller Index"#,
-        #export = "Total Exports",
-        #import = "Total Imports",
-        #account_balance = "Account Balance"
-    )
-    
     indicator_formats <- c(
-        nominal_GDP = "$",
-        real_GDP = "$",
+        nominal_gdp = "$",
+        real_gdp = "$",
         federal_debt = "$",
-        FYFSD = "$",
+        fyfsd = "$",
         export = "$",
         import = "$",
         account_balance = "$",
         unemployment_rate = "%",
         participation_rate = "%",
         claims = "",
-        CPI = "%",
-        PCEPI = "%",
-        PCEPI_ROBUST = "%",
+        cpi = "%",
+        pcepi = "%",
+        pcepi_robust = "%",
         federal_funds_rate = "%",
         three_month_rate = "%",
-        M2 = "$",
+        m2 = "$",
         new_houses = "",
         new_permits = "",
         house_sales = "",
@@ -1517,18 +1463,18 @@ server <- function(input, output, session) {
     # map from raw names to pretty labels:
     nice_names <- c(
         consumer_sentiment = "Consumer Sentiment",
-        nominal_GDP        = "Nominal GDP",
-        real_GDP           = "Real GDP",
+        nominal_gdp        = "Nominal GDP",
+        real_gdp           = "Real GDP",
         unemployment_rate  = "Unemployment Rate",
         participation_rate = "Labor Participation Rate",
         claims             = "Unemployment Claims",
-        CPI                = "CPI",
-        PCEPI              = "PCEPI",
-        PCEPI_ROBUST       = "PCEPI (Robust)",
+        cpi                = "CPI",
+        pcepi              = "PCEPI",
+        pcepi_robust       = "PCEPI (Robust)",
         federal_funds_rate = "Federal Funds Rate",
         three_month_rate   = "3‑Month Rate",
-        M2                 = "M2 Money Supply",
-        FYFSD              = "Federal Spending",
+        m2                 = "M2 Money Supply",
+        fyfsd              = "Federal Spending",
         federal_debt       = "Federal Debt",
         new_houses         = "New Private Houses",
         new_permits        = "New Permits",
@@ -1541,11 +1487,11 @@ server <- function(input, output, session) {
     
     #- which raw indicators belong to which category:
     category_map <- list(
-        "Output"                 = c("consumer_sentiment", "nominal_GDP", "real_GDP"),
+        "Output"                 = c("consumer_sentiment", "nominal_gdp", "real_gdp"),
         "Labor Market"           = c("consumer_sentiment", "unemployment_rate", "participation_rate", "claims"),
-        "Price Levels"           = c("consumer_sentiment", "CPI", "PCEPI", "PCEPI_ROBUST"),
+        "Price Levels"           = c("consumer_sentiment", "cpi", "pcepi", "pcepi_robust"),
         "Monetary and Fiscal"    = c("consumer_sentiment", "federal_funds_rate",
-                                     "three_month_rate", "M2", "FYFSD", "federal_debt"),
+                                     "three_month_rate", "m2", "fyfsd", "federal_debt"),
         "Housing and Construction" = c("consumer_sentiment", "new_houses",
                                        "new_permits", "house_sales", "case_schiller_val")#,
         #"Trade"                  = c("consumer_sentiment", "export", "import", "account_balance")
@@ -1581,6 +1527,15 @@ server <- function(input, output, session) {
     initial_cat  <- isolate(input$select1)
     initial_inds <- category_map[[ initial_cat ]]
     
+    norm <- function(x) tolower(trimws(gsub("[^A-Za-z0-9_]", "_", x)))
+    
+    # make sure lookup names are normalized
+    names(indicator_formats) <- norm(names(indicator_formats))
+    names(nice_names)        <- norm(names(nice_names))
+    
+    # make sure the Indicators in your long frames are normalized
+    scaled <- scaled %>% mutate(Indicator = norm(Indicator))
+    full   <- full   %>% mutate(Indicator = norm(Indicator))
     
     CAT_PLOT_LOADED <- F
     #### Selected Indicators over Time Plot ----
@@ -1588,11 +1543,18 @@ server <- function(input, output, session) {
         CAT_PLOT_LOADED <<- T
         
         plot_df <- scaled %>%
+            mutate(Indicator = as.character(Indicator)) %>%
             left_join(full, by = c("Year","Indicator")) %>%
             mutate(
-                Label    = nice_names[Indicator],
-                fmt      = indicator_formats[Indicator],
+                Label = nice_names[Indicator],
+                fmt   = unname(indicator_formats[Indicator]),
+                fmt   = ifelse(is.na(fmt), "", fmt)
             )
+        
+        cat("setdiff!!\n", paste(setdiff(unique(plot_df$Indicator), names(indicator_formats)), collapse=", "), "\n")
+        print(unique(plot_df$Indicator))
+        print("break")
+        print(names(indicator_formats))
         
         all_inds     <- unique(plot_df$Indicator)
         ordered_inds <- c(setdiff(all_inds, "consumer_sentiment"), "consumer_sentiment")
@@ -1671,6 +1633,7 @@ server <- function(input, output, session) {
                 layout = "horizontal",
                 align = "center",
                 verticalAlign = "bottom",
+                alignColumns  = FALSE,
                 itemWidth = 100,
                 itemStyle = list(fontSize = "0.8em")
             ) %>%
@@ -1944,7 +1907,7 @@ server <- function(input, output, session) {
                      reversed = TRUE,
                      gridLineWidth = 0) %>%
             hc_yAxis(title = list(
-                text = "Pearson's r"),
+                text = "Pearson's r (Absolute Value)"),
                 gridLineWidth = 0) %>%
             hc_title(text = "Correlation to Consumer Sentiment",
                      style = list(fontWeight = "bold", fontSize = "16px")) %>%
@@ -2668,17 +2631,17 @@ server <- function(input, output, session) {
     
     ## Analysis Code ----
     pretty_map <- c(
-        real_GDP = "Real GDP (t−1)",
-        PCEPI = "PCE Price Index (t)",
-        FYFSD = "Federal Surplus/Deficit (t−1)",
+        real_gdp = "Real GDP (t−1)",
+        pcepi = "PCE Price Index (t)",
+        fyfsd = "Federal Surplus/Deficit (t−1)",
         unemployment_rate = "Unemployment Rate (t−1)",
         case_schiller_val = "Case–Shiller Index (t−1)"
     )
     
-    indicator_formats <- c(
-        real_GDP = "$",
-        PCEPI = "%",
-        FYFSD = "$",
+    six_indicator_formats <- c(
+        real_gdp = "$",
+        pcepi = "%",
+        fyfsd = "$",
         unemployment_rate = "%",
         case_schiller_val = "",
         consumer_sentiment = ""
@@ -2687,8 +2650,8 @@ server <- function(input, output, session) {
     
     ### Indicator Gallery ----
     output$overview_ts <- renderHighchart({
-        overview_vars <- c("real_GDP", "PCEPI", "FYFSD", "unemployment_rate", "case_schiller_val")
-        lag_map <- c(real_GDP = 1, PCEPI = 0, FYFSD = 1, unemployment_rate = 1, case_schiller_val = 1)
+        overview_vars <- c("real_gdp", "pcepi", "fyfsd", "unemployment_rate", "case_schiller_val")
+        lag_map <- c(real_gdp = 1, pcepi = 0, fyfsd = 1, unemployment_rate = 1, case_schiller_val = 1)
         
         dat <- full_dataset[order(full_dataset$Year), ]
         x_ts <- datetime_to_timestamp(as.Date(paste0(dat$Year, "-01-01")))
@@ -2767,7 +2730,7 @@ server <- function(input, output, session) {
             data = purrr::pmap(
                 list(x = x_keep, y = z_all$cs, true = df_all$cs),
                 function(x, y, true) {
-                    list(x = x, y = y, trueValue = true, format = indicator_formats[["consumer_sentiment"]])
+                    list(x = x, y = y, trueValue = true, format = six_indicator_formats[["consumer_sentiment"]])
                 }
             ),
             color = col_cs, 
@@ -2781,7 +2744,7 @@ server <- function(input, output, session) {
             i <- i + 1
             nm_pretty <- if (exists("pretty_map") && nm %in% names(pretty_map)) pretty_map[[nm]] else nm
             
-            current_format <- indicator_formats[[nm]]
+            current_format <- six_indicator_formats[[nm]]
             
             hc <- hc %>% hc_add_series(
                 type = "line", 
@@ -3031,6 +2994,16 @@ server <- function(input, output, session) {
             hc_exporting(enabled = TRUE)
     })
     
+    norm_id <- function(x) {
+        x <- iconv(x, "", "UTF-8")
+        x <- gsub("[\u200B-\u200D\uFEFF]", "", x)
+        x <- trimws(x)
+        x <- gsub("[^A-Za-z0-9_]", "_", x)
+        x <- gsub("_+", "_", x)
+        x <- gsub("^_|_$", "", x)
+        tolower(x)
+    }
+    
     ### Average TPM Heatmap ----
     output$tpm_avg <- renderHighchart({
         b <- current()
@@ -3054,6 +3027,15 @@ server <- function(input, output, session) {
             hc_yAxis(categories = paste0("S",1:K), title = list(text = "From"), reversed = TRUE) %>%
             hc_colorAxis(min = 0, max = 1, minColor = "#d9ffd9", maxColor = "#30c953") %>%
             hc_add_series(data = list_parse2(hm_df[,c("x","y","value")]), keys=c("x","y","value")) %>%
+            hc_legend(
+                layout        = "horizontal",
+                align         = "center",
+                verticalAlign = "bottom",
+                floating      = FALSE,
+                alignColumns  = FALSE,
+                x             = 0,
+                y             = 0
+            ) %>%
             hc_tooltip(
                 useHTML = TRUE,
                 formatter = JS("
@@ -3096,13 +3078,22 @@ server <- function(input, output, session) {
             hc_add_theme(hc_theme_elementary()) %>%
             hc_add_dependency("modules/heatmap") %>%
             hc_chart(type = "heatmap") %>%
-            hc_title(text = "Transition probabilities over time",
+            hc_title(text = "Transition Probabilities Over Time",
                      style = list(fontWeight = "bold", fontSize = "16px")) %>%
             #hc_subtitle(text = "Only the Viterbi from-state row is shown per column") %>%
             hc_xAxis(categories = b$years_P, title = list(text = "Year")) %>%
             hc_yAxis(categories = y_cats, title = list(text = "From → To"), reversed = TRUE) %>%
             hc_colorAxis(min = 0, max = 1, minColor = "#d9ffd9", maxColor = "#30c953") %>%
             hc_add_series(data = list_parse2(df), keys=c("x","y","value"), turboThreshold=0) %>%
+            hc_legend(
+                layout        = "horizontal",
+                align         = "center",
+                verticalAlign = "bottom",
+                floating      = FALSE,
+                alignColumns  = FALSE,
+                x             = 0,
+                y             = 0
+            ) %>%
             hc_tooltip(
                 useHTML = TRUE,
                 formatter = JS("
@@ -3120,8 +3111,8 @@ server <- function(input, output, session) {
         b   <- current()
         dbs <- dplyr::arrange(scaled_data, Year)
         
-        vars <- b$vars
-        lags <- b$lags
+        vars <- norm_id(b$vars)
+        lags <- as.integer(b$lags)
         stopifnot(length(vars) == length(lags))
         
         X <- sapply(seq_along(vars), function(i) {
@@ -3181,6 +3172,15 @@ server <- function(input, output, session) {
             hc_yAxis(title = list(text = "Scaled units (z)"),
                      plotLines = list(list(value = 0, color = "#666", width = 1))) %>%
             hc_plotOptions(column = list(pointPadding = 0.1, groupPadding = 0.08)) %>%
+            hc_legend(
+                layout        = "horizontal",
+                align         = "center",
+                verticalAlign = "bottom",
+                floating      = FALSE,
+                alignColumns  = FALSE,
+                x             = 0,
+                y             = 0
+            ) %>%
             
             # Means
             hc_add_series(name = "High", data = round(as.numeric(mu_H), 3), color = "#28a745", zIndex = 2) %>%
@@ -3211,23 +3211,29 @@ server <- function(input, output, session) {
     }
     
     lagged_X_for_model <- function(dat_base, b) {
-        X <- build_X_all(dat_base, b$vars, b$lags)
-        colnames(X) <- paste0(b$vars, "_L", b$lags)
-        X <- as.data.frame(X, stringsAsFactors = FALSE)
-        X[] <- lapply(X, function(col) {
-            if (is.factor(col)) col <- as.character(col)
-            suppressWarnings(as.numeric(col))
+        vars <- norm_id(b$vars)
+        lags <- as.integer(b$lags)
+        
+        X <- sapply(seq_along(vars), function(i) {
+            v <- dat_base[[ vars[i] ]]
+            L <- lags[i]
+            if (L > 0L) v <- c(rep(NA_real_, L), head(v, -L))
+            v
         })
-        idx <- match(b$posterior$year, dat_base$Year)
-        stopifnot(!any(is.na(idx)))
-        as.matrix(X[idx, , drop = FALSE])  # numeric matrix
+        X <- as.matrix(X)
+        colnames(X) <- paste0(vars, "_L", lags)
+        
+        idx  <- match(b$posterior$year, dat_base$Year)
+        keep <- !is.na(idx)
+        
+        as.matrix(X[idx[keep], , drop = FALSE])
     }
     
     output$state_prob_heatmap <- renderHighchart({
         b  <- current()
         db <- dplyr::arrange(full_dataset, Year)
         
-        X <- lagged_X_for_model(db, b)     # n × p numeric
+        X <- lagged_X_for_model(db, b)
         orig_cols <- colnames(X)
         p <- ncol(X)
         
@@ -3263,7 +3269,6 @@ server <- function(input, output, session) {
         missing <- is.na(pretty_final)
         if (any(missing)) pretty_final[missing] <- base_names[missing]
         
-        # assign and use for the axis
         colnames(M) <- pretty_final
         vars <- as.character(pretty_final)
 
@@ -3284,6 +3289,15 @@ server <- function(input, output, session) {
                      style = list(fontWeight = "bold", fontSize = "16px")) %>%
             hc_subtitle(text = "Spearman correlation; detrended by Year") %>%
             hc_xAxis(categories = vars, title = list(text = NULL)) %>%
+            hc_legend(
+                layout        = "horizontal",
+                align         = "center",
+                verticalAlign = "bottom",
+                floating      = FALSE,
+                alignColumns  = FALSE,
+                x             = 0,
+                y             = 0
+            ) %>%
             hc_yAxis(
                 categories = c("State 1", "State 2"),
                 type = "category",
@@ -3300,40 +3314,22 @@ server <- function(input, output, session) {
                 tooltip = list(
                     pointFormat = "{point.series.yAxis.categories[this.point.y]} × {point.series.xAxis.categories[this.point.x]}: <b>{point.value:.2f}</b>"
                 )
-            ) #%>%
-            #hc_dataLabels(enabled = TRUE, format = "{point.value:.2f}")
+            )
     })
     
     
     current <- reactive({ bundle[[ selected_model_id() ]] })
     
-    ### Emissions Bar Chart ---
-    # output$emis_bars <- renderHighchart({
-    #     b <- current()
-    #     ep <- b$emis
-    #     series_mu <- data.frame(x = seq_len(nrow(ep)) - 1L, y = ep$mu)
-    #     err_js <- sprintf("[%s]", paste(sprintf("[%.6f,%.6f]", ep$mu - 2*ep$sd, ep$mu + 2*ep$sd), collapse = ","))
-    #     highchart() %>%
-    #         hc_title(text = "State emission parameters (Gaussian)") %>%
-    #         hc_subtitle(text = "Bars: Average Observed Index  |  Whiskers: μ ± 2σ") %>%
-    #         hc_xAxis(categories = ep$state) %>%
-    #         hc_yAxis(title = list(text = "Average Observed Index")) %>%
-    #         hc_add_series(type = "column", name = "Average Observed Index", data = list_parse2(series_mu)) %>%
-    #         hc_add_series(type = "errorbar", name = "μ ± 2σ", data = JS(err_js), showInLegend = FALSE)
-    # })
-    
     ### Emissions Density Chart ----
     output$emis_dens <- renderHighchart({
         b  <- current()                 
         ep <- b$emis                    
-        
-        # Label states as High/Low based on which mean is larger
+
         labs <- if (b$hi_state == 1L) c("High","Low") else c("Low","High")
         
-        # x-range and grid
         x_min <- min(ep$mu - 4*ep$sd, na.rm = TRUE)
         x_max <- max(ep$mu + 4*ep$sd, na.rm = TRUE)
-        # small padding so lines/labels aren't clipped
+
         pad   <- 0.03 * (x_max - x_min)
         x_min <- x_min - pad; x_max <- x_max + pad
         x_grid <- seq(x_min, x_max, length.out = 300)
@@ -3345,12 +3341,11 @@ server <- function(input, output, session) {
 
         is_high1 <- (b$hi_state == 1L)
         
-        lab1 <- if (is_high1) "High" else "Low"     # label for S1
-        lab2 <- if (is_high1) "Low"  else "High"    # label for S2
-        col1 <- if (is_high1) "#28a745" else "#e74c3c"  # color for S1
-        col2 <- if (is_high1) "#e74c3c" else "#28a745"  # color for S2
+        lab1 <- if (is_high1) "High" else "Low"
+        lab2 <- if (is_high1) "Low"  else "High"
+        col1 <- if (is_high1) "#28a745" else "#e74c3c"
+        col2 <- if (is_high1) "#e74c3c" else "#28a745"
         
-        ## dashed μ lines for S1/S2 with correct labels/colors
         peak_lines <- list(
             list(
                 value = ep$mu[1], color = col1, width = 2, dashStyle = "ShortDash", zIndex = 5,
@@ -3379,7 +3374,17 @@ server <- function(input, output, session) {
             hc_xAxis(title = list(text = "Average Observed Index"),
                      min = x_min, max = x_max, plotLines = peak_lines) %>%
             hc_yAxis(title = list(text = "Density")) %>%
-            hc_plotOptions(series = list(marker = list(enabled = FALSE), animation = TRUE))
+            hc_legend(
+                layout        = "horizontal",
+                align         = "center",
+                verticalAlign = "bottom",
+                floating      = FALSE,
+                alignColumns  = FALSE,
+                x             = 0,
+                y             = 0
+            ) %>%
+            hc_plotOptions(series = list(marker = list(enabled = FALSE), 
+                                         animation = TRUE))
         
         if (is_high1) {
             hc <- hc %>%
@@ -3405,80 +3410,28 @@ server <- function(input, output, session) {
     ### 3D TSNE PLOT ----
     output$state_plot <- renderHighchart({
         
-        b <- bundle[["M4"]]           
-        stopifnot(!is.null(b))
-        hi <- as.integer(b$hi_state)
+        tsne_df   <- tsne_data$tsne
+        centers   <- tsne_data$centers
+        nm_high   <- sprintf("State %d", tsne_data$meta$hi_state)
+        nm_low    <- sprintf("State %d", 3 - tsne_data$meta$hi_state)
         
-        dbs  <- scaled_data %>% arrange(Year)
-        vars <- b$vars
-        lags <- b$lags
-        stopifnot(length(vars) == length(lags))
-        
-        X_all <- sapply(seq_along(vars), function(i) {
-            v <- dbs[[vars[i]]]
-            L <- as.integer(lags[i])
-            if (L > 0L) v <- c(rep(NA_real_, L), v)[1:length(v)]
-            v
-        })
-        X_all <- as.matrix(X_all)
-        colnames(X_all) <- paste0(vars, "_L", lags)
-        
-        yrs_used <- b$posterior$year
-        idx <- match(yrs_used, dbs$Year)
-        X_used <- X_all[idx, , drop = FALSE]
-        keep   <- stats::complete.cases(X_used)
-        X_tsne <- X_used[keep, , drop = FALSE]
-        
-        state_path <- b$viterbi[keep]
-        grp <- ifelse(state_path == hi, "High", "Low")
-        
-        set.seed(42)
-        n <- nrow(X_tsne)
-        perp <- max(2, min(30, floor((n - 1) / 3)))
-        ts <- Rtsne(X_tsne, dims = 3, perplexity = perp, verbose = FALSE, max_iter = 750)
-        
-        tsne_df <- data.frame(
-            x = round(ts$Y[,1], 3),
-            y = round(ts$Y[,2], 3),
-            z = round(ts$Y[,3], 3),
-            group = factor(grp, levels = c("Low","High"))
-        )
-        
-        low_mat  <- tsne_df[tsne_df$group == "Low",  c("x","y","z")]
-        high_mat <- tsne_df[tsne_df$group == "High", c("x","y","z")]
-        
-        low_sc  <- scale(low_mat,  center = TRUE, scale = TRUE)
-        high_sc <- scale(high_mat, center = TRUE, scale = TRUE)
-        
-        med_or1 <- function(d) { m <- stats::median(d[upper.tri(d)], na.rm = TRUE); if (!is.finite(m) || m <= 0) 1 else m }
-        low_bw  <- med_or1(as.matrix(dist(low_sc)))
-        high_bw <- med_or1(as.matrix(dist(high_sc)))
-        
-        low_D2   <- as.matrix(dist(low_sc))^2
-        high_D2  <- as.matrix(dist(high_sc))^2
-        low_w    <- rowSums(exp(-0.9 * low_D2  / (low_bw^2)));   low_w[!is.finite(low_w)]   <- .Machine$double.eps
-        high_w   <- rowSums(exp(-0.9 * high_D2 / (high_bw^2)));  high_w[!is.finite(high_w)] <- .Machine$double.eps
-        
-        cent_low  <- colSums(as.matrix(low_mat)  * low_w)  / sum(low_w)
-        cent_high <- colSums(as.matrix(high_mat) * high_w) / sum(high_w)
-        
-        df_low_cent  <- data.frame(x = cent_low[1],  y = cent_low[2],  z = cent_low[3])
-        df_high_cent <- data.frame(x = cent_high[1], y = cent_high[2], z = cent_high[3])
+        df_low_cent  <- subset(centers, state == "Low")[, c("cx","cy","cz")]
+        names(df_low_cent)  <- c("x","y","z")
+        df_high_cent <- subset(centers, state == "High")[, c("cx","cy","cz")]
+        names(df_high_cent) <- c("x","y","z")
         
         
-        hc <- highchart() %>%
+        highchart() %>%
             hc_add_theme(hc_theme_elementary()) %>%
             hc_add_dependency("highcharts-3d") %>%
-            
-            hc_chart(
-                type = "scatter3d",
-                options3d = list(
-                    enabled = TRUE, alpha = 10, beta = 30, depth = 250, viewDistance = 40, fitToPlot = FALSE,
-                    frame = list(bottom = list(size = 1, color = 'transparent'),
-                                 back   = list(size = 1, color = 'transparent'),
-                                 side   = list(size = 1, color = 'transparent'))
-                ),
-                events = list(load = JS("
+            hc_chart(type = "scatter3d",
+                     options3d = list(enabled = TRUE, 
+                                      alpha = 10, 
+                                      beta = 30, 
+                                      depth = 250, 
+                                      viewDistance = 40),
+                     
+                     events = list(load = JS("
                     function () {
                       var chart = this, H = Highcharts;
                       var startX, startY, alpha0, beta0, dragging = false, sens = 5;
@@ -3522,59 +3475,32 @@ server <- function(input, output, session) {
                         H.addEvent(document, 'touchend',  endDrag);
                       });
                     }
-                  "))
-            ) %>%
-            hc_title(text = "t-SNE of Best Model",
-                     style = list(fontWeight = "bold", fontSize = "16px")) %>%
+                  "))) %>%
+            hc_title(text = "t-SNE of Best Model", style = list(fontWeight = "bold", fontSize = "16px")) %>%
             hc_subtitle(text = "Colored by HMM State") %>%
-            #hc_xAxis(title = list(text = "t-SNE 1")) %>%
-            #hc_yAxis(title = list(text = "t-SNE 2")) %>%
-            #hc_zAxis(title = list(text = "t-SNE 3")) %>%
             hc_plotOptions(scatter = list(marker = list(radius = 5))) %>%
-            # Two series to control colors/legend by group
-            hc_add_series(tsne_df |> dplyr::filter(group=="Low"),
-                          type = "scatter3d", name = "State 2", color = "#e74c3c",
+            # Low / High series from precomputed df
+            hc_add_series(tsne_df |> dplyr::filter(group == "Low"),
+                          type = "scatter3d", name = nm_low,  color = "#e74c3c",
                           hcaes(x = x, y = y, z = z)) %>%
-            hc_add_series(tsne_df |> dplyr::filter(group=="High"),
-                          type = "scatter3d", name = "State 1", color = "#28a745",
+            hc_add_series(tsne_df |> dplyr::filter(group == "High"),
+                          type = "scatter3d", name = nm_high, color = "#28a745",
                           hcaes(x = x, y = y, z = z)) %>%
+            hc_legend(layout = "horizontal", align = "center", verticalAlign = "bottom") %>%
             hc_tooltip(pointFormat = 'X: {point.x}<br>Y: {point.y}<br>Z: {point.z}<br>State: {series.name}') %>%
-            
-            # LOW halos
-            hc_add_series(
-                type = "scatter3d", name = "", showInLegend = FALSE,
-                data = highcharter::list_parse2(df_low_cent), keys = c("x","y","z"),
-                color = "rgba(231,76,60,0.16)",
-                marker = list(symbol = "circle", radius = 26),
-                enableMouseTracking = FALSE, states = list(hover = list(enabled = FALSE)),
-                zIndex = 0
-            ) %>%
-            hc_add_series(
-                type = "scatter3d", name = "", showInLegend = FALSE,
-                data = highcharter::list_parse2(df_low_cent), keys = c("x","y","z"),
-                color = "rgba(231,76,60,0.10)",
-                marker = list(symbol = "circle", radius = 76),
-                enableMouseTracking = FALSE, states = list(hover = list(enabled = FALSE)),
-                zIndex = 0
-            ) %>%
-            
-            # HIGH halos
-            hc_add_series(
-                type = "scatter3d", name = "", showInLegend = FALSE,
-                data = highcharter::list_parse2(df_high_cent), keys = c("x","y","z"),
-                color = "rgba(40,167,69,0.16)",
-                marker = list(symbol = "circle", radius = 26),
-                enableMouseTracking = FALSE, states = list(hover = list(enabled = FALSE)),
-                zIndex = 0
-            ) %>%
-            hc_add_series(
-                type = "scatter3d", name = "", showInLegend = FALSE,
-                data = highcharter::list_parse2(df_high_cent), keys = c("x","y","z"),
-                color = "rgba(40,167,69,0.10)",
-                marker = list(symbol = "circle", radius = 76),
-                enableMouseTracking = FALSE, states = list(hover = list(enabled = FALSE)),
-                zIndex = 0
-            )
+            # halos from precomputed centers
+            hc_add_series(type = "scatter3d", showInLegend = FALSE,
+                          data = highcharter::list_parse2(df_low_cent),  keys = c("x","y","z"),
+                          color = "rgba(231,76,60,0.16)",  marker = list(symbol = "circle", radius = 26)) %>%
+            hc_add_series(type = "scatter3d", showInLegend = FALSE,
+                          data = highcharter::list_parse2(df_low_cent),  keys = c("x","y","z"),
+                          color = "rgba(231,76,60,0.10)",  marker = list(symbol = "circle", radius = 76)) %>%
+            hc_add_series(type = "scatter3d", showInLegend = FALSE,
+                          data = highcharter::list_parse2(df_high_cent), keys = c("x","y","z"),
+                          color = "rgba(40,167,69,0.16)", marker = list(symbol = "circle", radius = 26)) %>%
+            hc_add_series(type = "scatter3d", showInLegend = FALSE,
+                          data = highcharter::list_parse2(df_high_cent), keys = c("x","y","z"),
+                          color = "rgba(40,167,69,0.10)", marker = list(symbol = "circle", radius = 76))
     })
     
     ### Buttons to Switch Between Transition and Emissions Plots ----
@@ -3665,15 +3591,28 @@ server <- function(input, output, session) {
         highchart() %>%
             hc_add_theme(hc_theme_elementary()) %>%
             hc_chart(zoomType = "x") %>%
-            hc_title(text = ("Consumer Sentiment with Regime Bands"),
+            hc_title(text = ("<b> Consumer Sentiment with Regime Bands </b>"),
                      style = list(
                          fontSize = "28px")) %>%
-            hc_xAxis(type = "datetime", plotBands = state_bands) %>%
+            hc_xAxis(type = "datetime",
+                     gridLineWidth = 0,
+                     crosshair = list(
+                         color = "darkgrey",
+                         width = 1,
+                         dashStyle = "Solid"
+                     ),
+                     plotBands = state_bands) %>%
             hc_yAxis(
                 title = list(text = "Index Value"),
+                gridLineWidth = 0,
+                crosshair = list(
+                    color = "darkgrey",
+                    width = 1,
+                    dashStyle = "Solid"
+                ),
                 plotLines = list(list(
                     value = 100, color = "#888", width = 2, dashStyle = "Dash",
-                    label = list(text = "UMich ICS Baseline: 1966 = 100", style = list(color = "#666", fontSize = "14px"))
+                    label = list(text = "<b> Index Baseline: 1966 = 100 </b>", style = list(color = "red", fontSize = "16px"))
                 ))
             ) %>%
             hc_add_series(
@@ -3691,17 +3630,17 @@ server <- function(input, output, session) {
             hc_tooltip(
                 useHTML = TRUE,
                 formatter = JS(sprintf("
-        function () {
-          var x=this.x, y=this.y, rg=(this.point&&this.point.regime)?this.point.regime:'—';
-          var rgColor = (rg==='High') ? '#28a745' : '#e74c3c';
-          var tag='', bands=%s;
-          for (var i=0;i<bands.length;i++){
-            if(x>=bands[i].from && x<=bands[i].to){ tag='<br><span style=\"color:#d62728\"><b>'+bands[i].name+'</b></span>'; break; }
-          }
-          return Highcharts.dateFormat('%%b %%e, %%Y', x) +
-                 '<br>Index: <b>'+Highcharts.numberFormat(y,1)+'</b>' +
-                 '<br>State: <b><span style=\"color:'+rgColor+'\">'+rg+'</span></b>' + tag;
-        }
+                                        function () {
+                                          var x=this.x, y=this.y, rg=(this.point&&this.point.regime)?this.point.regime:'—';
+                                          var rgColor = (rg==='High') ? '#28a745' : '#e74c3c';
+                                          var tag='', bands=%s;
+                                          for (var i=0;i<bands.length;i++){
+                                            if(x>=bands[i].from && x<=bands[i].to){ tag='<br><span style=\"color:#d62728\"><b>'+bands[i].name+'</b></span>'; break; }
+                                          }
+                                          return Highcharts.dateFormat('%%b %%e, %%Y', x) +
+                                                 '<br>Index: <b>'+Highcharts.numberFormat(y,1)+'</b>' +
+                                                 '<br>State: <b><span style=\"color:'+rgColor+'\">'+rg+'</span></b>' + tag;
+                                        }
       ", bands_js))
             ) %>%
             hc_legend(enabled = FALSE) %>%
@@ -3730,8 +3669,8 @@ server <- function(input, output, session) {
         dbs <- dplyr::arrange(scaled_data, Year)
         dbr <- dplyr::arrange(full_dataset, Year)
         
-        vars <- b$vars
-        lags <- b$lags
+        vars <- norm_id(b$vars)
+        lags <- as.integer(b$lags)
         stopifnot(length(vars) == length(lags))
         
         mk_lag <- function(df) {
@@ -3789,7 +3728,7 @@ server <- function(input, output, session) {
             hc_chart(type = "column") %>%
             hc_title(text = "Indicator Means and Standard Deviation for Each State",
                      style = list(fontWeight = "bold", fontSize = "16px")) %>%
-            hc_subtitle(text = "Bars are Scaled for Visual Cohesiveness") %>%
+            hc_subtitle(text = "Bars are Scaled for Visual Cohesiveness <br> (Z-Score: Mean of 0, SD of 1)") %>%
             hc_xAxis(categories = cats, type = "category", tickPositions = 0:(length(cats) - 1)) %>%
             hc_yAxis(title = list(text = NULL), labels = list(enabled = FALSE),
                      plotLines = list(list(value = 0, color = "#666", width = 1))) %>%
