@@ -1,0 +1,286 @@
+/* --- Segmented Control --- */
+              .segmented-control {
+                display: flex;
+                justify-content: center;
+                border: 1px solid #28a745;
+                border-radius: 0.25rem;
+                overflow: hidden;
+                width: fit-content;
+                margin: 15px auto;
+                margin-left: auto;
+                margin-right: auto;
+              }
+              .segmented-control .btn {
+                border-radius: 0;
+                border: none;
+                background-color: #fff;
+                color: #28a745;
+              }
+              .segmented-control .btn:not(:last-child) {
+                border-right: 1px solid #28a745;
+              }
+              .segmented-control .btn.active {
+                background-color: #28a745;
+                color: #fff;
+                cursor: default;
+              }
+              .segmented-control .btn:hover:not(.active) {
+                background-color: #e9ecef;
+              }
+  
+            /* Sidebar background */
+              .main-sidebar {
+              // background-color: #A5A9B4 !important;  /* Replace with your desired color */
+              }
+            
+              /* Active tab item (the tab pill) */
+              .main-sidebar .nav-sidebar .nav-item > .nav-link.active {
+                //background-color: #A5A9B4 !important;  /* Change this to your theme color */
+                color: white !important;
+              }
+              
+                /* Hover over a tab item text color */
+                  .main-sidebar .nav-sidebar .nav-item > .nav-link:hover {
+                    background-color: #218838 !important;  /* Slightly darker */
+                    color: white !important;
+                  }
+                
+               /* Active tab background and text color */
+              .nav-pills .nav-link.active, 
+              .nav-pills .show > .nav-link {
+                background-color: #28a745 !important; /* Replace with your theme color */
+                color: white !important;
+              }
+              
+                /* Hover state (non-active tabs) */
+              .nav-pills .nav-link:hover {
+                color: #0F3F1E !important;  /* Match your theme color */
+              }
+
+            .matrix-overlay { pointer-events: none; }
+            
+            #hmmwrap { position: relative; width: 100%; }
+            #hmmwrap .base-svg { width: 100%; height: 60vh; display: block; }
+            
+            /* Hotspot container: positioned by % and centered on that point */
+            .hs { position: absolute; transform: translate(-50%, -50%); pointer-events: auto; }
+            
+            /* Visible tag (the label on the arrow) */
+            .hs .tag {
+              font-weight: 600;
+              padding: .15rem .35rem;
+              border-radius: .5rem;
+              background: rgba(0,0,0,.55);
+              color: #fff;
+              line-height: 1;
+              font-size: clamp(10px, 1.2vw, 14px);
+              backdrop-filter: blur(2px);
+              -webkit-backdrop-filter: blur(2px);
+            }
+            
+            /* The hover card */
+            .hs .callout {
+              position: absolute;
+              left: 50%; top: -8px;
+              transform: translate(-50%, -12px) scale(.98);
+              opacity: 0; visibility: hidden;
+              transition: opacity .18s ease, transform .18s ease, visibility 0s linear .18s;
+              background: #fff; color: #222;
+              border: 1px solid rgba(0,0,0,.12);
+              box-shadow: 0 6px 22px rgba(0,0,0,.12);
+              border-radius: .6rem;
+              padding: .5rem .6rem;
+              min-width: 180px; max-width: min(360px, 60vw);
+              z-index: 2;
+              white-space: normal;
+            }
+            
+            #hmmwrap_all{
+              position: relative;
+              isolation: isolate;
+              width: 70%;
+              max-width: 900px;
+              margin: auto;
+              
+              aspect-ratio: 327 / 351;
+            }
+            
+            /* The base SVG just fills the box */
+            #hmmwrap_all .base-svg{
+              position: absolute;
+              top: 0;
+              left: 0;
+              width: 100%;
+              height: 100%;
+              display: block;
+            }
+            
+            /* Each hotspot */
+            #hmmwrap_all .hs{
+              position: absolute;
+              transform: translate(-50%, -50%);
+              z-index: 1;
+            }
+            
+            /* Raise hovered/focused hotspot above siblings */
+            #hmmwrap_all .hs:hover,
+            #hmmwrap_all .hs:focus-within{
+              z-index: 9999;
+            }
+            
+            /* The popup */
+            #hmmwrap_all .hs .callout{
+              position: absolute;
+              left: 50%; top: -10px;              /* above the pill */
+              transform: translate(-50%, -100%);
+              min-width: 220px; max-width: 360px;
+              padding: 10px 12px;
+              border-radius: 10px;
+              background: #fff; color: #333;
+              box-shadow: 0 12px 30px rgba(0,0,0,.25);
+              opacity: 0; visibility: hidden;
+              pointer-events: none;               /* pointer stays on parent */
+              transition: opacity .12s ease, transform .12s ease;
+              z-index: 2147483647;                /* above everything in this context */
+            }
+            
+            /* Show popup on hover/focus */
+            #hmmwrap_all .hs:hover .callout,
+            #hmmwrap_all .hs:focus-within .callout{
+              opacity: 1; visibility: visible;
+              transform: translate(-50%, -110%);
+            }
+            
+            /* Palette for overlay pills */
+            #hmmwrap_all{
+              --pi:    #2e86de;   /* initial probs (π) */
+              --trans: #e74c3c;   /* transitions (A)  */
+              --emit:  #27ae60;   /* emissions (B)    */
+              --tagText: #fff;
+            }
+            
+            /* Default pill (fallback) */
+            #hmmwrap_all .hs .tag{
+              color: var(--tagText);
+              font-weight: 600;
+              padding: .18rem .50rem;
+              border-radius: .55rem;
+              background: rgba(0,0,0,.35);
+              backdrop-filter: blur(2px);
+              -webkit-backdrop-filter: blur(2px);
+            }
+            
+            /* Group tints (override the neutral background) */
+            #hmmwrap_all .hs.pi   .tag{ background: var(--pi); }
+            #hmmwrap_all .hs.trans.tag,                 /* in case .tag sits on the same node */
+            #hmmwrap_all .hs.trans .tag{ background: var(--trans); }
+            #hmmwrap_all .hs.emit .tag{ background: var(--emit); }
+            
+            /* Optional: slightly brighter on hover/focus */
+            #hmmwrap_all .hs:hover .tag,
+            #hmmwrap_all .hs:focus-within .tag{
+              filter: brightness(1.05);
+            }
+            
+            /* Frame draws [  ] around the table */
+            .mx-frame{
+              position:relative; display:inline-block; padding:12px 18px; margin:8px 0;
+            }
+            .mx-frame::before, .mx-frame::after{
+              content:''; position:absolute; top:4px; bottom:4px; width:12px;
+              border-top:3px solid #222; border-bottom:3px solid #222;
+            }
+            .mx-frame::before{ left:0;  border-left:3px solid #222;  border-right:none;  border-radius:4px 0 0 4px; }
+            .mx-frame::after { right:0; border-right:3px solid #222; border-left:none;  border-radius:0 4px 4px 0; }
+            
+            /* Handsontable → matrix vibe */
+            .mx-table .htCore td, .mx-table .htCore th{ 
+              border-color: rgba(0,0,0,.12);
+            }
+            .mx-table .htCore th{ 
+              background: transparent; 
+              font-weight:600; 
+              font-family: 'Times New Roman', Georgia, serif; 
+              font-style: italic;
+            }
+            /* center numbers and make them serif/italic like math */
+            .mx-table .htCore td{ 
+              text-align:center; 
+              vertical-align:middle; 
+              font-family:'Times New Roman', Georgia, serif; 
+              font-style:italic; 
+              font-size:1.05rem;
+            }
+            /* strong separators (like the line after headers and before row labels) */
+            .mx-table .ht_clone_top .htCore th{ border-bottom:2px solid #222; }
+            .mx-table .ht_clone_left .htCore th{ border-right:2px solid #222; }
+            
+            .mx-row { display:flex; align-items:center; justify-content:center; gap:.75rem; width:100%; }
+            .mx-lead { text-align:center; font-weight:600; }
+            
+                /* Center card titles */
+              .card-header { position: relative; }
+              .card-header .card-title{
+                float: none !important;   /* undo AdminLTE's float */
+                width: 100%;
+                text-align: center;
+                margin: 0;
+                font-size: 36px;
+              }
+              /* Keep collapse/close tools on the right */
+              .card-header .card-tools{
+                position: absolute;
+                right: .75rem;
+                top: .5rem;
+              }
+            
+              /* Optional: center tab labels in tabbed headers/navs */
+              .nav-tabs{ justify-content: center; }
+              
+            .irs-bar,
+             .irs-bar-edge{
+              background: #28a745 !important;
+              border-color: #28a745 !important;
+            }
+            .irs-single,
+            .irs-from,
+            .irs-to{
+              background: #28a745 !important;
+            }
+            .irs-handle > i:first-child{
+              background: #28a745 !important;
+            }
+            
+            <style>
+              /* Center a label + the matrix side by side */
+              .mx-row { display:flex; align-items:center; justify-content:center; gap:.75rem; width:100%; }
+            
+              /* The bracketed matrix container */
+              .mx-mat {
+                position: relative; display:inline-grid; grid-template-columns: repeat(2, 90px);
+                gap: 10px; padding: 10px 14px; margin: 6px 0;
+              }
+              /* Draw [   ] brackets with pseudo elements */
+              .mx-mat::before, .mx-mat::after {
+                content:''; position:absolute; top:0; bottom:0; width:10px;
+                border-top:3px solid #222; border-bottom:3px solid #222;
+              }
+              .mx-mat::before { left:-12px;  border-left:3px solid #222;  border-radius:6px 0 0 6px; }
+              .mx-mat::after  { right:-12px; border-right:3px solid #222; border-radius:0 6px 6px 0; }
+            
+              /* Tighten Shiny form-group spacing inside the grid */
+              .mx-mat .form-group { margin:0; }
+            
+              /* Inputs look mathy, centered */
+              .mx-mat input.form-control {
+                width: 90px; height: 2.2rem; text-align:center;
+                font-family: 'Times New Roman', Georgia, serif; font-style: italic; font-size: 1.1rem;
+                padding: .25rem .5rem;
+              }
+              /* Remove number spinners */
+              .mx-mat input[type=number]::-webkit-outer-spin-button,
+              .mx-mat input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+              .mx-mat input[type=number] { -moz-appearance: textfield; }
+            
+              .mx-lead { text-align:center; font-weight:600; }
+            </style>

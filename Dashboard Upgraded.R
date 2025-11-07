@@ -387,7 +387,6 @@ emission_matrix_text <- HTML(
 
     model_selection_text <- withMathJax(HTML(
         "
-        <div style='font-size:18px; line-height:1.6;'>
         <p>
         To optimize the interpretability and numerical stability of the model, the macroeconomic indicators were first filtered. 
         This ensured that no single economic category was overrepresented, which would inadvertently bias the model. This process 
@@ -418,12 +417,11 @@ emission_matrix_text <- HTML(
         lower variability across folds, highlighting their ability to generalize reliably across different economic cycles. 
         Where lags were selected, they consistently improved these out-of-sample scores.
         </p>
-            </div>
         "
     ))
 
 model_result_info <- withMathJax(HTML(
-    "<div style='font-size:18px; line-height:1.6; margin-top:30px;'>
+    "<div style='font-size:18px; line-height:1.6; margin-top:30px; font-family: Helvetica;'>
 
     <p>
     The model utilizing <b>Lagged Real GDP (12 month lag)</b>, 
@@ -512,9 +510,8 @@ B0  <- matrix(c(0.70,0.30,
 # Dashboard Construction ----
 
 mint_dark_theme <- create_theme(
-    theme = "superhero",  # matches your preset
+    theme = "superhero",
     bs4dash_vars(
-        #"navbar-light-bg"     = "#203734",
         "navbar-light-bg"     = "#A5A9B4",
         "navbar-light-color"  = "rgb(235, 235, 235)",
         "sidebar-light-bg"    = "#0F3F1E",
@@ -522,43 +519,67 @@ mint_dark_theme <- create_theme(
     ),
     bs4dash_yiq(
         contrasted_threshold = 150,
-        text_dark = "#42FF66",     # your intended primary accent
+        text_dark = "#42FF66",
         text_light = "#ffffff"
     )
 )
 
 ui <- bs4DashPage(
     freshTheme = mint_dark_theme,
-    #title = "An Analysis of Consumer Sentiment States with a Hidden Markov Model",
     controlbar = NULL,
+    
+    dark = NULL,
+    help = NULL,
     
     # Header/navbar
     header = bs4DashNavbar(
-        #title = bs4DashBrand(
-            #title = "An Analysis of Consumer Sentiment States with a Hidden Markov Model",
-        #),
         status = "success",
-        #brandColor = "success",
         border = TRUE
     ),
     
     ## Sidebar with vertical menu ----
     sidebar = bs4DashSidebar(
-        id   = "sidebar", # ID of the sidebar object (not the tabs)
+        id   = "sidebar",
         skin = "light",
-        #status = "success",
-        #brandColor = "success",
-        #brandColor = "teal",
         collapsed = TRUE,
+        # bs4SidebarUserPanel(
+        #     image = "github logo.png",
+        #     name = "Waris Popal"
+        # ),
+        
+        bs4SidebarUserPanel(
+            image = "github logo.png",
+            name = tags$a(
+                href = "https://github.com/warisp897/ConsumerSentimentHMM",
+                target = "_blank",
+                "Waris Popal"
+            )
+        ),
+        
         bs4SidebarMenu(
             id = "dashboard_tabs", # ID of Sidebar menu
-            bs4SidebarMenuItem("Overview", tabName = "overview", icon = icon("dashboard")),
-            bs4SidebarMenuItem("Economic Indicators", tabName = "indicator_analysis", icon = icon("money-bill-trend-up")),
-            bs4SidebarMenuItem("Hidden Markov Model", tabName = "model_intro", icon = icon("project-diagram")),
-            #bs4SidebarMenuItem("Model Selection", tabName = "model_select", icon = icon("project-diagram")),
-            bs4SidebarMenuItem("Analysis", tabName = "model_analysis", icon = icon("chart-line")),
-            bs4SidebarMenuItem("Conclusion", tabName = "model_conclusion", icon = icon("newspaper"))
-        )
+            bs4SidebarHeader("Dashboard Navigation"),
+            bs4SidebarMenuItem("Overview", 
+                               tabName = "overview", 
+                               icon = icon("dashboard")),
+            
+            bs4SidebarMenuItem("Economic Indicators", 
+                               tabName = "indicator_analysis", 
+                               icon = icon("money-bill-trend-up")),
+            
+            bs4SidebarMenuItem("Hidden Markov Model", 
+                               tabName = "model_intro", 
+                               icon = icon("project-diagram")),
+            
+            bs4SidebarMenuItem("Analysis", 
+                               tabName = "model_analysis", 
+                               icon = icon("chart-line")),
+            
+            bs4SidebarMenuItem("Conclusion", 
+                               tabName = "model_conclusion", 
+                               icon = icon("newspaper"))
+            
+            )
     ),
     
     ## Custom CSS Adjustments ----
@@ -566,328 +587,15 @@ ui <- bs4DashPage(
         useShinyjs(),
         tags$head(
             
-            tags$style(HTML("
+            tags$link(
+                rel  = "stylesheet",
+                type = "text/css",
+                href = "custom.css"
+            ),
             
-            /* --- Segmented Control --- */
-              .segmented-control {
-                display: flex;
-                justify-content: center;
-                border: 1px solid #28a745;
-                border-radius: 0.25rem;
-                overflow: hidden;
-                width: fit-content;
-                margin: 15px auto;
-                margin-left: auto;
-                margin-right: auto;
-              }
-              .segmented-control .btn {
-                border-radius: 0;
-                border: none;
-                background-color: #fff;
-                color: #28a745;
-              }
-              .segmented-control .btn:not(:last-child) {
-                border-right: 1px solid #28a745;
-              }
-              .segmented-control .btn.active {
-                background-color: #28a745;
-                color: #fff;
-                cursor: default;
-              }
-              .segmented-control .btn:hover:not(.active) {
-                background-color: #e9ecef;
-              }
-  
-            /* Sidebar background */
-              .main-sidebar {
-              // background-color: #A5A9B4 !important;  /* Replace with your desired color */
-              }
+            tags$script(src = "custom.js")
             
-              /* Active tab item (the tab pill) */
-              .main-sidebar .nav-sidebar .nav-item > .nav-link.active {
-                //background-color: #A5A9B4 !important;  /* Change this to your theme color */
-                color: white !important;
-              }
-              
-                /* Hover over a tab item text color */
-                  .main-sidebar .nav-sidebar .nav-item > .nav-link:hover {
-                    background-color: #218838 !important;  /* Slightly darker */
-                    color: white !important;
-                  }
-                
-               /* Active tab background and text color */
-              .nav-pills .nav-link.active, 
-              .nav-pills .show > .nav-link {
-                background-color: #28a745 !important; /* Replace with your theme color */
-                color: white !important;
-              }
-              
-                /* Hover state (non-active tabs) */
-              .nav-pills .nav-link:hover {
-                color: #0F3F1E !important;  /* Match your theme color */
-              }
-
-            .matrix-overlay { pointer-events: none; }
-            
-            #hmmwrap { position: relative; width: 100%; }
-            #hmmwrap .base-svg { width: 100%; height: 60vh; display: block; }
-            
-            /* Hotspot container: positioned by % and centered on that point */
-            .hs { position: absolute; transform: translate(-50%, -50%); pointer-events: auto; }
-            
-            /* Visible tag (the label on the arrow) */
-            .hs .tag {
-              font-weight: 600;
-              padding: .15rem .35rem;
-              border-radius: .5rem;
-              background: rgba(0,0,0,.55);
-              color: #fff;
-              line-height: 1;
-              font-size: clamp(10px, 1.2vw, 14px);
-              backdrop-filter: blur(2px);
-              -webkit-backdrop-filter: blur(2px);
-            }
-            
-            /* The hover card */
-            .hs .callout {
-              position: absolute;
-              left: 50%; top: -8px;
-              transform: translate(-50%, -12px) scale(.98);
-              opacity: 0; visibility: hidden;
-              transition: opacity .18s ease, transform .18s ease, visibility 0s linear .18s;
-              background: #fff; color: #222;
-              border: 1px solid rgba(0,0,0,.12);
-              box-shadow: 0 6px 22px rgba(0,0,0,.12);
-              border-radius: .6rem;
-              padding: .5rem .6rem;
-              min-width: 180px; max-width: min(360px, 60vw);
-              z-index: 2;
-              white-space: normal;
-            }
-            
-            #hmmwrap_all{
-              position: relative;
-              isolation: isolate;
-              width: 70%;
-              max-width: 900px;
-              margin: auto;
-              
-              aspect-ratio: 327 / 351;
-            }
-            
-            /* The base SVG just fills the box */
-            #hmmwrap_all .base-svg{
-              position: absolute;
-              top: 0;
-              left: 0;
-              width: 100%;
-              height: 100%;
-              display: block;
-            }
-            
-            /* Each hotspot */
-            #hmmwrap_all .hs{
-              position: absolute;
-              transform: translate(-50%, -50%);
-              z-index: 1;
-            }
-            
-            /* Raise hovered/focused hotspot above siblings */
-            #hmmwrap_all .hs:hover,
-            #hmmwrap_all .hs:focus-within{
-              z-index: 9999;
-            }
-            
-            /* The popup */
-            #hmmwrap_all .hs .callout{
-              position: absolute;
-              left: 50%; top: -10px;              /* above the pill */
-              transform: translate(-50%, -100%);
-              min-width: 220px; max-width: 360px;
-              padding: 10px 12px;
-              border-radius: 10px;
-              background: #fff; color: #333;
-              box-shadow: 0 12px 30px rgba(0,0,0,.25);
-              opacity: 0; visibility: hidden;
-              pointer-events: none;               /* pointer stays on parent */
-              transition: opacity .12s ease, transform .12s ease;
-              z-index: 2147483647;                /* above everything in this context */
-            }
-            
-            /* Show popup on hover/focus */
-            #hmmwrap_all .hs:hover .callout,
-            #hmmwrap_all .hs:focus-within .callout{
-              opacity: 1; visibility: visible;
-              transform: translate(-50%, -110%);
-            }
-            
-            /* Palette for overlay pills */
-            #hmmwrap_all{
-              --pi:    #2e86de;   /* initial probs (π) */
-              --trans: #e74c3c;   /* transitions (A)  */
-              --emit:  #27ae60;   /* emissions (B)    */
-              --tagText: #fff;
-            }
-            
-            /* Default pill (fallback) */
-            #hmmwrap_all .hs .tag{
-              color: var(--tagText);
-              font-weight: 600;
-              padding: .18rem .50rem;
-              border-radius: .55rem;
-              background: rgba(0,0,0,.35);
-              backdrop-filter: blur(2px);
-              -webkit-backdrop-filter: blur(2px);
-            }
-            
-            /* Group tints (override the neutral background) */
-            #hmmwrap_all .hs.pi   .tag{ background: var(--pi); }
-            #hmmwrap_all .hs.trans.tag,                 /* in case .tag sits on the same node */
-            #hmmwrap_all .hs.trans .tag{ background: var(--trans); }
-            #hmmwrap_all .hs.emit .tag{ background: var(--emit); }
-            
-            /* Optional: slightly brighter on hover/focus */
-            #hmmwrap_all .hs:hover .tag,
-            #hmmwrap_all .hs:focus-within .tag{
-              filter: brightness(1.05);
-            }
-            
-            /* Frame draws [  ] around the table */
-            .mx-frame{
-              position:relative; display:inline-block; padding:12px 18px; margin:8px 0;
-            }
-            .mx-frame::before, .mx-frame::after{
-              content:''; position:absolute; top:4px; bottom:4px; width:12px;
-              border-top:3px solid #222; border-bottom:3px solid #222;
-            }
-            .mx-frame::before{ left:0;  border-left:3px solid #222;  border-right:none;  border-radius:4px 0 0 4px; }
-            .mx-frame::after { right:0; border-right:3px solid #222; border-left:none;  border-radius:0 4px 4px 0; }
-            
-            /* Handsontable → matrix vibe */
-            .mx-table .htCore td, .mx-table .htCore th{ 
-              border-color: rgba(0,0,0,.12);
-            }
-            .mx-table .htCore th{ 
-              background: transparent; 
-              font-weight:600; 
-              font-family: 'Times New Roman', Georgia, serif; 
-              font-style: italic;
-            }
-            /* center numbers and make them serif/italic like math */
-            .mx-table .htCore td{ 
-              text-align:center; 
-              vertical-align:middle; 
-              font-family:'Times New Roman', Georgia, serif; 
-              font-style:italic; 
-              font-size:1.05rem;
-            }
-            /* strong separators (like the line after headers and before row labels) */
-            .mx-table .ht_clone_top .htCore th{ border-bottom:2px solid #222; }
-            .mx-table .ht_clone_left .htCore th{ border-right:2px solid #222; }
-            
-            .mx-row { display:flex; align-items:center; justify-content:center; gap:.75rem; width:100%; }
-            .mx-lead { text-align:center; font-weight:600; }
-            
-                /* Center card titles */
-              .card-header { position: relative; }
-              .card-header .card-title{
-                float: none !important;   /* undo AdminLTE's float */
-                width: 100%;
-                text-align: center;
-                margin: 0;
-                font-size: 36px;
-              }
-              /* Keep collapse/close tools on the right */
-              .card-header .card-tools{
-                position: absolute;
-                right: .75rem;
-                top: .5rem;
-              }
-            
-              /* Optional: center tab labels in tabbed headers/navs */
-              .nav-tabs{ justify-content: center; }
-              
-            .irs-bar,
-             .irs-bar-edge{
-              background: #28a745 !important;
-              border-color: #28a745 !important;
-            }
-            .irs-single,
-            .irs-from,
-            .irs-to{
-              background: #28a745 !important;
-            }
-            .irs-handle > i:first-child{
-              background: #28a745 !important;
-            }
-            
-            <style>
-              /* Center a label + the matrix side by side */
-              .mx-row { display:flex; align-items:center; justify-content:center; gap:.75rem; width:100%; }
-            
-              /* The bracketed matrix container */
-              .mx-mat {
-                position: relative; display:inline-grid; grid-template-columns: repeat(2, 90px);
-                gap: 10px; padding: 10px 14px; margin: 6px 0;
-              }
-              /* Draw [   ] brackets with pseudo elements */
-              .mx-mat::before, .mx-mat::after {
-                content:''; position:absolute; top:0; bottom:0; width:10px;
-                border-top:3px solid #222; border-bottom:3px solid #222;
-              }
-              .mx-mat::before { left:-12px;  border-left:3px solid #222;  border-radius:6px 0 0 6px; }
-              .mx-mat::after  { right:-12px; border-right:3px solid #222; border-radius:0 6px 6px 0; }
-            
-              /* Tighten Shiny form-group spacing inside the grid */
-              .mx-mat .form-group { margin:0; }
-            
-              /* Inputs look mathy, centered */
-              .mx-mat input.form-control {
-                width: 90px; height: 2.2rem; text-align:center;
-                font-family: 'Times New Roman', Georgia, serif; font-style: italic; font-size: 1.1rem;
-                padding: .25rem .5rem;
-              }
-              /* Remove number spinners */
-              .mx-mat input[type=number]::-webkit-outer-spin-button,
-              .mx-mat input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-              .mx-mat input[type=number] { -moz-appearance: textfield; }
-            
-              .mx-lead { text-align:center; font-weight:600; }
-            </style>
-            
-          "))
         ),
-        
-        # Custom JS Scripts that are Dashboard-Wide
-        
-        #tags$script(src="https://cdn.jsdelivr.net/npm/mathjax@2/MathJax.js?config=TeX-AMS-MML_HTMLorMML"),
-        tags$script(HTML("
-        Shiny.addCustomMessageHandler('toggleDrill', function(x){
-          var leftTabs   = document.getElementById('model_analysis_tabs');
-          var drillView  = document.getElementById('drillView');
-          var metrics    = document.getElementById('metricsPanel');
-          if (!leftTabs || !drillView || !metrics) return;
-          if (x.show){
-            leftTabs.classList.add('fade-out');
-            drillView.classList.add('fade-in');
-            metrics.classList.add('fade-in');
-            leftTabs.classList.remove('fade-in'); drillView.classList.remove('fade-out'); metrics.classList.remove('fade-out');
-          } else {
-            leftTabs.classList.add('fade-in');
-            drillView.classList.add('fade-out');
-            metrics.classList.add('fade-out');
-            leftTabs.classList.remove('fade-out'); drillView.classList.remove('fade-in'); metrics.classList.remove('fade-in');
-          }
-        });
-        
-          Shiny.addCustomMessageHandler('segmented-set-active', function(msg){
-            var id = msg.id;
-            var $btn = $('#' + id);
-            var $wrap = $btn.closest('.segmented-control');
-            $wrap.find('.btn').removeClass('active');
-            $btn.addClass('active');
-          });
-        ")),
         
         ## All Tab Content ----
         
@@ -928,7 +636,6 @@ ui <- bs4DashPage(
             ### Preliminary Analysis Tab ----
             bs4TabItem(
                 tabName = "indicator_analysis",
-                #id = "analysis",
                 fluidRow(
                     bs4Card(
                         collapsible = FALSE,   # removes collapse toggle
@@ -996,31 +703,33 @@ ui <- bs4DashPage(
                     fluidRow(
                         column(
                             width = 5,
-                            bs4Dash::tabsetPanel(
-                                id = "hmm_info_tabs",
-                                type = "pills",
-                                selected = "hmm_intro",
-                                tabPanel("Introduction", value = "hmm_intro",
-                                         div(style = "min-height: 50vh; font-size:18px; font-family:Helvetica;",
-                                             intro_hmm_text
-                                         )
-                                ),
-                                tabPanel("Training", value = "hmm_train_exp", 
-                                         div(style = "min-height: 63.2vh; font-size:18px; font-family:Helvetica;",
-                                             hmm_training
-                                         )
-                                ),
-                                tabPanel("Transition Probability", value = "trans_prob",
-                                         div(style = "min-height:50vh; font-size:18px; font-family:Helvetica;",
-                                             transition_prob,
-                                             uiOutput("matrix_ui")
-                                         )
-                                ),
-                                tabPanel("Emission Probability", value = "emission_prob", 
-                                         div(style = "min-height:50vh; font-size:18px; font-family:Helvetica;",
-                                             emission_prob,
-                                             uiOutput("emissions_mat")
-                                         )
+                            div(style = "font-size:18px;font-family: Helvetica;",
+                                bs4Dash::tabsetPanel(
+                                    id = "hmm_info_tabs",
+                                    type = "pills",
+                                    selected = "hmm_intro",
+                                    tabPanel("Introduction", value = "hmm_intro",
+                                             div(style = "min-height: 50vh; font-size:18px; font-family:Helvetica;",
+                                                 intro_hmm_text
+                                             )
+                                    ),
+                                    tabPanel("Training", value = "hmm_train_exp", 
+                                             div(style = "min-height: 63.2vh; font-size:18px; font-family:Helvetica;",
+                                                 hmm_training
+                                             )
+                                    ),
+                                    tabPanel("Transition Probability", value = "trans_prob",
+                                             div(style = "min-height:50vh; font-size:18px; font-family:Helvetica;",
+                                                 transition_prob,
+                                                 uiOutput("matrix_ui")
+                                             )
+                                    ),
+                                    tabPanel("Emission Probability", value = "emission_prob", 
+                                             div(style = "min-height:50vh; font-size:18px; font-family:Helvetica;",
+                                                 emission_prob,
+                                                 uiOutput("emissions_mat")
+                                             )
+                                    )
                                 )
                             )
                         ),
@@ -1137,98 +846,81 @@ ui <- bs4DashPage(
                         width = 12,
                         status = "success",
                         
-                        bs4Dash::tabsetPanel(
-                            id   = "model_analysis_tabs",
-                            type = "pills",
-                            
-                            tabPanel(
-                                "Model Selection",
-                                fluidRow(
-                                    column(
-                                        width = 6,
-                                        div(
-                                            style = "padding:10px; font-size:18px; line-height:1.5; overflow-y:auto; font-family: Helvetica;",
-                                            model_selection_text
-                                        )
-                                    ),
-                                    column(
-                                        width = 6,
-                                        div(
-                                            style = "display:flex; flex-direction:column; height: calc(100vh - 220px);",
-                                            highchartOutput("overview_ts", height = "100%", width = "100%")
-                                        )
-                                    )
-                                )
-                            ),
-
-                            tabPanel(
-                                "Model Metrics",
-                                fluidRow(
-                                    
-                                    column(
-                                        width = 12,
-                                        div(
-                                            class = "segmented-control",
-                                            actionButton("mod_one", "Model 1", class = "btn active"),
-                                            actionButton("mod_two", "Model 2", class = "btn"),
-                                            actionButton("mod_three", "Model 3", class = "btn"),
-                                            actionButton("mod_four", "Model 4", class = "btn"),
-                                            actionButton("mod_five", "Model 5", class = "btn")
+                        div(style = "font-size:18px;font-family: Helvetica;",
+                            bs4Dash::tabsetPanel(
+                                id   = "model_analysis_tabs",
+                                type = "pills",
+                                
+                                tabPanel(
+                                    "Model Selection",
+                                    fluidRow(
+                                        column(
+                                            width = 6,
+                                            div(
+                                                style = "padding:10px; font-size:18px; line-height:1.5; overflow-y:auto; font-family: Helvetica;",
+                                                model_selection_text
+                                            )
                                         ),
-                                        div(
-                                            class = "segmented-control",
-                                            actionButton("trans_btn", "Transition", class = "btn active"),
-                                            actionButton("emiss_btn", "Emission", class = "btn")
+                                        column(
+                                            width = 6,
+                                            div(
+                                                style = "display:flex; flex-direction:column; height: calc(100vh - 220px);",
+                                                highchartOutput("overview_ts", height = "100%", width = "100%")
+                                            )
                                         )
                                     )
                                 ),
-                                    
-                                fluidRow(
-                                    column(
-                                        width = 6,
-                                        highchartOutput("model_selection_plot", height = "850px"),
+    
+                                tabPanel(
+                                    "Model Metrics",
+                                    fluidRow(
+                                        
+                                        column(
+                                            width = 12,
+                                            div(
+                                                class = "segmented-control",
+                                                actionButton("mod_one", "Model 1", class = "btn active"),
+                                                actionButton("mod_two", "Model 2", class = "btn"),
+                                                actionButton("mod_three", "Model 3", class = "btn"),
+                                                actionButton("mod_four", "Model 4", class = "btn"),
+                                                actionButton("mod_five", "Model 5", class = "btn")
+                                            ),
+                                            div(
+                                                class = "segmented-control",
+                                                actionButton("trans_btn", "Transition", class = "btn active"),
+                                                actionButton("emiss_btn", "Emission", class = "btn")
+                                            )
+                                        )
                                     ),
-                                    column(
-                                        width = 6,
-                                        div(
-                                            id = "transition_probs",
-                                            highchartOutput("cs_regime_chart", height = "300px"),
-                                            highchartOutput("tpm_time", height = "300px"),
-                                            highchartOutput("tpm_avg", height = "300px")
+                                        
+                                    fluidRow(
+                                        column(
+                                            width = 6,
+                                            highchartOutput("model_selection_plot", height = "850px"),
                                         ),
-
-                                        div(
-                                            id = "emission_probs",
-                                            
-                                            # this sets the highchart output to not display initially 
-                                            # (and display once the button is pressed)
-                                            style = "display: none;", 
-                                            highchartOutput("emis_dens", height = "340px"),
-                                            highchartOutput("state_means_scaled", height = "340px"),
-                                            highchartOutput("state_prob_heatmap", height = "340px")
+                                        column(
+                                            width = 6,
+                                            div(
+                                                id = "transition_probs",
+                                                highchartOutput("cs_regime_chart", height = "300px"),
+                                                highchartOutput("tpm_time", height = "300px"),
+                                                highchartOutput("tpm_avg", height = "300px")
+                                            ),
+    
+                                            div(
+                                                id = "emission_probs",
+                                                
+                                                # this sets the highchart output to not display initially 
+                                                # (and display once the button is pressed)
+                                                style = "display: none;", 
+                                                highchartOutput("emis_dens", height = "340px"),
+                                                highchartOutput("state_means_scaled", height = "340px"),
+                                                highchartOutput("state_prob_heatmap", height = "340px")
+                                            )
                                         )
                                     )
                                 )
                             )
-                            # tabPanel(
-                            #     "Top Indicators",
-                            #     fluidRow(
-                            #         column(
-                            #             width = 6,
-                            #             div(
-                            #                 style = "padding:10px; font-size:18px; line-height:1.5; overflow-y:auto; font-family: Helvetica;",
-                            #                 model_result_info
-                            #             )
-                            #         ),
-                            #         column(
-                            #             width = 6,
-                            #             div(
-                            #                 style = "display:flex; flex-direction:column; height: calc(100vh - 220px);",
-                            #                 highchartOutput("state_plot", height = "100%", width = "100%")
-                            #             )
-                            #         )
-                            #     )
-                            # )
                         )
                     )
                 )
@@ -1244,53 +936,54 @@ ui <- bs4DashPage(
                     fluidRow(
                         column(
                             width = 12,
-                                tabsetPanel(
-                                    id   = "conclusion_tabs",
-                                    type = "pills",
-                                    tabPanel(
-                                        "Sentiment Regimes",
-                                        fluidRow(
-                                            column(
-                                                width = 12,
-                                                highchartOutput("consumer_sent_monthly")
+                            div(style = "font-size:18px; font-family: Helvetica;",
+                                    tabsetPanel(
+                                        id   = "conclusion_tabs",
+                                        type = "pills",
+                                        tabPanel(
+                                            "Sentiment Regimes",
+                                            fluidRow(
+                                                column(
+                                                    width = 12,
+                                                    highchartOutput("consumer_sent_monthly")
+                                                ),
+                                                # column(
+                                                #     width = 6,
+                                                #     highchartOutput("state_plot")
+                                                # )
                                             ),
-                                            # column(
-                                            #     width = 6,
-                                            #     highchartOutput("state_plot")
-                                            # )
+                                            regime_conclusion
                                         ),
-                                        regime_conclusion
-                                    ),
-                                    tabPanel(
-                                        "Best Model",
-                                        fluidRow(
-                                            column(
-                                                width = 6,
-                                                model_result_info
-                                            ),
-                                            column(
-                                                width = 6,
-                                                highchartOutput("state_plot"),
-                                                highchartOutput("state_means_real_M4")
-                                            )
-                                        )
-                                    ),
-                                    tabPanel(
-                                        "For the Future",
-                                        fluidRow(
-                                            column(
-                                                width = 4,
-                                                future_conclusion
-                                            ),
-                                            
-                                            column(
-                                                width = 8,
-                                                div(
-                                                    #highchartOutput("hmm_oos_full",  height = "350px"),
-                                                    tags$br(),
-                                                    highchartOutput("hmm_oos_short")#, height = "350px"),
+                                        tabPanel(
+                                            "Best Model",
+                                            fluidRow(
+                                                column(
+                                                    width = 6,
+                                                    model_result_info
+                                                ),
+                                                column(
+                                                    width = 6,
+                                                    
+                                                    highchartOutput("state_means_real_M4"),
+                                                    highchartOutput("state_plot")
                                                 )
+                                            )
+                                        ),
+                                        tabPanel(
+                                            "For the Future",
+                                            fluidRow(
+                                                column(
+                                                    width = 4,
+                                                    future_conclusion
+                                                ),
                                                 
+                                                column(
+                                                    width = 8,
+                                                    div(
+                                                        highchartOutput("hmm_oos_short")
+                                                    )
+                                                    
+                                                )
                                             )
                                         )
                                     )
@@ -1324,6 +1017,27 @@ server <- function(input, output, session) {
         stringsAsFactors = FALSE
     )
     
+    plot_bands <- lapply(seq_len(nrow(recessions)), function(i) {
+        list(
+            from   = datetime_to_timestamp(as.Date(recessions$start[i])),
+            to     = datetime_to_timestamp(as.Date(recessions$end[i])),
+            color  = recessions$color[i],
+            zIndex = 0,  # keep behind the lines
+            label  = list(
+                text      = recessions$name[i],
+                align     = "center",    # center within the band
+                rotation  = 0,
+                y         = 12,          # tweak up/down as you like (positive = down)
+                style     = list(
+                    color = "#e74c3c",     # red label text
+                    fontWeight = "bold",
+                    fontSize = "11px",
+                    textOutline = "none"
+                )
+                # useHTML = TRUE   # uncomment if you want HTML in the label
+            )
+        )
+    })
     
     ### Consumer Sentiment TS Plot ----
     output$consumer_sentiment_plot <- renderHighchart({
@@ -1337,14 +1051,6 @@ server <- function(input, output, session) {
             transmute(x = datetime_to_timestamp(date),
                       y = sentiment) %>%
             list_parse2()
-        
-        plot_bands <- lapply(seq_len(nrow(recessions)), function(i) {
-            list(
-                from  = datetime_to_timestamp(as.Date(recessions$start[i])),
-                to    = datetime_to_timestamp(as.Date(recessions$end[i])),
-                color = recessions$color[i]
-            )
-        })
         
         highchart() %>%
             hc_add_theme(hc_theme_elementary()) %>%
@@ -1551,10 +1257,6 @@ server <- function(input, output, session) {
                 fmt   = ifelse(is.na(fmt), "", fmt)
             )
         
-        cat("setdiff!!\n", paste(setdiff(unique(plot_df$Indicator), names(indicator_formats)), collapse=", "), "\n")
-        print(unique(plot_df$Indicator))
-        print("break")
-        print(names(indicator_formats))
         
         all_inds     <- unique(plot_df$Indicator)
         ordered_inds <- c(setdiff(all_inds, "consumer_sentiment"), "consumer_sentiment")
@@ -1914,19 +1616,17 @@ server <- function(input, output, session) {
             hc_subtitle(text = "The greater the value, the more correlated the indicator is with Consumer Sentiment") %>%
             hc_add_series_list(series_list) %>%
             hc_caption(
+                useHTML = TRUE,
+                align = "center", 
                 text = paste0(
-                    "<span>",
-                    "<span style='display:block; text-align:center; width:100%;'>",
-                    "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;",
-                    "<span style='font-weight:bold;color:#1f78b4'>&#9632;</span> Output&nbsp;&nbsp;&nbsp;",
-                    "<span style='font-weight:bold;color:#33a02c'>&#9632;</span> Labor Market&nbsp;&nbsp;&nbsp;",
-                    "<span style='font-weight:bold;color:#6a3d9a'>&#9632;</span> Price Levels&nbsp;&nbsp;&nbsp;",
-                    "<span style='font-weight:bold;color:#e31a1c'>&#9632;</span> Monetary & Fiscal&nbsp;&nbsp;&nbsp;",
-                    "<span style='font-weight:bold;color:#ff7f00'>&#9632;</span> Housing & Construction&nbsp;&nbsp;&nbsp;",
-                    #"<span style='font-weight:bold;color:#5F1DF9'>&#9632;</span> Trade",
-                    "</span>"
-                ),
-                useHTML = TRUE
+                    "<div style='text-align:center;'>",
+                    "<span style='font-weight:bold;color:#1f78b4'>&#9632;</span> Output&nbsp;&nbsp;",
+                    "<span style='font-weight:bold;color:#33a02c'>&#9632;</span> Labor Market&nbsp;&nbsp;",
+                    "<span style='font-weight:bold;color:#6a3d9a'>&#9632;</span> Price Levels&nbsp;&nbsp;",
+                    "<span style='font-weight:bold;color:#e31a1c'>&#9632;</span> Monetary & Fiscal&nbsp;&nbsp;",
+                    "<span style='font-weight:bold;color:#ff7f00'>&#9632;</span> Housing & Construction",
+                    "</div>"
+                )
             ) %>%
             hc_plotOptions(bar = list(pointWidth = 15))
     })
@@ -2649,6 +2349,23 @@ server <- function(input, output, session) {
     
     
     ### Indicator Gallery ----
+    
+    plot_bands <- lapply(seq_len(nrow(recessions)), function(i) {
+        list(
+            from   = datetime_to_timestamp(as.Date(recessions$start[i])),
+            to     = datetime_to_timestamp(as.Date(recessions$end[i])),
+            color  = recessions$color[i],  # red/red/yellow with alpha
+            zIndex = 0,                    # behind the lines
+            label  = list(                 # optional on-band label
+                text     = recessions$name[i],
+                rotation = 0,
+                align    = "center",
+                y        = -6,
+                style    = list(color = "#444", fontSize = "10px", fontWeight = "bold")
+            )
+        )
+    })
+    
     output$overview_ts <- renderHighchart({
         overview_vars <- c("real_gdp", "pcepi", "fyfsd", "unemployment_rate", "case_schiller_val")
         lag_map <- c(real_gdp = 1, pcepi = 0, fyfsd = 1, unemployment_rate = 1, case_schiller_val = 1)
@@ -2689,6 +2406,7 @@ server <- function(input, output, session) {
             hc_xAxis(
                 type = "datetime",
                 gridLineWidth = 0,
+                plotBands = plot_bands,
                 crosshair = list(
                     color = "darkgrey",
                     width = 1,
@@ -3407,102 +3125,6 @@ server <- function(input, output, session) {
         hc
     })
     
-    ### 3D TSNE PLOT ----
-    output$state_plot <- renderHighchart({
-        
-        tsne_df   <- tsne_data$tsne
-        centers   <- tsne_data$centers
-        nm_high   <- sprintf("State %d", tsne_data$meta$hi_state)
-        nm_low    <- sprintf("State %d", 3 - tsne_data$meta$hi_state)
-        
-        df_low_cent  <- subset(centers, state == "Low")[, c("cx","cy","cz")]
-        names(df_low_cent)  <- c("x","y","z")
-        df_high_cent <- subset(centers, state == "High")[, c("cx","cy","cz")]
-        names(df_high_cent) <- c("x","y","z")
-        
-        
-        highchart() %>%
-            hc_add_theme(hc_theme_elementary()) %>%
-            hc_add_dependency("highcharts-3d") %>%
-            hc_chart(type = "scatter3d",
-                     options3d = list(enabled = TRUE, 
-                                      alpha = 10, 
-                                      beta = 30, 
-                                      depth = 250, 
-                                      viewDistance = 40),
-                     
-                     events = list(load = JS("
-                    function () {
-                      var chart = this, H = Highcharts;
-                      var startX, startY, alpha0, beta0, dragging = false, sens = 5;
-                
-                      function onMove(e){
-                        if (!dragging) return;
-                        e = chart.pointer.normalize(e);
-                        var a = alpha0 + (e.chartY - startY) / sens;
-                        var b = beta0  + (startX - e.chartX) / sens;
-                        chart.update({ chart: { options3d: { alpha: a, beta: b } } }, true, false, false);
-                      }
-                
-                      function endDrag(){
-                        if (!dragging) return;
-                        dragging = false;
-                        H.removeEvent(document, 'mousemove', onMove);
-                        H.removeEvent(document, 'touchmove', onMove);
-                      }
-                
-                      H.addEvent(chart.container, 'mousedown', function (e) {
-                        e = chart.pointer.normalize(e);
-                        startX = e.chartX; startY = e.chartY;
-                        alpha0 = chart.options.chart.options3d.alpha;
-                        beta0  = chart.options.chart.options3d.beta;
-                        dragging = true;
-                        H.addEvent(document, 'mousemove', onMove);
-                        H.addEvent(document, 'touchmove', onMove);
-                        H.addEvent(document, 'mouseup',   endDrag);
-                        H.addEvent(document, 'touchend',  endDrag);
-                      });
-                
-                      H.addEvent(chart.container, 'touchstart', function (e) {
-                        e = chart.pointer.normalize(e.touches[0] || e.changedTouches[0]);
-                        startX = e.chartX; startY = e.chartY;
-                        alpha0 = chart.options.chart.options3d.alpha;
-                        beta0  = chart.options.chart.options3d.beta;
-                        dragging = true;
-                        H.addEvent(document, 'mousemove', onMove);
-                        H.addEvent(document, 'touchmove', onMove);
-                        H.addEvent(document, 'mouseup',   endDrag);
-                        H.addEvent(document, 'touchend',  endDrag);
-                      });
-                    }
-                  "))) %>%
-            hc_title(text = "t-SNE of Best Model", style = list(fontWeight = "bold", fontSize = "16px")) %>%
-            hc_subtitle(text = "Colored by HMM State") %>%
-            hc_plotOptions(scatter = list(marker = list(radius = 5))) %>%
-            # Low / High series from precomputed df
-            hc_add_series(tsne_df |> dplyr::filter(group == "Low"),
-                          type = "scatter3d", name = nm_low,  color = "#e74c3c",
-                          hcaes(x = x, y = y, z = z)) %>%
-            hc_add_series(tsne_df |> dplyr::filter(group == "High"),
-                          type = "scatter3d", name = nm_high, color = "#28a745",
-                          hcaes(x = x, y = y, z = z)) %>%
-            hc_legend(layout = "horizontal", align = "center", verticalAlign = "bottom") %>%
-            hc_tooltip(pointFormat = 'X: {point.x}<br>Y: {point.y}<br>Z: {point.z}<br>State: {series.name}') %>%
-            # halos from precomputed centers
-            hc_add_series(type = "scatter3d", showInLegend = FALSE,
-                          data = highcharter::list_parse2(df_low_cent),  keys = c("x","y","z"),
-                          color = "rgba(231,76,60,0.16)",  marker = list(symbol = "circle", radius = 26)) %>%
-            hc_add_series(type = "scatter3d", showInLegend = FALSE,
-                          data = highcharter::list_parse2(df_low_cent),  keys = c("x","y","z"),
-                          color = "rgba(231,76,60,0.10)",  marker = list(symbol = "circle", radius = 76)) %>%
-            hc_add_series(type = "scatter3d", showInLegend = FALSE,
-                          data = highcharter::list_parse2(df_high_cent), keys = c("x","y","z"),
-                          color = "rgba(40,167,69,0.16)", marker = list(symbol = "circle", radius = 26)) %>%
-            hc_add_series(type = "scatter3d", showInLegend = FALSE,
-                          data = highcharter::list_parse2(df_high_cent), keys = c("x","y","z"),
-                          color = "rgba(40,167,69,0.10)", marker = list(symbol = "circle", radius = 76))
-    })
-    
     ### Buttons to Switch Between Transition and Emissions Plots ----
     observeEvent(input$emiss_btn, {
         shinyjs::hide("transition_probs")
@@ -3661,6 +3283,103 @@ server <- function(input, output, session) {
         X
     }
     
+    ### 3D TSNE PLOT ----
+    output$state_plot <- renderHighchart({
+        
+        tsne_df   <- tsne_data$tsne
+        centers   <- tsne_data$centers
+        nm_high   <- sprintf("State %d", tsne_data$meta$hi_state)
+        nm_low    <- sprintf("State %d", 3 - tsne_data$meta$hi_state)
+        
+        df_low_cent  <- subset(centers, state == "Low")[, c("cx","cy","cz")]
+        names(df_low_cent)  <- c("x","y","z")
+        df_high_cent <- subset(centers, state == "High")[, c("cx","cy","cz")]
+        names(df_high_cent) <- c("x","y","z")
+        
+        
+        highchart() %>%
+            hc_add_theme(hc_theme_elementary()) %>%
+            hc_add_dependency("highcharts-3d") %>%
+            hc_chart(type = "scatter3d",
+                     options3d = list(enabled = TRUE, 
+                                      alpha = 10, 
+                                      beta = 30, 
+                                      depth = 250, 
+                                      viewDistance = 40),
+                     
+                     events = list(load = JS("
+                                            function () {
+                                              var chart = this, H = Highcharts;
+                                              var startX, startY, alpha0, beta0, dragging = false, sens = 5;
+                                        
+                                              function onMove(e){
+                                                if (!dragging) return;
+                                                e = chart.pointer.normalize(e);
+                                                var a = alpha0 + (e.chartY - startY) / sens;
+                                                var b = beta0  + (startX - e.chartX) / sens;
+                                                chart.update({ chart: { options3d: { alpha: a, beta: b } } }, true, false, false);
+                                              }
+                                        
+                                              function endDrag(){
+                                                if (!dragging) return;
+                                                dragging = false;
+                                                H.removeEvent(document, 'mousemove', onMove);
+                                                H.removeEvent(document, 'touchmove', onMove);
+                                              }
+                                        
+                                              H.addEvent(chart.container, 'mousedown', function (e) {
+                                                e = chart.pointer.normalize(e);
+                                                startX = e.chartX; startY = e.chartY;
+                                                alpha0 = chart.options.chart.options3d.alpha;
+                                                beta0  = chart.options.chart.options3d.beta;
+                                                dragging = true;
+                                                H.addEvent(document, 'mousemove', onMove);
+                                                H.addEvent(document, 'touchmove', onMove);
+                                                H.addEvent(document, 'mouseup',   endDrag);
+                                                H.addEvent(document, 'touchend',  endDrag);
+                                              });
+                                        
+                                              H.addEvent(chart.container, 'touchstart', function (e) {
+                                                e = chart.pointer.normalize(e.touches[0] || e.changedTouches[0]);
+                                                startX = e.chartX; startY = e.chartY;
+                                                alpha0 = chart.options.chart.options3d.alpha;
+                                                beta0  = chart.options.chart.options3d.beta;
+                                                dragging = true;
+                                                H.addEvent(document, 'mousemove', onMove);
+                                                H.addEvent(document, 'touchmove', onMove);
+                                                H.addEvent(document, 'mouseup',   endDrag);
+                                                H.addEvent(document, 'touchend',  endDrag);
+                                              });
+                                            }
+                                        "))) %>%
+            hc_title(text = "t-SNE of Best Model", style = list(fontWeight = "bold", fontSize = "16px")) %>%
+            hc_subtitle(text = "Colored by HMM State") %>%
+            hc_plotOptions(scatter = list(marker = list(radius = 5))) %>%
+            
+            # Low / High series
+            hc_add_series(tsne_df |> dplyr::filter(group == "Low"),
+                          type = "scatter3d", name = nm_low,  color = "#e74c3c",
+                          hcaes(x = x, y = y, z = z)) %>%
+            hc_add_series(tsne_df |> dplyr::filter(group == "High"),
+                          type = "scatter3d", name = nm_high, color = "#28a745",
+                          hcaes(x = x, y = y, z = z)) %>%
+            hc_legend(layout = "horizontal", align = "center", verticalAlign = "bottom") %>%
+            
+            # halos
+            hc_add_series(type = "scatter3d", showInLegend = FALSE,
+                          data = highcharter::list_parse2(df_low_cent),  keys = c("x","y","z"),
+                          color = "rgba(231,76,60,0.16)",  marker = list(symbol = "circle", radius = 26)) %>%
+            hc_add_series(type = "scatter3d", showInLegend = FALSE,
+                          data = highcharter::list_parse2(df_low_cent),  keys = c("x","y","z"),
+                          color = "rgba(231,76,60,0.10)",  marker = list(symbol = "circle", radius = 76)) %>%
+            hc_add_series(type = "scatter3d", showInLegend = FALSE,
+                          data = highcharter::list_parse2(df_high_cent), keys = c("x","y","z"),
+                          color = "rgba(40,167,69,0.16)", marker = list(symbol = "circle", radius = 26)) %>%
+            hc_add_series(type = "scatter3d", showInLegend = FALSE,
+                          data = highcharter::list_parse2(df_high_cent), keys = c("x","y","z"),
+                          color = "rgba(40,167,69,0.10)", marker = list(symbol = "circle", radius = 76))
+    })
+    
     ### Means Bar Chart for Best Model ----
     
     output$state_means_real_M4 <- renderHighchart({
@@ -3706,6 +3425,9 @@ server <- function(input, output, session) {
         r_H  <- apply(Xr, 2, function(col) wmean(col, P_high))
         r_L  <- apply(Xr, 2, function(col) wmean(col, P_low))
         
+        r_sd_H <- mapply(function(col, m) wsd(col, P_high, m), as.data.frame(Xr), r_H)
+        r_sd_L <- mapply(function(col, m) wsd(col, P_low,  m), as.data.frame(Xr), r_L)
+        
         base_names   <- vars
         pretty_final <- unname(pretty_map[base_names])
         miss <- is.na(pretty_final)
@@ -3719,8 +3441,21 @@ server <- function(input, output, session) {
             y = as.numeric(mu_L[i]), real = as.numeric(r_L[i])
         ))
         
-        err_high <- Map(function(m, s) c(m - s, m + s), as.numeric(mu_H), as.numeric(sd_H))
-        err_low  <- Map(function(m, s) c(m - s, m + s), as.numeric(mu_L), as.numeric(sd_L))
+        err_high <- Map(function(mz, sz, rsd) {
+            list(
+                low    = mz - sz,   # scaled low
+                high   = mz + sz,   # scaled high
+                realSD = rsd        # real ±1 SD (we'll use this in tooltip)
+            )
+        }, as.numeric(mu_H), as.numeric(sd_H), as.numeric(r_sd_H))
+        
+        err_low <- Map(function(mz, sz, rsd) {
+            list(
+                low    = mz - sz,
+                high   = mz + sz,
+                realSD = rsd
+            )
+        }, as.numeric(mu_L), as.numeric(sd_L), as.numeric(r_sd_L))
 
         highchart() %>%
             hc_add_theme(hc_theme_elementary()) %>%
@@ -3758,22 +3493,35 @@ server <- function(input, output, session) {
                                   }
                             
                                   var s = '<b>' + cat + '</b><br/>';
-                                  (this.points || [this.point]).forEach(function(pt){
-                                    var real = (pt.point && pt.point.real != null) ? pt.point.real : pt.y;
-                                    var val;
-                            
-                                    if (/Real\\s*GDP/i.test(cat)) {
-                                      val = fmtDollarFront(real);                       // GDP → $ at the front
-                                    } else if (/(Federal\\s*Surplus\\/?Deficit|FYFSD)/i.test(cat)) {
-                                      val = fmtDollarNegAfter(real);                    // Surplus/Deficit → -$…
-                                    } else if (/PCE\\s*Price|PCEPI/i.test(cat)) {
-                                      val = fmtPct(real);                               // PCEPI → %
-                                    } else {
-                                      val = Highcharts.numberFormat(real, 2);
-                                    }
-                            
-                                    s += pt.series.name + ': <b>' + val + '</b><br/>';
+                                    (this.points || [this.point]).forEach(function(pt){
+                                      var isErrorbar = (pt.series.type === 'errorbar');
+                                      var real;
+                                    
+                                      if (isErrorbar && pt.point && typeof pt.point.realSD !== 'undefined') {
+                                        // use the *real* standard deviation for the errorbar series
+                                        real = pt.point.realSD;
+                                      } else if (pt.point && pt.point.real != null) {
+                                        // means: use real-scale mean when available
+                                        real = pt.point.real;
+                                      } else {
+                                        // fallback (scaled)
+                                        real = pt.y;
+                                      }
+                                    
+                                      var val;
+                                      if (/Real\\s*GDP/i.test(cat)) {
+                                        val = fmtDollarFront(real);
+                                      } else if (/(Federal\\s*Surplus\\/?Deficit|FYFSD)/i.test(cat)) {
+                                        val = fmtDollarNegAfter(real);
+                                      } else if (/PCE\\s*Price|PCEPI/i.test(cat)) {
+                                        val = fmtPct(real);
+                                      } else {
+                                        val = Highcharts.numberFormat(real, 2);
+                                      }
+                                      s += pt.series.name + ': <b>' + val + '</b><br/>';
                                   });
+                                  
+                                  
                                   return s;
                                 }
                         ")
