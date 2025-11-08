@@ -28,10 +28,10 @@ The model was able to identify the existence of two statistically distinct senti
 The model was able to quantify the drivers of regime transition using a compact set of key economic indicators:
 
 | Indicator | Mechanism | Relationship to Sentiment |
-| :--- | :--- | :--- | :--- |
-| **Real GDP** (12 month lag) | Real productivity/Income momentum | **Positive** |
-| **PCE Price Index** | Cost-of-living pressure (Inflation) | **Negative** |
-| **Federal Surplus/Deficit** (12 month lag)| Policy/Fiscal stability backdrop | **Negative** |
+| :--- | :--- | :--- |
+| Real GDP (12 month lag) | Real productivity/Income momentum | Positive |
+| PCE Price Index | Cost-of-living pressure (Inflation) | Negative |
+| Federal Surplus/Deficit (12 month lag) | Policy/Fiscal stability backdrop | Negative |
 
 These indicators capture the primary economic factors influencing household confidence: **income, prices, and the policy environment.**
 
