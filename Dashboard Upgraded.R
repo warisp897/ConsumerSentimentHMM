@@ -379,7 +379,7 @@ emission_matrix_text <- HTML(
         involved an initial screening to find the single indicator from each category that exhibited the highest predictive power 
         with consumer sentiment. As part of this screening, each indicator was evaluated both contemporaneously \\(t\\) and with a 
         one-year delay (12 month lag) to reflect how information typically reaches households and markets. This helped avoid look-ahead 
-        effects and capture genuine lead–lag dynamics.
+        effects and capture genuine lead-lag dynamics.
         </p>
 
         <p>
@@ -2378,7 +2378,7 @@ server <- function(input, output, session) {
                 style = list(fontWeight = "bold", fontSize = "16px")
             ) %>%
             hc_subtitle(
-                text = "All Indicators are Scaled for Visual Cohesiveness <br> (Z-Score: Mean of 0, SD of 1)"
+                text = "All Indicators are Scaled for Visual Cohesiveness <br> (Z-Score: Mean of 0, SD of 1) <br>ㅤ"
             ) %>%
             hc_chart(zoomType = "x") %>%
             hc_credits(enabled = FALSE) %>%
@@ -2393,7 +2393,7 @@ server <- function(input, output, session) {
                 )
             ) %>%
             hc_yAxis(
-                title = list(text = "z-score"),
+                labels = list(enabled = FALSE),
                 gridLineDashStyle = "Dot",
                 gridLineColor = "darkgrey",
                 crosshair = list(
