@@ -3066,7 +3066,7 @@ server <- function(input, output, session) {
             hc_chart(type = "areaspline") %>%
             hc_title(text = "Emission Densities by State",
                      style = list(fontWeight = "bold", fontSize = "16px")) %>%
-            hc_subtitle(text = "Theoretical Densities Assuming Normal Distribution") %>%
+            hc_subtitle(text = "Theoretical Densities Assuming Normal Distribution <br>ㅤ") %>%
             hc_xAxis(title = list(text = "Average Observed Index"),
                      min = x_min, max = x_max, plotLines = peak_lines) %>%
             hc_yAxis(title = list(text = "Density")) %>%
