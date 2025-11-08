@@ -1,5 +1,5 @@
 # Dashboard_bs4Dash.R
-# Upgraded to bs4Dash with vertical sidebar navigation
+# Upgraded to bs4Dash
 
 # Imported libraries ----
 library(shiny)
@@ -25,8 +25,6 @@ bundle <- readRDS("hmm_models_bundle.rds")
 cons_sent_monthly <- readRDS("cons_sent_monthly.rds")
 b_frozen_m4 <- readRDS("post_2007_model.rds")
 tsne_data <- readRDS("tsne_M4.rds")
-
-#set.seed(42)
 
 # All Text Used in Dashboard ----
 
@@ -2175,18 +2173,15 @@ server <- function(input, output, session) {
     
     
     svg_file <- "HMM_Diagram.svg"
+    
     output$hmm_overlay_pi <- renderUI({
-        
         tags$div(
             id = "hmmwrap_all",
-            # Base SVG (responsive)
             tags$img(
-                src = svg_file, 
-                class = "base-svg",
-                alt = "HMM diagram",
+                src = svg_file,
+                class = "base-svg no-dark-invert",  # <- add this
+                alt = "HMM diagram"
             ),
-            
-            # Labels
             lapply(items, function(hs){
                 tags$div(
                     id = paste0("hs_", hs$id),
@@ -2198,8 +2193,7 @@ server <- function(input, output, session) {
                 )
             })
         )
-    })
-    
+    })    
     ### Detailed Simulation Table ----
     
     state_name <- c(S1 = "Sunny", S2 = "Rainy")
