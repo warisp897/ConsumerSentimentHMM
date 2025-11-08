@@ -35,7 +35,7 @@ The model was able to quantify the drivers of regime transition using a compact 
 
 These indicators capture the primary economic factors influencing household confidence: **income, prices, and the policy environment.**
 
-### <u> Dynamic Alignment with Economic Cycles </u>
+### <u> Alignment with Economic Cycles </u>
 The decoded HMM regimes provide an insightful historical narrative:
 
 * The model successfully aligns the Low state (Red bands) with major US economic downturns (e.g., Dot-com, GFC, COVID-19) and their immediate aftermath.
@@ -43,7 +43,7 @@ The decoded HMM regimes provide an insightful historical narrative:
 
 ---
 
-## Utility and Future Outlook
+## Utility
 
 The model can be turned into a powerful **Risk Flagging Tool**, offering a level of depth beyond traditional forecasting:
 
