@@ -1,4 +1,4 @@
-## [View Dashboard Here] (https://warispopal.shinyapps.io/consumersentimenthmm/)
+## [View Dashboard Here](https://warispopal.shinyapps.io/consumersentimenthmm/)
 
 # **Analysis of Consumer Sentiment Using Hidden Markov Model Regimes**
 
