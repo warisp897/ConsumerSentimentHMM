@@ -1,3 +1,5 @@
+## [View Dashboard Here] (https://warispopal.shinyapps.io/consumersentimenthmm/)
+
 # **Analysis of Consumer Sentiment Using Hidden Markov Model Regimes**
 
 This project successfully applied a **Gaussian Hidden Markov Model** with indicator-conditioned transitions to the University of Michigan Consumer Sentiment Index. The analysis moved beyond simple time-series diagnostics to identify and characterize two fundamental, latent economic states: a **High Sentiment Regime** and a **Low Sentiment Regime**.
