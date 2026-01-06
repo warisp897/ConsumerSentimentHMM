@@ -77,6 +77,13 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
+          pwd
+          ls -la
+          ls -la data || true
+          git status --porcelain
+          git add -A data
+          git status --porcelain
+
           git add data/*.csv data/*.ndjson || true
 
           # Avoid failing if add matched nothing
