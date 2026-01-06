@@ -69,6 +69,14 @@ jobs:
       - name: Commit & push changes
         run: |
           # If nothing changed, do nothing.
+          
+          pwd
+          ls -la
+          ls -la data || true
+          git status --porcelain
+          git add -A data
+          git status --porcelain
+          
           if git diff --quiet; then
             echo "No changes to commit."
             exit 0
