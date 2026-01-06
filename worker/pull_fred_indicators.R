@@ -5,6 +5,19 @@ library(purrr)
 library(readr)
 library(lubridate)
 
+# ---- force outputs into the checked-out repo ----
+workspace <- Sys.getenv("GITHUB_WORKSPACE")
+if (workspace == "") workspace <- getwd()
+
+message("GITHUB_WORKSPACE: ", workspace)
+setwd(workspace)
+message("Working directory now: ", getwd())
+
+out_dir <- file.path(workspace, "data")
+dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
+message("Output dir: ", normalizePath(out_dir, winslash = "/", mustWork = TRUE))
+
+
 api_key <- Sys.getenv("FRED_API_KEY", unset = "")
 if (api_key == "") {
   stop("Missing FRED_API_KEY environment variable. Set it locally or as a GitHub Actions secret.")
