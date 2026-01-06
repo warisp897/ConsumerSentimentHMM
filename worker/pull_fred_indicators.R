@@ -96,16 +96,19 @@ if (length(missing_series) > 0) {
 }
 
 # ---------- Write outputs ----------
-raw_long_path <- file.path(out_dir, "fred_raw_long.csv")
-write_csv(raw_long, raw_long_path, na = "")
+long_path <- file.path(out_dir, "fred_raw_long.csv")
+wide_path <- file.path(out_dir, "fred_raw_wide.csv")
 
-raw_wide <- raw_long %>%
-  select(date, series_var, value) %>%
-  tidyr::pivot_wider(names_from = series_var, values_from = value) %>%
-  arrange(date)
+readr::write_csv(fred_long, long_path)
+readr::write_csv(fred_wide, wide_path)
 
-raw_wide_path <- file.path(out_dir, "fred_raw_wide.csv")
-write_csv(raw_wide, raw_wide_path, na = "")
+# prove it
+stopifnot(file.exists(long_path), file.exists(wide_path))
+message("Wrote: ", normalizePath(long_path, winslash="/", mustWork=TRUE))
+message("Wrote: ", normalizePath(wide_path, winslash="/", mustWork=TRUE))
+message("Sizes: ",
+        file.info(long_path)$size, " bytes | ",
+        file.info(wide_path)$size, " bytes")
 
 # ---------- Print small summary ----------
 summary_tbl <- raw_long %>%
