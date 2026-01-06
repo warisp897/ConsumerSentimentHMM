@@ -1,3 +1,8 @@
+library(jsonlite)
+library(dplyr)
+library(tidyr)
+library(readr)
+
 workspace <- Sys.getenv("GITHUB_WORKSPACE")
 if (workspace == "") workspace <- getwd()
 
