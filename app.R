@@ -957,7 +957,8 @@ ui <- bs4DashPage(
                                                 column(
                                                     width = 8,
                                                     div(
-                                                        highchartOutput("hmm_oos_short")
+                                                        highchartOutput("hmm_oos_short"),
+                                                        highchartOutput("regime_forecast_monthly")
                                                     )
                                                     
                                                 )
@@ -3640,6 +3641,255 @@ server <- function(input, output, session) {
             hc_legend(enabled = FALSE) %>%
             hc_credits(enabled = FALSE)
     })
+    
+    ## The Forecasting ----
+    
+    ### Monthly Plot Band Generator ----
+    make_plotbands_dates <- function(df, date_col = "date", state_col = "state_hi") {
+        stopifnot(date_col %in% names(df), state_col %in% names(df))
+        d <- df %>%
+            dplyr::select(date = all_of(date_col), state_hi = all_of(state_col)) %>%
+            dplyr::arrange(date)
+        
+        ts <- datetime_to_timestamp(as.Date(d$date))  # ms
+        
+        runs   <- rle(d$state_hi)
+        ends   <- cumsum(runs$lengths)
+        starts <- c(1, head(ends, -1) + 1)
+        
+        # step size (ms): robust to missing months
+        step_ms <- stats::median(diff(ts), na.rm = TRUE)
+        if (!is.finite(step_ms) || step_ms <= 0) step_ms <- 30*24*3600*1000
+        
+        to_ts <- purrr::map_dbl(seq_along(starts), function(i) {
+            if (i < length(starts)) ts[starts[i + 1]] else ts[ends[i]] + step_ms
+        })
+        
+        purrr::map2(seq_along(starts), runs$values, function(i, v) {
+            list(
+                from  = ts[starts[i]],
+                to    = to_ts[i],
+                color = if (v == 1) "rgba(83, 212, 74, 0.18)" else "rgba(231, 76, 60, 0.18)",
+                zIndex = 1
+            )
+        })
+    }
+    
+    # bands_df <- tibble::tibble(
+    #     date = <monthly dates>,
+    #     state_hi = as.integer(p_high >= 0.5)
+    # ) %>% arrange(date)
+    # 
+    # bands <- make_plotbands_dates(bands_df, "date", "state_hi")
+    # 
+    
+    ### The Forecasting Highchart ----
+    output$regime_forecast_monthly <- renderHighchart({
+        
+        # ---- load trained monthly fit (M4) ----
+        m4_obj <- readRDS("data/m4_monthly_fit.rds")
+        
+        # allow either: list(fit=..., vars=..., lags=..., train_end=...) OR a bare fit object
+        if (inherits(m4_obj, "depmix.fitted")) {
+            fit_train <- m4_obj
+            best_vars <- c("real_GDP","PCEPI","FYFSD")
+            best_lags <- c(1L,0L,1L)
+            train_end <- as.Date("2024-12-01")
+        } else {
+            fit_train <- m4_obj$fit
+            best_vars <- m4_obj$vars
+            best_lags <- m4_obj$lags
+            train_end <- as.Date(m4_obj$train_end)
+        }
+        
+        # ---- helpers ----
+        build_X_all <- function(df, vars, lags) {
+            stopifnot(length(vars) == length(lags))
+            n <- nrow(df)
+            X <- Map(function(v, L) {
+                x <- df[[v]]
+                if (L > 0L) x <- c(rep(NA_real_, L), x)[1:n]
+                x
+            }, vars, lags) |> as.data.frame()
+            colnames(X) <- paste0(vars, "_L", lags)
+            X
+        }
+        
+        make_plotbands_monthly <- function(dates, state_hi) {
+            # dates: Date vector ordered
+            # state_hi: 0/1 vector same length
+            runs <- rle(state_hi)
+            ends <- cumsum(runs$lengths)
+            starts <- c(1, head(ends, -1) + 1)
+            
+            col_hi  <- "rgba(40,167,69,0.18)"
+            col_low <- "rgba(231,76,60,0.18)"
+            
+            Map(function(i, j, v) {
+                list(
+                    from  = datetime_to_timestamp(dates[i]),
+                    to    = datetime_to_timestamp(dates[j]) + 24*3600*1000 - 1,
+                    color = if (v == 1) col_hi else col_low,
+                    zIndex = 1
+                )
+            }, starts, ends, runs$values)
+        }
+        
+        # ---- construct df from your existing monthly_df ----
+        # You showed: Date, y, real_GDP, PCEPI.observation_date, PCEPI.PCEPI, FYFSD
+        # We'll normalize column names defensively.
+        
+        df0 <- monthly_df %>%
+            mutate(
+                Date = as.Date(Date),
+                y    = as.numeric(y),
+                real_GDP = as.numeric(real_GDP),
+                PCEPI    = as.numeric(PCEPI),
+                FYFSD    = as.numeric(FYFSD)
+            ) %>%
+            dplyr::select(Date, y, real_GDP, PCEPI, FYFSD) %>%
+            arrange(Date)
+        
+        # lag covariates exactly like training spec
+        X_all <- build_X_all(df0, best_vars, best_lags)
+        df_full <- dplyr::bind_cols(tibble::tibble(Date = df0$Date, y = df0$y), tibble::as_tibble(X_all))
+        
+        # keep rows where model inputs exist
+        df_cc <- df_full %>%
+            mutate(.row = dplyr::row_number()) %>%
+            filter(stats::complete.cases(.))
+        
+        # ---- apply training-window scaling to transition covariates ----
+        # IMPORTANT: scale using ONLY training period rows, then apply to all.
+        colsX <- setdiff(names(df_cc), c("Date","y",".row"))
+        train_mask <- df_cc$Date <= train_end
+        
+        z_mu <- vapply(colsX, function(cn) mean(df_cc[[cn]][train_mask], na.rm = TRUE), numeric(1))
+        z_sd <- vapply(colsX, function(cn)  sd(df_cc[[cn]][train_mask], na.rm = TRUE), numeric(1))
+        
+        for (cn in colsX) {
+            if (!is.finite(z_sd[[cn]]) || z_sd[[cn]] == 0) stop("Bad sd for ", cn, " (check your data).")
+            df_cc[[cn]] <- (df_cc[[cn]] - z_mu[[cn]]) / z_sd[[cn]]
+        }
+        
+        # ---- build depmix model on FULL timeline, inject trained params, compute posterior ----
+        trans_form <- as.formula(paste("~", paste(colsX, collapse = " + ")))
+        
+        mod_all <- depmixS4::depmix(
+            y ~ 1,
+            data = dplyr::select(df_cc, -Date, - .row),   # depmix wants data frame with y + covariates
+            nstates = 2,
+            family = gaussian(),
+            transition = trans_form
+        )
+        
+        mod_all <- depmixS4::setpars(mod_all, depmixS4::getpars(fit_train))
+        post <- depmixS4::posterior(mod_all)
+        
+        # determine which state is "High" based on emission means from TRAINED fit
+        K <- length(fit_train@response)
+        emis_mu <- vapply(seq_len(K), function(s) depmixS4::getpars(fit_train@response[[s]][[1]])[1], numeric(1))
+        hi_state <- which.max(emis_mu)
+        
+        p_cols <- grep("^S[0-9]+$", names(post), value = TRUE)
+        p_high <- as.numeric(post[[p_cols[hi_state]]])
+        
+        dfp <- tibble::tibble(
+            date   = df_cc$Date,
+            y      = df_cc$y,
+            p_high = p_high
+        ) %>%
+            mutate(
+                state_hi = as.integer(p_high >= 0.5),
+                regime   = ifelse(state_hi == 1, "High", "Low"),
+                is_fcst  = date > train_end
+            ) %>%
+            arrange(date)
+        
+        bands <- make_plotbands_monthly(dfp$date, dfp$state_hi)
+        
+        pts_train <- dfp %>%
+            filter(!is_fcst) %>%
+            transmute(x = datetime_to_timestamp(date), y = y, regime = regime) %>%
+            purrr::pmap(function(x, y, regime) list(x = x, y = y, regime = regime))
+        
+        pts_fcst <- dfp %>%
+            filter(is_fcst) %>%
+            transmute(x = datetime_to_timestamp(date), y = y, regime = regime) %>%
+            purrr::pmap(function(x, y, regime) list(x = x, y = y, regime = regime))
+        
+        fcst_ts <- datetime_to_timestamp(train_end)
+        
+        highchart() %>%
+            hc_add_theme(hc_theme_elementary()) %>%
+            hc_chart(zoomType = "x") %>%
+            hc_title(text = "<b> Consumer Sentiment with Forecasted Regime Bands </b>",
+                     style = list(fontSize = "28px")) %>%
+            hc_xAxis(
+                type = "datetime",
+                gridLineWidth = 0,
+                crosshair = list(color = "darkgrey", width = 1, dashStyle = "Solid"),
+                plotBands = bands,
+                plotLines = list(list(
+                    value = fcst_ts,
+                    color = "rgba(120,120,120,0.8)",
+                    width = 2,
+                    zIndex = 6,
+                    dashStyle = "ShortDash",
+                    label = list(text = "<b>Forecast start</b>",
+                                 style = list(color = "rgba(120,120,120,0.9)", fontSize = "12px"))
+                ))
+            ) %>%
+            hc_yAxis(
+                title = list(text = "UMCSENT"),
+                gridLineWidth = 0,
+                crosshair = list(color = "darkgrey", width = 1, dashStyle = "Solid"),
+                plotLines = list(list(
+                    value = 100, color = "#888", width = 2, dashStyle = "Dash",
+                    label = list(
+                        text = "<b> Index Baseline: 1966 = 100 </b>",
+                        style = list(color = "red", fontSize = "16px")
+                    )
+                ))
+            ) %>%
+            hc_add_series(
+                data = pts_train,
+                type = "line",
+                name = "Sentiment (train)",
+                color = "#111",
+                lineWidth = 3,
+                marker = list(enabled = FALSE),
+                zIndex = 5,
+                showInLegend = FALSE
+            ) %>%
+            hc_add_series(
+                data = pts_fcst,
+                type = "line",
+                name = "Sentiment (post-2024)",
+                color = "#111",
+                lineWidth = 3,
+                dashStyle = "Dash",
+                marker = list(enabled = FALSE),
+                zIndex = 5,
+                showInLegend = FALSE
+            ) %>%
+            hc_tooltip(
+                useHTML = TRUE,
+                formatter = JS("
+      function () {
+        var x=this.x, y=this.y, rg=(this.point&&this.point.regime)?this.point.regime:'-';
+        var rgColor = (rg==='High') ? '#28a745' : '#e74c3c';
+        return Highcharts.dateFormat('%b %Y', x) +
+               '<br>UMCSENT: <b>'+Highcharts.numberFormat(y,1)+'</b>' +
+               '<br>Regime: <b><span style=\"color:'+rgColor+'\">'+rg+'</span></b>';
+      }
+    ")
+            ) %>%
+            hc_legend(enabled = FALSE) %>%
+            hc_credits(enabled = FALSE)
+    })
+    
+    
     
     
     
