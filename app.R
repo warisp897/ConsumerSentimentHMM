@@ -561,9 +561,13 @@ ui <- bs4DashPage(
             
             bs4SidebarMenuItem("Conclusion", 
                                tabName = "model_conclusion", 
-                               icon = icon("newspaper"))
+                               icon = icon("newspaper")),
             
-            )
+            bs4SidebarMenuItem("Live Forecasting", 
+                               tabName = "model_forecasting", 
+                               icon = icon("square-poll-vertical"))
+        )
+            
     ),
     
     ## Custom CSS Adjustments ----
@@ -957,8 +961,7 @@ ui <- bs4DashPage(
                                                 column(
                                                     width = 8,
                                                     div(
-                                                        highchartOutput("hmm_oos_short"),
-                                                        highchartOutput("regime_forecast_monthly")
+                                                        highchartOutput("hmm_oos_short")
                                                     )
                                                     
                                                 )
@@ -969,7 +972,31 @@ ui <- bs4DashPage(
                             )
                         )
                     )
+                ),
+            
+            ### Model Forecasting
+            bs4TabItem(
+                tabName = "model_forecasting",
+                fluidRow(
+                    # Consumer Sentiment Over Time
+                    bs4Card(
+                        collapsible = FALSE,   # removes collapse toggle
+                        closable = FALSE,      # removes close icon
+                        title = HTML("<b>Analysis of Consumer Sentiment Using Hidden Markov Model Regimes</b>"),
+                        width = 12,
+                        status = "success",
+                        fluidRow(
+                            column(width = 12,
+                                   highchartOutput("regime_forecast_monthly")
+                            ),
+                            #column(width = 7, 
+                                   #highchartOutput("consumer_sentiment_plot", height = "80vh"))
+                            #)
+                        )
+                    )
                 )
+            )
+            
             )
         )
     )
@@ -3143,6 +3170,7 @@ server <- function(input, output, session) {
             mutate(regime = ifelse(is.na(regime), "Low", regime)) %>%
             arrange(date)
         
+        
         runs   <- rle(dfm$regime)
         ends   <- cumsum(runs$lengths)
         starts <- c(1, head(ends, -1) + 1)
@@ -3675,15 +3703,40 @@ server <- function(input, output, session) {
         })
     }
     
-    # bands_df <- tibble::tibble(
-    #     date = <monthly dates>,
-    #     state_hi = as.integer(p_high >= 0.5)
-    # ) %>% arrange(date)
-    # 
-    # bands <- make_plotbands_dates(bands_df, "date", "state_hi")
-    # 
+    fred_wide <- readr::read_csv("data/fred_raw_wide.csv", show_col_types = FALSE) %>%
+        mutate(date = as.Date(date)) %>%
+        arrange(date)
+    
+    # Build monthly panel (month starts)
+    monthly_panel <- fred_wide %>%
+        filter(format(date, "%d") == "01") %>%   # keep month-start rows only
+        transmute(
+            Date     = date,
+            y        = as.numeric(cons_sent),      # UMCSENT from worker wide
+            PCEPI    = as.numeric(pcepi),
+            real_GDP = as.numeric(gdp_real),
+            FYFSD    = as.numeric(FYFSD)           # your computed monthly FYFSD column
+        ) %>%
+        arrange(Date)
+    
+    # Critical: fill forward lower-frequency / missing updates
+    monthly_panel <- monthly_panel %>%
+        mutate(
+            real_GDP = zoo::na.locf(real_GDP, na.rm = FALSE),
+            FYFSD    = zoo::na.locf(FYFSD,    na.rm = FALSE),
+            PCEPI    = zoo::na.locf(PCEPI,    na.rm = FALSE),
+            y        = zoo::na.locf(y,        na.rm = FALSE)
+        )
+    
+    # This is what your forecasting code should use as `monthly_df`
+    monthly_df <- monthly_panel
+    
+    monthly_df <- monthly_df %>%
+        filter(Date >= as.Date("1987-01-01"))
+    
     
     ### The Forecasting Highchart ----
+    
     output$regime_forecast_monthly <- renderHighchart({
         
         # ---- load trained monthly fit (M4) ----
@@ -3824,7 +3877,8 @@ server <- function(input, output, session) {
             hc_add_theme(hc_theme_elementary()) %>%
             hc_chart(zoomType = "x") %>%
             hc_title(text = "<b> Consumer Sentiment with Forecasted Regime Bands </b>",
-                     style = list(fontSize = "28px")) %>%
+                     style = list(fontWeight = "bold", fontSize = "18px")) %>%
+            hc_subtitle(text = "The Best HMM Predicting States on OOS Data") %>%
             hc_xAxis(
                 type = "datetime",
                 gridLineWidth = 0,
@@ -3880,7 +3934,7 @@ server <- function(input, output, session) {
         var x=this.x, y=this.y, rg=(this.point&&this.point.regime)?this.point.regime:'-';
         var rgColor = (rg==='High') ? '#28a745' : '#e74c3c';
         return Highcharts.dateFormat('%b %Y', x) +
-               '<br>UMCSENT: <b>'+Highcharts.numberFormat(y,1)+'</b>' +
+               '<br>Consumer Sentiment Index: <b>'+Highcharts.numberFormat(y,1)+'</b>' +
                '<br>Regime: <b><span style=\"color:'+rgColor+'\">'+rg+'</span></b>';
       }
     ")
