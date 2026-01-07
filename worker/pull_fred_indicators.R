@@ -58,7 +58,8 @@ series <- c(
   m2_val              = "M2SL",
 
   # Fiscal
-  fed_budget          = "FYFSD",
+  fed_receipts = "W006RC1Q027SBEA",
+  fed_outlays  = "W068RCQ027SBEA",
   fed_debt            = "GFDEBTN",
 
   # Housing / construction
@@ -155,6 +156,12 @@ fred_wide <- fred_long %>%
     values_from = value
   ) %>%
   arrange(date)
+
+fred_wide <- fred_wide %>%
+  mutate(
+    FYFSD = fed_receipts - fed_outlays
+  )
+
 
 # ============================================================
 # 5) Write outputs (ABSOLUTE PATHS) + hard verification
