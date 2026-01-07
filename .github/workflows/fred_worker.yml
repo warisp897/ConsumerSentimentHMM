@@ -69,13 +69,28 @@ jobs:
       - name: Commit & push changes
         run: |
           # If nothing changed, do nothing.
-          if git diff --quiet; then
+          
+          pwd
+          ls -la
+          ls -la data || true
+          git status --porcelain
+          git add -A data
+          git status --porcelain
+          
+          if git diff --staged --quiet; then
             echo "No changes to commit."
             exit 0
           fi
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          pwd
+          ls -la
+          ls -la data || true
+          git status --porcelain
+          git add -A data
+          git status --porcelain
 
           git add data/*.csv data/*.ndjson || true
 
