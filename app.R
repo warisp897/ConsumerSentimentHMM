@@ -3590,7 +3590,7 @@ server <- function(input, output, session) {
         highchart() %>%
             hc_add_theme(hc_theme_elementary()) %>%
             hc_chart(zoomType = "x") %>%
-            hc_title(text = "HMM Predicting Regimes Historical Data",
+            hc_title(text = "HMM Predicting Regimes",
                      style = list(fontWeight = "bold", fontSize = "18px")) %>%
             hc_subtitle(text = "Best Model Trained 1986 - 2006, Predicted Regimes from 2007–2024") %>%
             hc_xAxis(
