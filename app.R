@@ -5,7 +5,15 @@
 library(shiny)
 library(bs4Dash)
 library(highcharter)
-library(tidyverse)
+
+
+library(dplyr)
+library(tidyr)
+library(readr)
+library(purrr)
+library(stringr)
+library(lubridate)
+
 library(DT)
 library(visNetwork)
 library(fresh)

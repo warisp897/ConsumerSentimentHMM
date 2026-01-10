@@ -1,0 +1,6 @@
+.git
+.github
+.Rproj.user
+*.Rproj
+.DS_Store
+# Keeping CSVs here for first test.
