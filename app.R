@@ -22,6 +22,9 @@ library(reactable)
 library(depmixS4)
 library(sparkline)
 
+# Setting app port ----
+options(shiny.host = "0.0.0.0", shiny.port = 3838)
+
 # Data Files Read in ----
 
 scaled_data <- readRDS("scaled_dataset.rds")
@@ -1252,16 +1255,12 @@ server <- function(input, output, session) {
         plot_df <- scaled %>%
             mutate(Indicator = as.character(Indicator)) %>%
             left_join(full, by = c("Year", "Indicator")) %>%
-            # 2. Join the formatting instructions safely
             left_join(fmt_lookup, by = "Indicator") %>% 
             mutate(
                 Label = nice_names[Indicator],
-                # 3. Use the column from the join, replacing NAs with empty strings
                 fmt = ifelse(is.na(fmt_string), "", fmt_string) 
             )
-        
-        print(plot_df)
-        
+
         
         all_inds     <- unique(plot_df$Indicator)
         ordered_inds <- c(setdiff(all_inds, "consumer_sentiment"), "consumer_sentiment")
@@ -3661,9 +3660,11 @@ server <- function(input, output, session) {
     
     fred_wide <- reactive({
         
+        # Refresh to check for updated dataset once a day
+        invalidateLater(1000 * 60 * 60 * 24)
+        
         fw <- readr::read_csv("https://raw.githubusercontent.com/warisp897/ConsumerSentimentHMM/refs/heads/main/data/fred_raw_wide.csv", show_col_types = FALSE)
         
-        print(fw)
         if ("date" %in% names(fw) && !"Date" %in% names(fw)) fw <- dplyr::rename(fw, Date = date)
         
         fw <- fw %>% dplyr::mutate(Date = as.Date(Date))
@@ -4160,8 +4161,6 @@ server <- function(input, output, session) {
         )
     })
 }
-
-options(shiny.host = "0.0.0.0", shiny.port = 3838)
 
 # Run App
 shinyApp(ui, server)
