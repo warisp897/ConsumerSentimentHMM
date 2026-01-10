@@ -14,7 +14,12 @@ RUN R -e "install.packages(c( \
     'shiny', \
     'bs4Dash', \
     'highcharter', \
-    'tidyverse', \
+    'dplyr', \
+    'tidyr', \
+    'readr', \
+    'purrr', \
+    'stringr', \
+    'lubridate', \
     'DT', \
     'visNetwork', \
     'fresh', \

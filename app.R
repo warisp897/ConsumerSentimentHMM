@@ -6,7 +6,6 @@ library(shiny)
 library(bs4Dash)
 library(highcharter)
 
-
 library(dplyr)
 library(tidyr)
 library(readr)
@@ -1244,14 +1243,24 @@ server <- function(input, output, session) {
     output$category_plot_hc <- renderHighchart({
         CAT_PLOT_LOADED <<- T
         
+        fmt_lookup <- data.frame(
+            Indicator = names(indicator_formats),
+            fmt_string = as.character(indicator_formats),
+            stringsAsFactors = FALSE
+        )
+        
         plot_df <- scaled %>%
             mutate(Indicator = as.character(Indicator)) %>%
-            left_join(full, by = c("Year","Indicator")) %>%
+            left_join(full, by = c("Year", "Indicator")) %>%
+            # 2. Join the formatting instructions safely
+            left_join(fmt_lookup, by = "Indicator") %>% 
             mutate(
                 Label = nice_names[Indicator],
-                fmt   = unname(indicator_formats[Indicator]),
-                fmt   = ifelse(is.na(fmt), "", fmt)
+                # 3. Use the column from the join, replacing NAs with empty strings
+                fmt = ifelse(is.na(fmt_string), "", fmt_string) 
             )
+        
+        print(plot_df)
         
         
         all_inds     <- unique(plot_df$Indicator)
@@ -1502,11 +1511,23 @@ server <- function(input, output, session) {
         req(table_visible())
         df <- summary_table_data()
         DT::datatable(
-            df, rownames = FALSE, class = "compact stripe hover",
-            options = list(dom='t', paging=FALSE, searching=FALSE, ordering=TRUE, autoWidth=TRUE)
+            df, 
+            rownames = FALSE, 
+            class = "compact stripe hover row-border",
+            extensions = "FixedColumns",
+            options = list(
+                dom = 't', 
+                paging = FALSE, 
+                searching = FALSE, 
+                ordering = FALSE,
+                autoWidth = TRUE,
+                scrollX = TRUE, 
+                fixedColumns = list(leftColumns = 1),
+                columnDefs = list(list(className = "dt-center", targets = "_all"))
+            )
         ) %>%
             DT::formatStyle(colnames(df)[-1], `min-width` = '120px', `padding` = '6px 12px') %>%
-            DT::formatStyle(colnames(df)[1],  `min-width` = '180px')
+            DT::formatStyle(colnames(df)[1],  `min-width` = '180px', fontWeight = 'bold')
     })
     
     indicator_to_category <- purrr::map_dfr(names(category_map), function(cat) {
@@ -2004,9 +2025,10 @@ server <- function(input, output, session) {
             family = depmixS4::multinomial("identity"),
             ntimes = nt
         )
+        
         fit  <- depmixS4::fit(mod, verbose = FALSE)
-        post <- depmixS4::posterior(mod, type = "viterbi")
-        zh   <- head(post$state, nrow(df))  # drop dummy row if it was added
+        post <- depmixS4::posterior(fit, type = "viterbi")
+        zh   <- head(post$state, nrow(df))
         
         list(
             t  = seq_len(Tn),
@@ -3360,16 +3382,28 @@ server <- function(input, output, session) {
             # halos
             hc_add_series(type = "scatter3d", showInLegend = FALSE,
                           data = highcharter::list_parse2(df_low_cent),  keys = c("x","y","z"),
-                          color = "rgba(231,76,60,0.16)",  marker = list(symbol = "circle", radius = 26)) %>%
+                          name = paste(nm_low, "Cluster"), 
+                          color = "rgba(231,76,60,0.16)",  marker = list(symbol = "circle", radius = 26),
+                          tooltip = list(pointFormat = "<b>{series.name}</b><br>x: {point.x:.3f}<br>y: {point.y:.3f}<br>z: {point.z:.3f}")) %>%
+            
             hc_add_series(type = "scatter3d", showInLegend = FALSE,
                           data = highcharter::list_parse2(df_low_cent),  keys = c("x","y","z"),
-                          color = "rgba(231,76,60,0.10)",  marker = list(symbol = "circle", radius = 76)) %>%
+                          name = paste(nm_low, "Cluster"),
+                          color = "rgba(231,76,60,0.10)",  marker = list(symbol = "circle", radius = 76),
+                          tooltip = list(pointFormat = "<b>{series.name}</b><br>x: {point.x:.3f}<br>y: {point.y:.3f}<br>z: {point.z:.3f}")) %>%
+            
+            
             hc_add_series(type = "scatter3d", showInLegend = FALSE,
                           data = highcharter::list_parse2(df_high_cent), keys = c("x","y","z"),
-                          color = "rgba(40,167,69,0.16)", marker = list(symbol = "circle", radius = 26)) %>%
+                          name = paste(nm_high, "Cluster"),
+                          color = "rgba(40,167,69,0.16)", marker = list(symbol = "circle", radius = 26),
+                          tooltip = list(pointFormat = "<b>{series.name}</b><br>x: {point.x:.3f}<br>y: {point.y:.3f}<br>z: {point.z:.3f}")) %>%
+            
             hc_add_series(type = "scatter3d", showInLegend = FALSE,
                           data = highcharter::list_parse2(df_high_cent), keys = c("x","y","z"),
-                          color = "rgba(40,167,69,0.10)", marker = list(symbol = "circle", radius = 76))
+                          name = paste(nm_high, "Cluster"),
+                          color = "rgba(40,167,69,0.10)", marker = list(symbol = "circle", radius = 76),
+                          tooltip = list(pointFormat = "<b>{series.name}</b><br>x: {point.x:.3f}<br>y: {point.y:.3f}<br>z: {point.z:.3f}"))
     })
     
     ### Means Bar Chart for Best Model ----
@@ -3743,42 +3777,6 @@ server <- function(input, output, session) {
     })
     
     #### Forecast Line Chart ----
-    
-    forecast_pretty_names <- list(
-        "gdp_nominal"    = "Nominal GDP",
-        "inflation_rate" = "Inflation Rate",
-        "unemployment"   = "Unemployment Rate",
-        "trade_balance"  = "Trade Balance",
-        "T10Y2Y"         = "Yield Curve (10Y-2Y)",
-        "UNRATE"         = "Unemployment Rate",
-        "CPIAUCSL"       = "CPI Inflation",
-        "VIXCLS"         = "VIX Volatility",
-        "DTWEXBGS"       = "Dollar Index",
-        "PCEPI"          = "PCE Inflation",
-        "fed_receipts"   = "Federal Receipts",
-        "case_schiller"  = "Case-Shiller Home Price",
-        "fed_debt"       = "Federal Debt",
-        "fed_outlays"    = "Federal Outlays",
-        "pcepi_robust"   = "PCE Inflation (Robust)",
-        "m2_val"         = "M2 Money Supply",
-        "cpi"            = "CPI Inflation",
-        "cons_sent"      = "Consumer Sentiment",
-        "gdp_real"       = "Real GDP",
-        "FYFSD"          = "Federal Surplus/Deficit",
-        "ppi"            = "PPI (Producer Prices)",
-        "exports"        = "Exports",
-        "imports"        = "Imports",
-        "acc_balance"    = "Current Account Bal.",
-        "initial_claims" = "Initial Jobless Claims",
-        "urate"          = "Unemployment Rate",
-        "new_house_sales" = "New Home Sales",
-        "part_rate"      = "Labor Force Part.",
-        "short_treasury" = "Short-Term Yield",
-        "ffr"            = "Fed Funds Rate",
-        "new_private_houses" = "Housing Starts",
-        "new_permits"    = "Building Permits",
-        "long_treasury"  = "Long-Term Yield"
-    )
     
     output$regime_forecast_monthly <- renderHighchart({
         dfp <- forecast_results()
