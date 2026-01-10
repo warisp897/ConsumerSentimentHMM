@@ -3660,9 +3660,8 @@ server <- function(input, output, session) {
     HI_STATE <- get_hi_state(m4_fit)
     
     fred_wide <- reactive({
-        validate(need(file.exists("data/fred_raw_wide.csv"), "Error: 'data/fred_raw_wide.csv' not found."))
         
-        fw <- readr::read_csv("data/fred_raw_wide.csv", show_col_types = FALSE)
+        fw <- readr::read_csv("https://raw.githubusercontent.com/warisp897/ConsumerSentimentHMM/refs/heads/main/data/fred_raw_long.csv", show_col_types = FALSE)
         
         if ("date" %in% names(fw) && !"Date" %in% names(fw)) fw <- dplyr::rename(fw, Date = date)
         
