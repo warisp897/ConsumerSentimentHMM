@@ -13,6 +13,7 @@ library(RColorBrewer)
 library(shinyjs)
 library(reactable)
 library(depmixS4)
+library(sparkline)
 
 # Data Files Read in ----
 
@@ -456,28 +457,6 @@ regime_conclusion <- HTML(
     to be abrupt during stress events, while recoveries back to High are steadier as activity firms and price pressure cools paired 
     with cascading effect that lasts years with changes in interest rates, employment, and productivity. The inferred state often turns 
     before official recession dates and remains informative through the early expansion, which gives a peek at where the economy is heading.
-    </p>
-        </div>
-    "
-)
-
-future_conclusion <- HTML(
-    "
-    <div style='font-size:18px; line-height:1.6; margin-top: 25px; font-family: Helvetica;'>
-    
-    <p>
-    The U.S. economy has been in an odd position since COVID, with a recession that has supposedly been looming over the horizon for years. 
-    With the Dow Jones hitting news highs, and record breaking investment deals being made, getting the full picture on where we stand 
-    now requires a deeper analysis beyond checking the usual trends. 
-    </p>
-    
-    <p>
-    This model provides a useful historical analysis in what consumers 
-    prioritize, but it can be extended to forecasting regime shifts. New data from these indicators can be piped in, allowing for new 
-    state predictions and alerts for potential changes and which variables or relationships are driving the changes. With alerts after 
-    significant changes of a sustained period of time, paired with a rolling window to continually update the metrics, regime changes
-    can be quickly identified allowing policy makers to act swiftly in response, ensuring stability and successfully averting economic
-    turmoil when possible.
     </p>
         </div>
     "
@@ -949,23 +928,6 @@ ui <- bs4DashPage(
                                                     highchartOutput("state_plot")
                                                 )
                                             )
-                                        ),
-                                        tabPanel(
-                                            "For the Future",
-                                            fluidRow(
-                                                column(
-                                                    width = 4,
-                                                    future_conclusion
-                                                ),
-                                                
-                                                column(
-                                                    width = 8,
-                                                    div(
-                                                        highchartOutput("hmm_oos_short")
-                                                    )
-                                                    
-                                                )
-                                            )
                                         )
                                     )
                                 )
@@ -974,29 +936,56 @@ ui <- bs4DashPage(
                     )
                 ),
             
-            ### Model Forecasting
+            ### Model Forecasting ----
             bs4TabItem(
                 tabName = "model_forecasting",
                 fluidRow(
-                    # Consumer Sentiment Over Time
                     bs4Card(
-                        collapsible = FALSE,   # removes collapse toggle
-                        closable = FALSE,      # removes close icon
-                        title = HTML("<b>Analysis of Consumer Sentiment Using Hidden Markov Model Regimes</b>"),
+                        collapsible = FALSE,
+                        closable = FALSE,
+                        title = HTML("<b>Live Forecasting Page</b>"),
                         width = 12,
                         status = "success",
                         fluidRow(
-                            column(width = 12,
-                                   highchartOutput("regime_forecast_monthly")
-                            ),
-                            #column(width = 7, 
-                                   #highchartOutput("consumer_sentiment_plot", height = "80vh"))
-                            #)
+                            column(
+                                width = 12,
+                                
+                                div(style = "margin-bottom: 20px;", uiOutput("status_box")),
+                                div(style = "margin-bottom: 20px;", highchartOutput("regime_forecast_monthly")),
+                                div(style = "margin-bottom: 10px;", uiOutput("summary_metrics")),
+                                
+                                # How to read this panel
+                                div(
+                                    style = "margin-bottom: 10px; display: flex; justify-content: flex-end;",
+                                    actionButton("toggle_help", label = "How to read this table", icon = icon("question-circle"), 
+                                                 class = "btn-xs btn-outline-secondary", 
+                                                 style = "border: none; background: transparent; color: #6c757d; font-weight: 500;")
+                                ),
+                                
+                                
+                                conditionalPanel(
+                                    condition = "input.toggle_help % 2 == 1",
+                                    div(
+                                        style = "background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 15px; border: 1px solid #dee2e6; font-size: 0.9em;",
+                                        h6(strong("Table Definitions"), style="margin-top:0; color: #495057;"),
+                                        tags$ul(style = "padding-left: 20px; color: #6c757d;",
+                                                tags$li(strong("Current (Z):"), " Where the indicator is right now (in standard deviations)."),
+                                                tags$li(strong("Baseline (Z):"), " Where the indicator usually is during this economic regime."),
+                                                tags$li(strong("Difference:"), " The distance between Current and Baseline. If this is greater than 1.0, it is flagged as Inconsistent with the current regime."),
+                                                tags$li(strong("Status:"), " 'Inconsistent' means the indicator is behaving abnormally for this specific regime.")
+                                        )
+                                    )
+                                ),
+                                
+                                div(
+                                    style = "height: 300px; overflow-y: auto; border: 1px solid #ddd;",
+                                    sparklineOutput("spark_placeholder", height = 0), 
+                                    DT::dataTableOutput("table_drivers")
+                                )
+                            )
                         )
-                    )
+                    )                    )
                 )
-            )
-            
             )
         )
     )
@@ -1979,9 +1968,9 @@ server <- function(input, output, session) {
             return(NULL)
         }
         
-        pi <- R_pi()       # length 2 (0.5, 0.5)
-        A  <- A_input()    # 2x2, rows sum to 1 (validated)
-        B  <- B_input()    # 2x2, rows sum to 1 (validated)
+        pi <- R_pi()
+        A  <- A_input()
+        B  <- B_input()
         
         Tn     <- input$hmm_T
         states <- c("S1","S2")
@@ -2014,7 +2003,7 @@ server <- function(input, output, session) {
             ntimes = nt
         )
         fit  <- depmixS4::fit(mod, verbose = FALSE)
-        post <- depmixS4::posterior(fit)
+        post <- depmixS4::posterior(mod, type = "viterbi")
         zh   <- head(post$state, nrow(df))  # drop dummy row if it was added
         
         list(
@@ -3615,339 +3604,562 @@ server <- function(input, output, session) {
         dplyr::transmute(x = datetime_to_timestamp(date), y = y) |>
         highcharter::list_parse2()
     
-    output$hmm_oos_short <- renderHighchart({
-        highchart() %>%
-            hc_add_theme(hc_theme_elementary()) %>%
-            hc_chart(zoomType = "x") %>%
-            hc_title(text = "HMM Predicting Regimes",
-                     style = list(fontWeight = "bold", fontSize = "18px")) %>%
-            hc_subtitle(text = "Best Model Trained 1986 - 2006, Predicted Regimes from 2007–2024") %>%
-            hc_xAxis(
-                type = "datetime",
-                min  = datetime_to_timestamp(start_oos),
-                max  = datetime_to_timestamp(end_oos),
-                plotBands = bands_short
-            ) %>%
-            hc_yAxis(
-                title = list(text = NULL),
-                plotLines = list(list(value = 100, color = "#999", width = 3, dashStyle = "Dash"))
-            ) %>%
-            hc_add_series(
-                data = series_line, type = "line", name = "Consumer Sentiment",
-                color = "#000000", lineWidth = 3, marker = list(enabled = FALSE),
-                zIndex = 5, zoneAxis = "x", zones = zones
-            ) %>%
-            hc_tooltip(
-                shared = FALSE, useHTML = TRUE,
-                formatter = JS(sprintf("
-                                        function () {
-                                          var x = this.x, y = this.y;
-                                
-                                          // infer regime from plotBands if point doesn't carry it
-                                          var bands = %s, rg = '-';
-                                          for (var i=0;i<bands.length;i++){
-                                            if (x >= bands[i].from && x <= bands[i].to) { rg = bands[i].regime; break; }
-                                          }
-                                          var stateColor = (rg === 'High') ? '#28a745' : (rg === 'Low' ? '#e74c3c' : '#666');
-                                
-                                          // macro label if inside a recession span
-                                          var macro = %s, tag = '';
-                                          for (var j=0;j<macro.length;j++){
-                                            if (x >= macro[j].from && x <= macro[j].to) {
-                                              tag = '<br><span style=\"color:#e74c3c\"><b>' + macro[j].name + '</b></span>';
-                                              break;
-                                            }
-                                          }
-                                
-                                          return Highcharts.dateFormat('%%B %%e, %%Y', x) +
-                                                 '<br>Index: <b>' + Highcharts.numberFormat(y, 1) + '</b>' +
-                                                 '<br>State: <b><span style=\"color:' + stateColor + '\">' + rg + '</span></b>' +
-                                                 tag;
-                                        }
-      ", bands_short_js, rec_js))
-            ) %>%
-            hc_legend(enabled = FALSE) %>%
-            hc_credits(enabled = FALSE)
-    })
+    ### Forecasting ----
+    # Constants & Model Load
+    TRAIN_END <- as.Date("2024-12-01")
     
-    ## The Forecasting ----
+    # Load the pre-trained model
+    m4_fit <- readRDS("data/m4_monthly_fit.rds")
     
-    ### Monthly Plot Band Generator ----
-    make_plotbands_dates <- function(df, date_col = "date", state_col = "state_hi") {
-        stopifnot(date_col %in% names(df), state_col %in% names(df))
-        d <- df %>%
-            dplyr::select(date = all_of(date_col), state_hi = all_of(state_col)) %>%
-            dplyr::arrange(date)
-        
-        ts <- datetime_to_timestamp(as.Date(d$date))  # ms
-        
-        runs   <- rle(d$state_hi)
-        ends   <- cumsum(runs$lengths)
-        starts <- c(1, head(ends, -1) + 1)
-        
-        # step size (ms): robust to missing months
-        step_ms <- stats::median(diff(ts), na.rm = TRUE)
-        if (!is.finite(step_ms) || step_ms <= 0) step_ms <- 30*24*3600*1000
-        
-        to_ts <- purrr::map_dbl(seq_along(starts), function(i) {
-            if (i < length(starts)) ts[starts[i + 1]] else ts[ends[i]] + step_ms
-        })
-        
-        purrr::map2(seq_along(starts), runs$values, function(i, v) {
-            list(
-                from  = ts[starts[i]],
-                to    = to_ts[i],
-                color = if (v == 1) "rgba(83, 212, 74, 0.18)" else "rgba(231, 76, 60, 0.18)",
-                zIndex = 1
-            )
-        })
+    # Helper: Identify High Sentiment State
+    get_hi_state <- function(fit) {
+        # Dynamically check parameters for all states
+        mus <- vapply(seq_len(depmixS4::nstates(fit)), function(i) {
+            # param 1 is usually the intercept/mean for gaussian response
+            depmixS4::getpars(fit@response[[i]][[1]])[1] 
+        }, numeric(1))
+        which.max(mus)
     }
     
-    fred_wide <- readr::read_csv("data/fred_raw_wide.csv", show_col_types = FALSE) %>%
-        mutate(date = as.Date(date)) %>%
-        arrange(date)
+    HI_STATE <- get_hi_state(m4_fit)
     
-    # Build monthly panel (month starts)
-    monthly_panel <- fred_wide %>%
-        filter(format(date, "%d") == "01") %>%   # keep month-start rows only
-        transmute(
-            Date     = date,
-            y        = as.numeric(cons_sent),      # UMCSENT from worker wide
-            PCEPI    = as.numeric(pcepi),
-            real_GDP = as.numeric(gdp_real),
-            FYFSD    = as.numeric(FYFSD)           # your computed monthly FYFSD column
-        ) %>%
-        arrange(Date)
+    fred_wide <- reactive({
+        validate(need(file.exists("data/fred_raw_wide.csv"), "Error: 'data/fred_raw_wide.csv' not found."))
+        
+        fw <- readr::read_csv("data/fred_raw_wide.csv", show_col_types = FALSE)
+        
+        if ("date" %in% names(fw) && !"Date" %in% names(fw)) fw <- dplyr::rename(fw, Date = date)
+        
+        fw <- fw %>% dplyr::mutate(Date = as.Date(Date))
+        validate(need(sum(!is.na(fw$Date)) > 0, "Error: Dates parsed as all NA."))
+        
+        fw %>% dplyr::arrange(Date)
+    })
     
-    # Critical: fill forward lower-frequency / missing updates
-    monthly_panel <- monthly_panel %>%
-        mutate(
-            real_GDP = zoo::na.locf(real_GDP, na.rm = FALSE),
-            FYFSD    = zoo::na.locf(FYFSD,    na.rm = FALSE),
-            PCEPI    = zoo::na.locf(PCEPI,    na.rm = FALSE),
-            y        = zoo::na.locf(y,        na.rm = FALSE)
+    model_data <- reactive({
+        fw <- fred_wide()
+        
+        # Identify Target Column
+        y_col <- "cons_sent"
+        validate(need(y_col %in% names(fw), "Error: Column 'cons_sent' not found in CSV."))
+        
+        # Select & Impute
+        df_prep <- fw %>%
+            dplyr::select(
+                Date, 
+                y = dplyr::all_of(y_col),
+                gdp_real, 
+                pcepi, 
+                FYFSD
+            ) %>%
+            dplyr::arrange(Date) %>%
+            # Carry forward quarterly data to months
+            tidyr::fill(gdp_real, pcepi, FYFSD, .direction = "down") %>%
+            
+            # Filter to monthly frequency (only where we have Sentiment)
+            dplyr::filter(!is.na(y)) %>%
+            
+            # Date Range
+            dplyr::filter(Date >= as.Date("1987-01-01")) %>%
+            
+            # Create Lags
+            dplyr::mutate(
+                real_GDP_L1 = dplyr::lag(gdp_real, 1),
+                FYFSD_L1    = dplyr::lag(FYFSD, 1),
+                PCEPI_L0    = pcepi
+            ) %>%
+            tidyr::drop_na()
+        
+        validate(need(nrow(df_prep) > 10, "Error: Dataset is empty after processing."))
+        df_prep
+    })
+    
+    # Forecasting Logic
+    forecast_results <- reactive({
+        df <- model_data()
+        req(nrow(df) > 10)
+        
+        cov_vars <- c("real_GDP_L1", "PCEPI_L0", "FYFSD_L1")
+        
+        # Z-Score Scaling
+        train_mask <- df$Date <= TRAIN_END
+        
+        stats_list <- lapply(cov_vars, function(var) {
+            list(
+                mu = mean(df[[var]][train_mask], na.rm = TRUE),
+                sd = sd(df[[var]][train_mask], na.rm = TRUE)
+            )
+        })
+        names(stats_list) <- cov_vars
+        
+        for (var in cov_vars) {
+            mu <- stats_list[[var]]$mu
+            s  <- stats_list[[var]]$sd
+            if (is.na(s) || s == 0) s <- 1 
+            df[[var]] <- (df[[var]] - mu) / s
+        }
+        
+        # Model Application
+        
+        n_states_loaded <- depmixS4::nstates(m4_fit)
+        trans_formula <- as.formula(paste("~", paste(cov_vars, collapse = " + ")))
+        
+        # Initialize model
+        mod_new_2 <- depmixS4::depmix(
+            response = y ~ 1,
+            data = df,
+            nstates = n_states_loaded,
+            family = gaussian(),
+            transition = trans_formula
         )
+        
+        # Inject parameters
+        mod_applied <- depmixS4::setpars(mod_new_2, depmixS4::getpars(m4_fit))
+        
+        # Calculate Posterior
+        post_probs <- depmixS4::posterior(mod_applied, type = "smoothing")
+        target_col_idx <- HI_STATE + 1
+        
+        # Validate structure to catch any odd failures
+        validate(need(ncol(post_probs) >= target_col_idx, 
+                      paste("Error: Posterior has", ncol(post_probs), 
+                            "columns, but we need index", target_col_idx)))
+        
+        # Extract probability by position
+        p_high_vals <- post_probs[, target_col_idx]
+        
+        # Bind result
+        df %>%
+            dplyr::mutate(
+                p_high   = p_high_vals,
+                # SWAP: Logic inverted so 0 becomes 1 and 1 becomes 0
+                state_hi = 1 - as.integer(p_high >= 0.5),
+                # Labels will now align correctly (High = High)
+                regime   = ifelse(state_hi == 1, "High", "Low"),
+                is_fcst  = Date > TRAIN_END
+            )
+    })
     
-    # This is what your forecasting code should use as `monthly_df`
-    monthly_df <- monthly_panel
+    #### Forecast Line Chart ----
     
-    monthly_df <- monthly_df %>%
-        filter(Date >= as.Date("1987-01-01"))
-    
-    
-    ### The Forecasting Highchart ----
+    forecast_pretty_names <- list(
+        "gdp_nominal"    = "Nominal GDP",
+        "inflation_rate" = "Inflation Rate",
+        "unemployment"   = "Unemployment Rate",
+        "trade_balance"  = "Trade Balance",
+        "T10Y2Y"         = "Yield Curve (10Y-2Y)",
+        "UNRATE"         = "Unemployment Rate",
+        "CPIAUCSL"       = "CPI Inflation",
+        "VIXCLS"         = "VIX Volatility",
+        "DTWEXBGS"       = "Dollar Index",
+        "PCEPI"          = "PCE Inflation",
+        "fed_receipts"   = "Federal Receipts",
+        "case_schiller"  = "Case-Shiller Home Price",
+        "fed_debt"       = "Federal Debt",
+        "fed_outlays"    = "Federal Outlays",
+        "pcepi_robust"   = "PCE Inflation (Robust)",
+        "m2_val"         = "M2 Money Supply",
+        "cpi"            = "CPI Inflation",
+        "cons_sent"      = "Consumer Sentiment",
+        "gdp_real"       = "Real GDP",
+        "FYFSD"          = "Federal Surplus/Deficit",
+        "ppi"            = "PPI (Producer Prices)",
+        "exports"        = "Exports",
+        "imports"        = "Imports",
+        "acc_balance"    = "Current Account Bal.",
+        "initial_claims" = "Initial Jobless Claims",
+        "urate"          = "Unemployment Rate",
+        "new_house_sales" = "New Home Sales",
+        "part_rate"      = "Labor Force Part.",
+        "short_treasury" = "Short-Term Yield",
+        "ffr"            = "Fed Funds Rate",
+        "new_private_houses" = "Housing Starts",
+        "new_permits"    = "Building Permits",
+        "long_treasury"  = "Long-Term Yield"
+    )
     
     output$regime_forecast_monthly <- renderHighchart({
-        
-        # ---- load trained monthly fit (M4) ----
-        m4_obj <- readRDS("data/m4_monthly_fit.rds")
-        
-        # allow either: list(fit=..., vars=..., lags=..., train_end=...) OR a bare fit object
-        if (inherits(m4_obj, "depmix.fitted")) {
-            fit_train <- m4_obj
-            best_vars <- c("real_GDP","PCEPI","FYFSD")
-            best_lags <- c(1L,0L,1L)
-            train_end <- as.Date("2024-12-01")
-        } else {
-            fit_train <- m4_obj$fit
-            best_vars <- m4_obj$vars
-            best_lags <- m4_obj$lags
-            train_end <- as.Date(m4_obj$train_end)
-        }
-        
-        # ---- helpers ----
-        build_X_all <- function(df, vars, lags) {
-            stopifnot(length(vars) == length(lags))
-            n <- nrow(df)
-            X <- Map(function(v, L) {
-                x <- df[[v]]
-                if (L > 0L) x <- c(rep(NA_real_, L), x)[1:n]
-                x
-            }, vars, lags) |> as.data.frame()
-            colnames(X) <- paste0(vars, "_L", lags)
-            X
-        }
-        
-        make_plotbands_monthly <- function(dates, state_hi) {
-            # dates: Date vector ordered
-            # state_hi: 0/1 vector same length
-            runs <- rle(state_hi)
+        dfp <- forecast_results()
+        validate(need(nrow(dfp) > 0, "Error: No data available for plotting"))
+
+        make_plotbands <- function(d) {
+            runs <- rle(d$state_hi)
             ends <- cumsum(runs$lengths)
             starts <- c(1, head(ends, -1) + 1)
-            
-            col_hi  <- "rgba(40,167,69,0.18)"
-            col_low <- "rgba(231,76,60,0.18)"
-            
-            Map(function(i, j, v) {
-                list(
-                    from  = datetime_to_timestamp(dates[i]),
-                    to    = datetime_to_timestamp(dates[j]) + 24*3600*1000 - 1,
-                    color = if (v == 1) col_hi else col_low,
-                    zIndex = 1
-                )
-            }, starts, ends, runs$values)
+            ts <- datetime_to_timestamp(d$Date)
+            step_ms <- 30 * 24 * 3600 * 1000
+
+            purrr::map(seq_along(starts), function(i) {
+                color <- if(runs$values[i] == 1) "rgba(40,167,69,0.18)" else "rgba(231,76,60,0.18)"
+                to_t  <- if(i < length(starts)) ts[starts[i+1]] else (ts[ends[i]] + step_ms)
+                list(from = ts[starts[i]], to = to_t, color = color, zIndex = 1)
+            })
         }
-        
-        # ---- construct df from your existing monthly_df ----
-        # You showed: Date, y, real_GDP, PCEPI.observation_date, PCEPI.PCEPI, FYFSD
-        # We'll normalize column names defensively.
-        
-        df0 <- monthly_df %>%
-            mutate(
-                Date = as.Date(Date),
-                y    = as.numeric(y),
-                real_GDP = as.numeric(real_GDP),
-                PCEPI    = as.numeric(PCEPI),
-                FYFSD    = as.numeric(FYFSD)
-            ) %>%
-            dplyr::select(Date, y, real_GDP, PCEPI, FYFSD) %>%
-            arrange(Date)
-        
-        # lag covariates exactly like training spec
-        X_all <- build_X_all(df0, best_vars, best_lags)
-        df_full <- dplyr::bind_cols(tibble::tibble(Date = df0$Date, y = df0$y), tibble::as_tibble(X_all))
-        
-        # keep rows where model inputs exist
-        df_cc <- df_full %>%
-            mutate(.row = dplyr::row_number()) %>%
-            filter(stats::complete.cases(.))
-        
-        # ---- apply training-window scaling to transition covariates ----
-        # IMPORTANT: scale using ONLY training period rows, then apply to all.
-        colsX <- setdiff(names(df_cc), c("Date","y",".row"))
-        train_mask <- df_cc$Date <= train_end
-        
-        z_mu <- vapply(colsX, function(cn) mean(df_cc[[cn]][train_mask], na.rm = TRUE), numeric(1))
-        z_sd <- vapply(colsX, function(cn)  sd(df_cc[[cn]][train_mask], na.rm = TRUE), numeric(1))
-        
-        for (cn in colsX) {
-            if (!is.finite(z_sd[[cn]]) || z_sd[[cn]] == 0) stop("Bad sd for ", cn, " (check your data).")
-            df_cc[[cn]] <- (df_cc[[cn]] - z_mu[[cn]]) / z_sd[[cn]]
-        }
-        
-        # ---- build depmix model on FULL timeline, inject trained params, compute posterior ----
-        trans_form <- as.formula(paste("~", paste(colsX, collapse = " + ")))
-        
-        mod_all <- depmixS4::depmix(
-            y ~ 1,
-            data = dplyr::select(df_cc, -Date, - .row),   # depmix wants data frame with y + covariates
-            nstates = 2,
-            family = gaussian(),
-            transition = trans_form
-        )
-        
-        mod_all <- depmixS4::setpars(mod_all, depmixS4::getpars(fit_train))
-        post <- depmixS4::posterior(mod_all)
-        
-        # determine which state is "High" based on emission means from TRAINED fit
-        K <- length(fit_train@response)
-        emis_mu <- vapply(seq_len(K), function(s) depmixS4::getpars(fit_train@response[[s]][[1]])[1], numeric(1))
-        hi_state <- which.max(emis_mu)
-        
-        p_cols <- grep("^S[0-9]+$", names(post), value = TRUE)
-        p_high <- as.numeric(post[[p_cols[hi_state]]])
-        
-        dfp <- tibble::tibble(
-            date   = df_cc$Date,
-            y      = df_cc$y,
-            p_high = p_high
-        ) %>%
-            mutate(
-                state_hi = as.integer(p_high >= 0.5),
-                regime   = ifelse(state_hi == 1, "High", "Low"),
-                is_fcst  = date > train_end
-            ) %>%
-            arrange(date)
-        
-        bands <- make_plotbands_monthly(dfp$date, dfp$state_hi)
-        
+
+        bands <- make_plotbands(dfp)
+        fcst_ts <- datetime_to_timestamp(TRAIN_END)
+
         pts_train <- dfp %>%
-            filter(!is_fcst) %>%
-            transmute(x = datetime_to_timestamp(date), y = y, regime = regime) %>%
-            purrr::pmap(function(x, y, regime) list(x = x, y = y, regime = regime))
-        
+            dplyr::filter(!is_fcst) %>%
+            dplyr::transmute(x = datetime_to_timestamp(Date), y = y, regime = regime) %>%
+            highcharter::list_parse()
+
         pts_fcst <- dfp %>%
-            filter(is_fcst) %>%
-            transmute(x = datetime_to_timestamp(date), y = y, regime = regime) %>%
-            purrr::pmap(function(x, y, regime) list(x = x, y = y, regime = regime))
-        
-        fcst_ts <- datetime_to_timestamp(train_end)
-        
+            dplyr::filter(Date >= TRAIN_END) %>%
+            dplyr::transmute(x = datetime_to_timestamp(Date), y = y, regime = regime) %>%
+            highcharter::list_parse()
+
         highchart() %>%
             hc_add_theme(hc_theme_elementary()) %>%
             hc_chart(zoomType = "x") %>%
             hc_title(text = "<b> Consumer Sentiment with Forecasted Regime Bands </b>",
-                     style = list(fontWeight = "bold", fontSize = "18px")) %>%
-            hc_subtitle(text = "The Best HMM Predicting States on OOS Data") %>%
+                     style = list(fontSize = "26px")) %>%
+            hc_subtitle(text = "Forecasting Starts January 2025 with a 4 Week Delay due to FRED<br> Drag to Zoom in") %>%
             hc_xAxis(
                 type = "datetime",
                 gridLineWidth = 0,
-                crosshair = list(color = "darkgrey", width = 1, dashStyle = "Solid"),
                 plotBands = bands,
                 plotLines = list(list(
-                    value = fcst_ts,
-                    color = "rgba(120,120,120,0.8)",
-                    width = 2,
-                    zIndex = 6,
-                    dashStyle = "ShortDash",
-                    label = list(text = "<b>Forecast start</b>",
-                                 style = list(color = "rgba(120,120,120,0.9)", fontSize = "12px"))
+                    value = fcst_ts, color = "rgba(120,120,120,0.8)", width = 2,
+                    dashStyle = "ShortDash", zIndex = 6,
+                    label = list(text = "<b>Forecast start</b>", style = list(color = "#787878", fontSize = "12px"))
                 ))
             ) %>%
             hc_yAxis(
-                title = list(text = "UMCSENT"),
+                title = list(text = "Consumer Sentiment Index"),
                 gridLineWidth = 0,
-                crosshair = list(color = "darkgrey", width = 1, dashStyle = "Solid"),
                 plotLines = list(list(
                     value = 100, color = "#888", width = 2, dashStyle = "Dash",
-                    label = list(
-                        text = "<b> Index Baseline: 1966 = 100 </b>",
-                        style = list(color = "red", fontSize = "16px")
-                    )
+                    label = list(text = "<b> Index Baseline: 1966 = 100 </b>", style = list(color = "red", fontSize = "16px"))
                 ))
             ) %>%
-            hc_add_series(
-                data = pts_train,
-                type = "line",
-                name = "Sentiment (train)",
-                color = "#111",
-                lineWidth = 3,
-                marker = list(enabled = FALSE),
-                zIndex = 5,
-                showInLegend = FALSE
-            ) %>%
-            hc_add_series(
-                data = pts_fcst,
-                type = "line",
-                name = "Sentiment (post-2024)",
-                color = "#111",
-                lineWidth = 3,
-                dashStyle = "Dash",
-                marker = list(enabled = FALSE),
-                zIndex = 5,
-                showInLegend = FALSE
-            ) %>%
-            hc_tooltip(
-                useHTML = TRUE,
-                formatter = JS("
-      function () {
-        var x=this.x, y=this.y, rg=(this.point&&this.point.regime)?this.point.regime:'-';
-        var rgColor = (rg==='High') ? '#28a745' : '#e74c3c';
-        return Highcharts.dateFormat('%b %Y', x) +
-               '<br>Consumer Sentiment Index: <b>'+Highcharts.numberFormat(y,1)+'</b>' +
-               '<br>Regime: <b><span style=\"color:'+rgColor+'\">'+rg+'</span></b>';
-      }
-    ")
-            ) %>%
+            hc_add_series(data = pts_train, type = "line", name = "History", color = "#111",
+                          lineWidth = 3, marker = list(enabled = FALSE), showInLegend = FALSE, zIndex = 5) %>%
+            hc_add_series(data = pts_fcst, type = "line", name = "Forecast", color = "#111",
+                          lineWidth = 3, dashStyle = "Dash", marker = list(enabled = FALSE), showInLegend = FALSE, zIndex = 5) %>%
+            hc_tooltip(useHTML = TRUE, formatter = JS("
+                                                    function () {
+                                                      var rg = (this.point.regime) ? this.point.regime : '-';
+                                                      var rgColor = (rg === 'High') ? '#28a745' : '#e74c3c';
+                                                      return Highcharts.dateFormat('%b %Y', this.x) +
+                                                             '<br>CSI: <b>' + Highcharts.numberFormat(this.y, 1) + '</b>' +
+                                                             '<br>Regime: <b><span style=\"color:' + rgColor + '\">' + rg + '</span></b>';
+                                                    }")) %>%
             hc_legend(enabled = FALSE) %>%
             hc_credits(enabled = FALSE)
     })
+
+    #### Status Cards ----
+    output$status_box <- renderUI({
+        df <- forecast_results()
+        req(nrow(df) > 0)
+        
+        last_row <- tail(df, 1)
+        
+        prob <- max(last_row$p_high, 1 - last_row$p_high)
+        state_label <- last_row$regime
+        
+        runs <- rle(df$state_hi)
+        
+        current_streak <- tail(runs$lengths, 1)
+        prev_streak <- if(length(runs$lengths) > 1) tail(runs$lengths, 2)[1] else 0
+        
+        # Colors
+        is_positive_state <- last_row$p_high > 0.5
+        text_color <- if(is_positive_state) "#721c24" else "#155724"
+        bg_color   <- if(is_positive_state) "#f8d7da" else "#d4edda"
+        
+        div(
+            style = paste0("background-color:", bg_color, "; color:", text_color, ";
+                padding: 15px; border-radius: 5px; border: 1px solid ", text_color, ";
+                display: flex; justify-content: space-between; align-items: center;"),
+            
+            # Left Side: Regime & Probability
+            div(
+                h4(strong(state_label), style = "margin: 0;"),
+                div(paste0("Prob. of ", state_label, " Regime: ", round(prob * 100, 1), "%"),
+                    style = "font-size: 1.1em; margin-top: 4px;")
+            ),
+            
+            # Divider Line
+            div(style = paste0("border-left: 1px solid ", text_color, "; height: 50px; margin: 0 20px; opacity: 0.4;")),
+            
+            # Right Side: Duration Stats
+            div(style = "text-align: right;",
+                # Current
+                h4(strong(paste(current_streak, "Months")), style = "margin: 0; line-height: 1;"),
+                div("Current State", style = "font-size: 0.8em; opacity: 0.8; margin-bottom: 6px;"),
+                
+                # Previous
+                div(strong(paste(prev_streak, "Months")), style = "font-size: 1.0em; opacity: 0.65; line-height: 1;"),
+                div("Previous State", style = "font-size: 0.75em; opacity: 0.5;")
+            )
+        )
+    })
     
+    pretty_names <- list(
+        "gdp_nominal"    = "Nominal GDP",
+        "inflation_rate" = "Inflation Rate",
+        "unemployment"   = "Unemployment Rate",
+        "trade_balance"  = "Trade Balance",
+        "T10Y2Y"         = "Yield Curve (10Y-2Y)",
+        "UNRATE"         = "Unemployment Rate",
+        "CPIAUCSL"       = "CPI Inflation",
+        "VIXCLS"         = "VIX Volatility",
+        "DTWEXBGS"       = "Dollar Index",
+        "PCEPI"          = "PCE Inflation",
+        "fed_receipts"   = "Federal Receipts",
+        "case_schiller"  = "Case-Shiller Home Price",
+        "fed_debt"       = "Federal Debt",
+        "fed_outlays"    = "Federal Outlays",
+        "pcepi_robust"   = "PCE Inflation (Robust)",
+        "m2_val"         = "M2 Money Supply",
+        "cpi"            = "CPI Inflation",
+        "cons_sent"      = "Consumer Sentiment",
+        "gdp_real"       = "Real GDP",
+        "FYFSD"          = "Federal Surplus/Deficit",
+        "ppi"            = "PPI (Producer Prices)",
+        "exports"        = "Exports",
+        "imports"        = "Imports",
+        "acc_balance"    = "Current Account Bal.",
+        "initial_claims" = "Initial Jobless Claims",
+        "urate"          = "Unemployment Rate",
+        "new_house_sales" = "New Home Sales",
+        "part_rate"      = "Labor Force Part.",
+        "short_treasury" = "Short-Term Yield",
+        "ffr"            = "Fed Funds Rate",
+        "new_private_houses" = "Housing Starts",
+        "new_permits"    = "Building Permits",
+        "long_treasury"  = "Long-Term Yield"
+    )
     
+    ### Data Table ----
+    output$table_drivers <- DT::renderDT({
+        fcst <- forecast_results()
+        req(nrow(fcst) > 0)
+        fw <- fred_wide()
+        
+        full_df <- fw %>%
+            dplyr::inner_join(fcst %>% dplyr::select(Date, regime), by = "Date") %>%
+            dplyr::arrange(Date) %>%
+            tidyr::fill(where(is.numeric), .direction = "down") %>%
+            dplyr::select(-Date)
+        
+        scaled_df <- full_df %>%
+            dplyr::mutate(across(where(is.numeric), ~scale(.)[,1]))
+        
+        last_row <- tail(scaled_df, 1)
+        current_regime <- last_row$regime
+        
+        regime_means <- scaled_df %>%
+            dplyr::filter(regime == current_regime) %>%
+            dplyr::summarise(across(where(is.numeric), \(x) mean(x, na.rm = TRUE)))
+        
+        indicators <- names(scaled_df)[sapply(scaled_df, is.numeric)]
+        
+        rows <- lapply(indicators, function(var_name) {
+            if(var_name %in% c("p_high", "state_hi", "is_fcst", "day_num")) return(NULL)
+            
+            val      <- last_row[[var_name]]
+            mean_val <- regime_means[[var_name]]
+            dist     <- val - mean_val
+            dist_abs <- abs(dist) # Calculate absolute difference
+            is_divergent <- dist_abs > 1.0
+            
+            status_txt <- if(is_divergent) "Inconsistent" else "Consistent"
+            
+            # Inconsistent = Red (Bad match), Consistent = Green (Good match)
+            fill_color   <- if(is_divergent) "#ffe6e6" else "#e6fffa"
+            line_color   <- if(is_divergent) "#cc0000" else "#007a5e"
+            
+            trend_vals <- round(tail(scaled_df[[var_name]], 12), 3)
+            
+ 
+            spk_html <- sparkline::spk_chr(
+                trend_vals, 
+                type = "line", 
+                lineColor = line_color, 
+                fillColor = fill_color,
+                width = 120, 
+                height = 25,
+                spotColor = FALSE,
+                minSpotColor = FALSE,
+                maxSpotColor = FALSE,
+                lineWidth = 1.5
+            )
+            
+            clean_name <- if(!is.null(pretty_names[[var_name]])) pretty_names[[var_name]] else gsub("_", " ", var_name)
+            
+            # Formatting Numbers
+            val_fmt  <- paste0("<span class='mono-num'>", sprintf("%.2f", val), "</span>")
+            mean_fmt <- paste0("<span class='mono-num'>", sprintf("%.2f", mean_val), "</span>")
+            diff_fmt <- paste0("<span class='mono-num'>", sprintf("%.2f", dist_abs), "</span>")
+            
+            data.frame(
+                Indicator = clean_name,
+                `Current (Z)` = val_fmt,
+                `Baseline (Z)` = mean_fmt,
+                `Difference (Threshold < 1.0)` = diff_fmt,
+                Status    = status_txt,
+                Trend     = spk_html,
+                dist_abs  = dist_abs,
+                stringsAsFactors = FALSE,
+                check.names = FALSE
+            )
+        })
+        
+        final_df <- do.call(rbind, rows)
+        
+        final_df <- final_df %>% 
+            dplyr::arrange(desc(dist_abs)) %>%
+            dplyr::select(-dist_abs)
+        
+        d <- DT::datatable(
+            final_df,
+            rownames = FALSE, 
+            escape = FALSE, 
+            selection = "none",
+            class = 'table clean-table hover', 
+            options = list(
+                dom = 't', 
+                paging = FALSE,
+                ordering = FALSE,
+                columnDefs = list(
+                    list(className = 'dt-center', targets = "_all"),
+                    list(width = '120px', targets = 5)
+                ),
+                fnDrawCallback = htmlwidgets::JS("function(){ HTMLWidgets.staticRender(); }")
+            )
+        ) %>% 
+            DT::formatStyle(
+                'Status',
+                target = 'cell',
+                backgroundColor = DT::styleEqual(
+                    c("Inconsistent", "Consistent"), 
+                    c("#ffe6e6", "#e6fffa")
+                ),
+                color = DT::styleEqual(
+                    c("Inconsistent", "Consistent"), 
+                    c("#cc0000", "#007a5e")
+                ),
+                fontWeight = 'bold'
+            )
+        
+        d$dependencies <- append(d$dependencies, htmlwidgets:::getDependency("sparkline", "sparkline"))
+        
+        d
+    })
     
-    
-    
+    ### Summary Metrics ----
+    output$summary_metrics <- renderUI({
+        fcst <- forecast_results()
+        req(nrow(fcst) > 0)
+        fw <- fred_wide()
+        
+        full_df <- fw %>%
+            dplyr::inner_join(fcst %>% dplyr::select(Date, regime, state_hi), by = "Date") %>%
+            dplyr::arrange(Date) %>%
+            tidyr::fill(where(is.numeric), .direction = "down") %>%
+            dplyr::select(-Date)
+        
+        scaled_df <- full_df %>%
+            dplyr::mutate(across(where(is.numeric) & !c(state_hi), ~scale(.)[,1]))
+        
+        last_row <- tail(scaled_df, 1)
+        current_regime <- last_row$regime
+        is_bad_state   <- last_row$state_hi == 1 
+        
+        indicators <- names(scaled_df)[sapply(scaled_df, is.numeric)]
+        indicators <- setdiff(indicators, c("p_high", "state_hi", "is_fcst", "day_num"))
+        
+        vals_current <- as.numeric(last_row[indicators])
+        
+        means_by_regime <- scaled_df %>%
+            dplyr::group_by(regime) %>%
+            dplyr::summarise(across(where(is.numeric) & !c(state_hi), \(x) mean(x, na.rm = TRUE)))
+        
+        mean_curr_vec <- means_by_regime %>% 
+            dplyr::filter(regime == current_regime) %>% 
+            dplyr::select(all_of(indicators)) %>% 
+            as.numeric()
+        
+        mean_other_vec <- means_by_regime %>% 
+            dplyr::filter(regime != current_regime) %>% 
+            dplyr::select(all_of(indicators)) %>% 
+            as.numeric()
+        
+        dist_to_curr <- abs(vals_current - mean_curr_vec)
+        n_aligned <- sum(dist_to_curr <= 1.0)
+        pct_aligned <- (n_aligned / length(indicators)) * 100
+        
+        avg_deviation <- mean(dist_to_curr)
+        
+        dist_to_other <- abs(vals_current - mean_other_vec)
+        n_leaning_other <- sum(dist_to_other < dist_to_curr)
+        pct_leaning_other <- (n_leaning_other / length(indicators)) * 100
+        
+        m1_color <- if(pct_aligned > 70) "success" else if(pct_aligned > 40) "warning" else "danger"
+        m1_desc  <- "Historical Match"
+        m1_foot  <- "Percent of drivers behaving normally for this regime"
+        
+        m2_color <- if(avg_deviation < 0.8) "success" else if(avg_deviation < 1.2) "warning" else "danger"
+        m2_desc  <- "Anomaly Score (Z)"
+        m2_foot  <- "Average standard deviation from the baseline"
+        
+        if (is_bad_state) {
+            if(pct_leaning_other > 50) {
+                m3_color <- "success"
+                m3_desc  <- "Recovery Detected"
+                m3_foot  <- "Drivers are shifting toward growth patterns"
+                m3_icon  <- "arrow-up"
+            } else {
+                m3_color <- "danger"
+                m3_desc  <- "Deep Contraction"
+                m3_foot  <- "Drivers are reinforcing the negative trend"
+                m3_icon  <- "anchor"
+            }
+        } else {
+            if(pct_leaning_other > 50) {
+                m3_color <- "danger"
+                m3_desc  <- "Warning Signal"
+                m3_foot  <- "Drivers are shifting toward volatility"
+                m3_icon  <- "exclamation-triangle"
+            } else {
+                m3_color <- "success"
+                m3_desc  <- "Strong Expansion"
+                m3_foot  <- "Drivers are reinforcing the stable trend"
+                m3_icon  <- "shield-alt"
+            }
+        }
+        
+        fluidRow(
+            bs4ValueBox(
+                value = paste0(round(pct_aligned, 0), "%"),
+                subtitle = m1_desc,
+                footer = m1_foot,
+                icon = icon("check-circle"),
+                color = m1_color,
+                width = 4
+            ),
+            bs4ValueBox(
+                value = round(avg_deviation, 2),
+                subtitle = m2_desc,
+                footer = m2_foot,
+                icon = icon("chart-bar"),
+                color = m2_color,
+                width = 4
+            ),
+            bs4ValueBox(
+                value = paste0(round(pct_leaning_other, 0), "%"),
+                subtitle = m3_desc,
+                footer = m3_foot, 
+                icon = icon(m3_icon),
+                color = m3_color,
+                width = 4
+            )
+        )
+    })
 }
 
-# ----- Run App -----
+# Run App
 shinyApp(ui, server)
