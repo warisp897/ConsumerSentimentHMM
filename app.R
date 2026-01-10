@@ -505,11 +505,6 @@ ui <- bs4DashPage(
         id   = "sidebar",
         skin = "light",
         collapsed = TRUE,
-        # bs4SidebarUserPanel(
-        #     image = "github logo.png",
-        #     name = "Waris Popal"
-        # ),
-        
         bs4SidebarUserPanel(
             image = "github logo.png",
             name = tags$a(
@@ -730,7 +725,6 @@ ui <- bs4DashPage(
                                         )                                    )
                                 ),
                                 
-                                # B) TWO-COLUMN LAYOUT for other tabs
                                 conditionalPanel(
                                     condition = "input.hmm_info_tabs != 'hmm_train_exp'",
                                     fluidRow(
