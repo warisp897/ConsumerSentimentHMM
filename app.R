@@ -3661,8 +3661,9 @@ server <- function(input, output, session) {
     
     fred_wide <- reactive({
         
-        fw <- readr::read_csv("https://raw.githubusercontent.com/warisp897/ConsumerSentimentHMM/refs/heads/main/data/fred_raw_long.csv", show_col_types = FALSE)
+        fw <- readr::read_csv("https://raw.githubusercontent.com/warisp897/ConsumerSentimentHMM/refs/heads/main/data/fred_raw_wide.csv", show_col_types = FALSE)
         
+        print(fw)
         if ("date" %in% names(fw) && !"Date" %in% names(fw)) fw <- dplyr::rename(fw, Date = date)
         
         fw <- fw %>% dplyr::mutate(Date = as.Date(Date))
