@@ -17,7 +17,7 @@ MODEL_NAME <- "gemini-1.5-flash"
 # Helper to write errors
 write_error_report <- function(title, details) {
   short_details <- substr(as.character(details), 1, 200)
-  msg <- paste0("### ⚠️ AI Analysis Failed\n\n**Reason:** ", title, "\n\n**Details:**\n", short_details)
+  msg <- paste0("### AI Analysis Failed\n\n**Reason:** ", title, "\n\n**Details:**\n", short_details)
   readr::write_lines(msg, "data/ai_analysis.md")
   message(paste("FAILED:", title, "-", short_details))
   quit(save = "no", status = 0) 
