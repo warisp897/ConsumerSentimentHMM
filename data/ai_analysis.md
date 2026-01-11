@@ -1,12 +1,7 @@
-Here is a summary of the economic regime model's outputs:
+*   The model confidently assigns the U.S. economy to a Low Sentiment regime with 100% probability.
+*   This Low Sentiment regime has persisted for an extended 68 months and is presenting as somewhat unusual for its historical pattern, indicated by an average anomaly score of 1.69.
+*   Real GDP Growth and PCE Inflation are notably strong, registering approximately 1.6 to 1.8 standard deviations above what is typical for a Low Sentiment period.
+*   The fiscal position is also significantly weaker, with the surplus/deficit approximately 1.6 standard deviations below its baseline for this regime.
+*   The robust growth and elevated inflation, occurring within a persistently classified Low Sentiment regime, indicate significant internal tension rather than historical stability.
 
-### Key Signals
-*   The model robustly identifies the Low Sentiment regime with 100% probability.
-*   This regime has persisted for an extended 68 months, and the overall data pattern is somewhat anomalous, nearly 1.7 standard deviations from its typical behavior for this regime.
-*   Notably, Real GDP Growth is unusually strong, standing over 1.6 standard deviations above its historical baseline for a Low Sentiment period.
-*   PCE Inflation is also markedly elevated, nearly 2 standard deviations above its baseline for a Low Sentiment regime, aligning with inflationary pressures but at an unusual magnitude.
-*   Fiscal deficits are significantly wider than typical for this regime, over 1.6 standard deviations below their historical baseline.
-*   The coexistence of strong growth with persistently low sentiment and unusually high inflation suggests mounting internal tension within the current economic state.
-
-### Plain-Language Summary
-The model currently classifies the economy in a Low Sentiment regime, influenced by the low Consumer Sentiment Index of 51, which is historically associated with concerns like inflation or uncertainty. However, the data presents a notable divergence: Real GDP Growth is unusually strong and PCE Inflation is significantly elevated, both performing well above what is typically observed during a Low Sentiment period. This creates an internal tension where robust economic activity persists alongside a long-standing environment of weak consumer sentiment, with the overall conditions being somewhat anomalous for this regime.
+The model currently classifies the U.S. economy as being in a 'Low Sentiment' regime with complete certainty, a state typically associated with inflation pressure, uncertainty, or recession risk. This classification has been consistently in place for an extended 68 months. However, the data reveals notable contradictions within this regime: Real GDP Growth and PCE Inflation are both significantly strong, performing well above their typical historical baselines for a period of low sentiment. This unusual combination of robust economic activity and elevated inflation alongside persistent low sentiment suggests mounting internal tension within the current economic landscape.
