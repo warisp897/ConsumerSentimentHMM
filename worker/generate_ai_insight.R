@@ -142,14 +142,21 @@ runs          <- rle(df_scaled$regime)
 curr_streak   <- utils::tail(runs$lengths, 1)
 
 prompt <- paste0(
-  "You are an expert macroeconomic analyst. Interpret these HMM results:\n",
-  "- **Regime:** ", curr_regime, " (", round(curr_prob * 100, 1), "% Conf)\n",
-  "- **Streak:** ", curr_streak, " Months\n",
-  "- **Raw Sentiment:** ", curr_csi, "\n",
-  "- **Anomaly Score:** ", avg_anomaly, " std devs (Distance from regime baseline)\n\n",
-  "Write a 1-paragraph executive summary of the current economic narrative. ",
-  "IMPORTANT: Reference specific drivers if relevant. ",
-  "For example, mention if GDP, Inflation, or Fiscal Deficit is deviating from the norm."
+  "You are a hedge fund portfolio manager. Write a brutal, data-driven update on the US Consumer Sentiment Regime.\n\n",
+  
+  "### DATA SNAPSHOT\n",
+  "- **Regime:** ", curr_regime, " (", round(curr_prob * 100, 1), "% Confidence)\n",
+  "- **Duration:** ", curr_streak, " months\n",
+  "- **Sentiment Index:** ", curr_csi, "\n",
+  "- **Aggregate Anomaly:** ", avg_anomaly, " deviations from norm\n\n",
+  
+  "### DRIVER DEVIATIONS (vs Regime Baseline)\n",
+  driver_evidence, "\n\n",
+  
+  "### INSTRUCTIONS\n",
+  "1. **Style:** Bloomberg Terminal / Axios. Short sentences. Active voice. No fluff.\n",
+  "2. **Analysis:** Explain *why* the regime is holding or breaking based strictly on the Driver Deviations above. Identify the primary drag/lift.\n",
+  "3. **Constraint:** Max 3 sentences. Do not use words like 'unequivocally', 'profound', or 'mired'."
 )
 
 # API Call
