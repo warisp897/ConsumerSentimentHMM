@@ -38,6 +38,9 @@ print(paste("DEBUG: High State Index detected:", HI_STATE_IDX))
 print("DEBUG: Preprocessing data (lags and fills)...")
 df_prep <- df_raw %>%
   arrange(date) %>%
+  # FIX: Select ONLY the columns used in the model.
+  # This prevents NAs in unused daily columns (like 10yr Treasury) from killing your monthly rows.
+  select(date, gdp_real, pcepi, FYFSD, cons_sent) %>%
   tidyr::fill(gdp_real, pcepi, FYFSD, .direction = "down") %>%
   filter(!is.na(cons_sent)) %>%
   filter(date >= as.Date("1987-01-01")) %>%
@@ -47,6 +50,8 @@ df_prep <- df_raw %>%
     PCEPI_L0    = pcepi
   ) %>%
   drop_na()
+
+print(paste("DEBUG: Preprocessing complete. Rows:", nrow(df_prep)))
 
 print(paste("DEBUG: Preprocessing complete. Rows:", nrow(df_prep)))
 
