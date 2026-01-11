@@ -527,7 +527,6 @@ ui <- bs4DashPage(
         
         bs4SidebarMenu(
             id = "dashboard_tabs", # ID of Sidebar menu
-            bs4SidebarHeader("Dashboard Navigation"),
             bs4SidebarMenuItem("Overview", 
                                tabName = "overview", 
                                icon = icon("dashboard")),
@@ -991,15 +990,35 @@ ui <- bs4DashPage(
                                 div(style = "height: 30px;"),
                                 
                                 bs4Card(
-                                    title = tagList(icon("microchip"), " AI Summary"),
-                                    status = "teal",
-                                    solidHeader = TRUE,
+                                    title = tagList(
+                                        span("Monthly Analysis Summary", style = "font-weight: 700;"),
+                                        span(paste0(" | Generated: ", format(file.info("data/ai_analysis.md")$mtime, "%B %Y")), 
+                                             style = "font-weight: 400; font-size: 0.8em; color: #6c757d; margin-left: 10px;")
+                                    ),
+                                    status = "gray",
+                                    solidHeader = FALSE,
                                     collapsible = TRUE,
+                                    collapsed = TRUE, 
                                     width = 12,
-                                    background = "white",
-                                    uiOutput("ai_summary")
-                                )
-                            )
+                                    
+                                    # The AI Content
+                                    uiOutput("ai_summary"),
+                                    
+                                    # The Disclaimer Section
+                                    footer = div(
+                                        style = "font-size: 0.85em;",
+                                        hr(),
+                                        actionLink("ai_disclaimer_toggle", label = tagList(icon("info-circle"), " AI Disclaimer")),
+                                        conditionalPanel(
+                                            condition = "input.ai_disclaimer_toggle % 2 == 1",
+                                            div(
+                                                style = "margin-top: 10px; color: #6c757d; font-style: italic;",
+                                                "The summary is synthesized by a language learning model (LLM) using model regime probabilities,",
+                                                " anomaly scores, and conditional indicator baselines. Verify against raw data."
+                                            )
+                                        )
+                                    )
+                                )                            )
                         )
                     )                    )
                 )
