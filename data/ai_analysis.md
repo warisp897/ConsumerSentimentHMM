@@ -1,6 +1,1 @@
-### AI Analysis Failed
-
-**Reason:** API Error
-
-**Details:**
-HTTP 404 Not Found.
+Low Sentiment regime persists for 68 months, cemented by PCE Inflation 1.8 SD above baseline acting as the primary drag. Despite GDP growth providing a 1.63 SD lift, the 1.63 SD lower fiscal deficit fails to mitigate this inflationary pressure. The 51 Sentiment Index reflects this continued disequilibrium, sustaining the 1.69 deviation anomaly.
