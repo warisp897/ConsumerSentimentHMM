@@ -100,9 +100,8 @@ post_probs <- tryCatch({
 })
 
 if (is.character(post_probs)) write_error_report("Inference Crashed", post_probs)
-post_probs <- as.data.frame(post_probs)
 
-# --- METRICS & REPORTING ---
+post_probs <- as.data.frame(post_probs)
 
 df_scaled$state_idx <- post_probs$state
 df_scaled$p_high    <- post_probs[, HI_STATE_IDX + 1]
@@ -131,33 +130,40 @@ runs          <- rle(df_scaled$regime)
 curr_streak   <- utils::tail(runs$lengths, 1)
 
 # Map names to readable labels
-driver_map <- c("real_GDP_L1" = "GDP Growth", "PCEPI_L0" = "Inflation (PCE)", "FYFSD_L1" = "Fiscal Deficit")
+driver_map <- c("real_GDP_L1" = "Real GDP Growth", "PCEPI_L0" = "PCE Inflation", "FYFSD_L1" = "Fiscal Surplus/Deficit")
 
-# Construct "Evidence Block"
+# Construct evidence block
 evidence <- paste(vapply(seq_along(diffs), function(i) {
   val <- diffs[i]
   direction <- if(val > 0) "above" else "below"
-  paste0("- ", driver_map[indicators[i]], ": ", abs(round(val, 2)), " SD ", direction, " baseline")
+  paste0("- **", driver_map[indicators[i]], ":** ", abs(round(val, 2)), " SD ", direction, " historical baseline")
 }, character(1)), collapse = "\n")
 
-# --- FINAL TUNED PROMPT ---
+# Prompt
 prompt <- paste0(
-  "You are a Senior Portfolio Manager at a macro hedge fund. Provide a strategic assessment of the current US Consumer Sentiment Regime.\n\n",
+  "You are a Senior Quantitative Strategist interpreting a proprietary economic model. ",
+  "We track the US Consumer Sentiment Index (CSI) using a Hidden Markov Model (HMM) that classifies the economy into two regimes:\n",
+  "1. **High Sentiment:** Optimistic, typically associated with strong growth and stable prices.\n",
+  "2. **Low Sentiment:** Pessimistic, typically driven by inflation shocks or recession risks.\n\n",
   
-  "### MARKET DATA\n",
-  "- **Current Regime:** ", curr_regime, " (", round(curr_prob * 100, 1), "% Confidence)\n",
-  "- **Duration:** ", curr_streak, " months\n",
-  "- **Anomaly Score:** ", avg_anomaly, " deviations from norm\n\n",
+  "### CURRENT MODEL OUTPUT\n",
+  "The model indicates we are currently in a **", curr_regime, "** Regime.\n",
+  "- **Confidence:** ", round(curr_prob * 100, 1), "%\n",
+  "- **Duration:** This regime has persisted for ", curr_streak, " months.\n",
+  "- **Current CSI Score:** ", curr_csi, "\n",
+  "- **Anomaly Score:** ", avg_anomaly, " (Higher means the data is behaving weirdly compared to the regime's past history).\n\n",
   
-  "### DRIVER DEVIATIONS (vs Regime Baseline)\n",
+  "### DRIVER ANALYSIS (Why are we here?)\n",
+  "We compared current economic drivers to their *expected baseline* for this specific regime. Here represent the deviations:\n",
   evidence, "\n\n",
   
-  "### TASK\n",
-  "Write a concise 3-4 sentence thesis. Connect the dots between the drivers.\n",
-  "1. Acknowledge the regime status.\n",
-  "2. Analyze the conflict: specifically weigh the impact of GDP vs Inflation/Deficit.\n",
-  "3. Conclude: Is the regime stabilizing or fragile? (e.g. 'Despite strong growth, inflation remains the structural cap on sentiment.')\n",
-  "**Tone:** Professional, analytical, decisive. No flowery adjectives."
+  "### YOUR TASK\n",
+  "Synthesize a 1-paragraph market thesis (approx 4 sentences). Do not simply list the numbers.\n",
+  "Instead, explain the **tension** in the data. For example:\n",
+  "- If GDP is high but Sentiment is Low, is Inflation the culprit cancelling out the growth?\n",
+  "- If the Fiscal Deficit is deviating, is it acting as a tailwind or headwind?\n",
+  "- Conclude whether this regime looks stable or if the high anomaly score suggests a potential pivot.\n\n",
+  "**Tone:** Analytical, sophisticated, institutional."
 )
 
 # API Call
