@@ -12,25 +12,27 @@ setwd(workspace)
 
 # Constants
 TRAIN_END  <- as.Date("2024-12-01")
-MODEL_NAME <- "gemini-2.5-flash" 
+MODEL_NAME <- "gemini-1.5-flash" 
 
-# Helper to write errors to markdown without crashing workflow
+# Helper to write errors
 write_error_report <- function(title, details) {
-  msg <- paste0("### AI Analysis Failed\n\n**Reason:** ", title, "\n\n**Details:**\n", details)
+  # Take only the first 200 chars of details to prevent spamming the file
+  short_details <- substr(as.character(details), 1, 200)
+  msg <- paste0("### AI Analysis Failed\n\n**Reason:** ", title, "\n\n**Details:**\n", short_details)
   readr::write_lines(msg, "data/ai_analysis.md")
-  message(paste("FAILED:", title, "-", details))
+  message(paste("FAILED:", title, "-", short_details))
   quit(save = "no", status = 0) 
 }
 
-# Check existence of critical files
+# Verify files
 if (!file.exists("data/fred_raw_wide.csv")) write_error_report("Missing File", "fred_raw_wide.csv not found")
 if (!file.exists("data/m4_monthly_fit.rds")) write_error_report("Missing Model", "m4_monthly_fit.rds not found")
 
-# Load data using explicit readr call
+# Load data
 df_raw  <- readr::read_csv("data/fred_raw_wide.csv", show_col_types = FALSE)
 hmm_mod <- readRDS("data/m4_monthly_fit.rds")
 
-# Identify the index of the state with the highest mean sentiment
+# Identify High Sentiment State
 get_hi_state <- function(fit) {
   mus <- vapply(seq_len(depmixS4::nstates(fit)), function(i) {
     depmixS4::getpars(fit@response[[i]][[1]])[1] 
@@ -39,7 +41,7 @@ get_hi_state <- function(fit) {
 }
 HI_STATE_IDX <- get_hi_state(hmm_mod)
 
-# Clean data using explicit dplyr calls to prevent namespace collisions
+# Clean data 
 df_prep <- df_raw %>%
   dplyr::arrange(date) %>%
   dplyr::select(date, gdp_real, pcepi, FYFSD, y = cons_sent) %>%
@@ -53,15 +55,13 @@ df_prep <- df_raw %>%
   ) %>%
   tidyr::drop_na()
 
-# Safety check for empty data
 if (nrow(df_prep) < 10) write_error_report("Insufficient Data", paste("Only", nrow(df_prep), "rows remained."))
 
-# Scale variables using statistics from training period only
+# Scale variables
 cov_vars <- c("real_GDP_L1", "PCEPI_L0", "FYFSD_L1")
 df_scaled <- df_prep 
 train_mask <- df_scaled$date <= TRAIN_END
 
-# Calculate Mean and SD based on history
 stats_list <- lapply(cov_vars, function(var) {
   list(
     mu = mean(df_scaled[[var]][train_mask], na.rm = TRUE),
@@ -70,7 +70,6 @@ stats_list <- lapply(cov_vars, function(var) {
 })
 names(stats_list) <- cov_vars
 
-# Apply scaling to all rows
 for (var in cov_vars) {
   mu <- stats_list[[var]]$mu
   s  <- stats_list[[var]]$sd
@@ -78,10 +77,9 @@ for (var in cov_vars) {
   df_scaled[[var]] <- (df_scaled[[var]] - mu) / s
 }
 
-# Convert to base dataframe to prevent depmixS4 crashes with tibbles
 df_scaled <- as.data.frame(df_scaled) 
 
-# Reconstruct model structure matching the trained object
+# Reconstruct model
 n_st <- depmixS4::nstates(hmm_mod)
 frm  <- as.formula(paste("~", paste(cov_vars, collapse = " + ")))
 
@@ -93,40 +91,41 @@ mod_new <- depmixS4::depmix(
   transition = frm
 )
 
-# Inject trained parameters into the new container
 mod_applied <- depmixS4::setpars(mod_new, depmixS4::getpars(hmm_mod))
 
-# Run posterior decoding with error catching
+# --- ROBUST INFERENCE ---
 post_probs <- tryCatch({
   depmixS4::posterior(mod_applied, type = "smoothing")
 }, error = function(e) {
-  return(e$message)
+  return(e$message) # Return error string on failure
 })
 
-# Check if inference succeeded
-if (!is.data.frame(post_probs)) write_error_report("Inference Crashed", paste("Error:", post_probs))
-
-# Force to DataFrame
-if (!is.data.frame(post_probs)) {
-  if (is.matrix(post_probs) || is.list(post_probs)) {
-    post_probs <- as.data.frame(post_probs)
-  }
+# Check if it failed (Returned a character string)
+if (is.character(post_probs)) {
+  write_error_report("Inference Crashed", post_probs)
 }
 
-# Calculate metrics for the prompt
+# If it is NOT a character, it must be data (Matrix or DataFrame). Force it.
+post_probs <- as.data.frame(post_probs)
+
+# 3. Final Sanity Check
+if (nrow(post_probs) != nrow(df_scaled)) {
+  write_error_report("Row Mismatch", paste("Model returned", nrow(post_probs), "rows, expected", nrow(df_scaled)))
+}
+
+# METRICS and REPORTING 
+
 df_scaled$state_idx <- post_probs$state
 df_scaled$p_high    <- post_probs[, HI_STATE_IDX + 1]
 
-# Logic Swapped as requested: If p_high > 0.5, label as Low (and vice versa)
 df_scaled$regime    <- ifelse(df_scaled$p_high >= 0.5, "Low Sentiment", "High Sentiment")
 
 latest      <- utils::tail(df_scaled, 1)
 curr_regime <- latest$regime
-# We track confidence of the ASSIGNED regime
 curr_prob   <- if(curr_regime == "Low Sentiment") latest$p_high else (1 - latest$p_high)
 curr_csi    <- utils::tail(df_prep$y, 1)
 
-# Calculate anomaly metrics
+# Anomaly Scores
 indicators <- cov_vars
 means_by_regime <- df_scaled %>%
   dplyr::group_by(regime) %>%
@@ -138,12 +137,10 @@ mean_curr_vec <- means_by_regime %>%
   as.numeric()
 
 vals_current  <- as.numeric(latest[indicators])
-# Anomaly is the distance from the expected mean of the current regime
 avg_anomaly   <- round(mean(abs(vals_current - mean_curr_vec)), 2)
 runs          <- rle(df_scaled$regime)
 curr_streak   <- utils::tail(runs$lengths, 1)
 
-# Construct the enhanced prompt
 prompt <- paste0(
   "You are an expert macroeconomic analyst. Interpret these HMM results:\n",
   "- **Regime:** ", curr_regime, " (", round(curr_prob * 100, 1), "% Conf)\n",
@@ -155,7 +152,7 @@ prompt <- paste0(
   "For example, mention if GDP, Inflation, or Fiscal Deficit is deviating from the norm."
 )
 
-# Call API using direct httr2 request
+# API Call
 api_key <- Sys.getenv("GEMINI_API_KEY")
 url <- paste0("https://generativelanguage.googleapis.com/v1beta/models/", MODEL_NAME, ":generateContent?key=", api_key)
 
