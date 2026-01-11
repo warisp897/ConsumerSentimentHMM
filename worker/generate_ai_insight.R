@@ -141,29 +141,47 @@ evidence <- paste(vapply(seq_along(diffs), function(i) {
 
 # Prompt
 prompt <- paste0(
-  "You are a Senior Quantitative Strategist interpreting a proprietary economic model. ",
-  "We track the US Consumer Sentiment Index (CSI) using a Hidden Markov Model (HMM) that classifies the economy into two regimes:\n",
-  "1. **High Sentiment:** Optimistic, typically associated with strong growth and stable prices.\n",
-  "2. **Low Sentiment:** Pessimistic, typically driven by inflation shocks or recession risks.\n\n",
+  "You are summarizing the outputs of an economic regime model for a general audience. ",
+  "The goal is to explain *what the model sees* and *why*, without exaggeration or market commentary.\n\n",
   
-  "### CURRENT MODEL OUTPUT\n",
-  "The model indicates we are currently in a **", curr_regime, "** Regime.\n",
-  "- **Confidence:** ", round(curr_prob * 100, 1), "%\n",
-  "- **Duration:** This regime has persisted for ", curr_streak, " months.\n",
-  "- **Current CSI Score:** ", curr_csi, "\n",
-  "- **Anomaly Score:** ", avg_anomaly, " (Higher means the data is behaving weirdly compared to the regime's past history).\n\n",
+  "We track the U.S. Consumer Sentiment Index (CSI) using a 2-state Hidden Markov Model (HMM):\n",
+  "• High Sentiment: typically associated with strong growth and stable inflation.\n",
+  "• Low Sentiment: typically associated with inflation pressure, uncertainty, or recession risk.\n\n",
   
-  "### DRIVER ANALYSIS (Why are we here?)\n",
-  "We compared current economic drivers to their *expected baseline* for this specific regime. Here represent the deviations:\n",
+  "### CURRENT MODEL STATE\n",
+  "• Regime: ", curr_regime, "\n",
+  "• Probability: ", round(curr_prob * 100, 1), "%\n",
+  "• Duration: ", curr_streak, " months\n",
+  "• Current CSI: ", curr_csi, "\n",
+  "• Anomaly Score (avg Z): ", avg_anomaly, "\n\n",
+  
+  "### DRIVER DEVIATIONS\n",
+  "Each indicator is compared to its historical baseline *conditional on the current regime*. ",
+  "Larger deviations indicate behavior that is unusual for this regime.\n",
   evidence, "\n\n",
   
-  "### YOUR TASK\n",
-  "Synthesize a 1-paragraph market thesis (approx 4 sentences). Do not simply list the numbers.\n",
-  "Instead, explain the **tension** in the data. For example:\n",
-  "- If GDP is high but Sentiment is Low, is Inflation the culprit cancelling out the growth?\n",
-  "- If the Fiscal Deficit is deviating, is it acting as a tailwind or headwind?\n",
-  "- Conclude whether this regime looks stable or if the high anomaly score suggests a potential pivot.\n\n",
-  "**Tone:** Analytical, sophisticated, institutional."
+  "### OUTPUT INSTRUCTIONS\n",
+  "Produce two sections:\n\n",
+  
+  "1) **Key Signals (Bullets)**\n",
+  "Provide 4–6 concise bullets summarizing:\n",
+  "• The strength of regime confidence\n",
+  "• Whether the regime appears historically typical or unusual\n",
+  "• Which drivers are most out of line with the regime’s baseline\n",
+  "• Whether the data suggests stability or mounting internal tension\n",
+  "(Reference magnitudes like 'well above baseline' or '~2σ deviation' but avoid excessive precision.)\n\n",
+  
+  "2) **Plain-Language Summary (3–4 sentences)**\n",
+  "Write a short explanatory paragraph intended for non-technical readers:\n",
+  "• Explain why sentiment is classified as ", curr_regime, "\n",
+  "• Describe any contradictions in the data (e.g., strong growth alongside weak sentiment)\n",
+  "• Mention anomaly or duration only if it materially affects interpretation\n",
+  "• Avoid market predictions, advice, or dramatic language\n\n",
+  
+  "### TONE GUIDELINES\n",
+  "• Neutral and explanatory; No speculation beyond what the model implies.\n",
+  "• No phrases like 'signals a turning point' unless supported by anomaly or duration.\n",
+  "• Write as an automated research summary, not a human opinion."
 )
 
 # API Call
