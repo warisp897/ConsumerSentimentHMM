@@ -41,7 +41,8 @@ jobs:
             any::readr
             any::lubridate
             any::depmixS4
-            jhk0530/gemini.R
+            any::httr2
+            any::jsonlite
 
       - name: Run FRED pull
         env:
