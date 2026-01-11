@@ -1,179 +1,168 @@
-library(gemini.R)
 library(depmixS4)
 library(readr)
 library(dplyr)
 library(tidyr)
+library(httr2)
+library(jsonlite)
 
-# ==============================================================================
-# 1. SETUP & PATHS
-# ==============================================================================
+# Set workspace to repo root
 workspace <- Sys.getenv("GITHUB_WORKSPACE")
 if (workspace == "") workspace <- getwd()
 setwd(workspace)
 
-# Constants from your App (To ensure identical behavior)
-TRAIN_END <- as.Date("2024-12-01")
+# Constants
+TRAIN_END  <- as.Date("2024-12-01")
+MODEL_NAME <- "gemini-1.5-flash" 
 
-if (!file.exists("data/fred_raw_wide.csv")) stop("ERROR: fred_raw_wide.csv missing")
-if (!file.exists("data/m4_monthly_fit.rds")) stop("ERROR: m4_monthly_fit.rds missing")
+# Helper to write errors to markdown without crashing workflow
+write_error_report <- function(title, details) {
+  msg <- paste0("### AI Analysis Failed\n\n**Reason:** ", title, "\n\n**Details:**\n", details)
+  readr::write_lines(msg, "data/ai_analysis.md")
+  message(paste("FAILED:", title, "-", details))
+  quit(save = "no", status = 0) 
+}
 
-# ==============================================================================
-# 2. DATA LOADING & PREP (Matching app.R logic)
-# ==============================================================================
-df_raw  <- read_csv("data/fred_raw_wide.csv", show_col_types = FALSE)
+# Check existence of critical files
+if (!file.exists("data/fred_raw_wide.csv")) write_error_report("Missing File", "fred_raw_wide.csv not found")
+if (!file.exists("data/m4_monthly_fit.rds")) write_error_report("Missing Model", "m4_monthly_fit.rds not found")
+
+# Load data using explicit readr call
+df_raw  <- readr::read_csv("data/fred_raw_wide.csv", show_col_types = FALSE)
 hmm_mod <- readRDS("data/m4_monthly_fit.rds")
 
-# Identify High State
+# Identify the index of the state with the highest mean sentiment
 get_hi_state <- function(fit) {
-  mus <- vapply(seq_len(nstates(fit)), function(i) {
-    getpars(fit@response[[i]][[1]])[1] 
+  mus <- vapply(seq_len(depmixS4::nstates(fit)), function(i) {
+    depmixS4::getpars(fit@response[[i]][[1]])[1] 
   }, numeric(1))
   which.max(mus)
 }
 HI_STATE_IDX <- get_hi_state(hmm_mod)
 
-# Clean Data
+# Clean data using explicit dplyr calls to prevent namespace collisions
 df_prep <- df_raw %>%
-  arrange(date) %>%
-  select(date, gdp_real, pcepi, FYFSD, cons_sent) %>%
+  dplyr::arrange(date) %>%
+  dplyr::select(date, gdp_real, pcepi, FYFSD, y = cons_sent) %>%
   tidyr::fill(gdp_real, pcepi, FYFSD, .direction = "down") %>%
-  filter(!is.na(cons_sent)) %>%
-  filter(date >= as.Date("1987-01-01")) %>%
-  mutate(
-    real_GDP_L1 = lag(gdp_real, 1),
-    FYFSD_L1    = lag(FYFSD, 1),
+  dplyr::filter(!is.na(y)) %>%
+  dplyr::filter(date >= as.Date("1987-01-01")) %>%
+  dplyr::mutate(
+    real_GDP_L1 = dplyr::lag(gdp_real, 1),
+    FYFSD_L1    = dplyr::lag(FYFSD, 1),
     PCEPI_L0    = pcepi
   ) %>%
-  drop_na()
+  tidyr::drop_na()
 
-# ==============================================================================
-# 3. SCALING (The Fix: Lock Mean/SD to Training Period)
-# ==============================================================================
-# In the previous version, 'scale()' shifted the baseline as new data arrived.
-# Here, we calculate Mean/SD only on data <= TRAIN_END, matching app.R.
+# Safety check for empty data
+if (nrow(df_prep) < 10) write_error_report("Insufficient Data", paste("Only", nrow(df_prep), "rows remained."))
 
+# Scale variables using statistics from training period only
 cov_vars <- c("real_GDP_L1", "PCEPI_L0", "FYFSD_L1")
-df_scaled <- df_prep # Start with prep data
-
-# Calculate stats on training set only
+df_scaled <- df_prep 
 train_mask <- df_scaled$date <= TRAIN_END
 
+# Calculate Mean and SD based on history
+stats_list <- lapply(cov_vars, function(var) {
+  list(
+    mu = mean(df_scaled[[var]][train_mask], na.rm = TRUE),
+    sd = sd(df_scaled[[var]][train_mask], na.rm = TRUE)
+  )
+})
+names(stats_list) <- cov_vars
+
+# Apply scaling to all rows
 for (var in cov_vars) {
-  # Calc mean/sd from history
-  mu <- mean(df_scaled[[var]][train_mask], na.rm = TRUE)
-  sd <- sd(df_scaled[[var]][train_mask], na.rm = TRUE)
-  
-  # Apply to ALL data (Historical + New)
-  # This ensures 2025 data is judged against the 1987-2024 baseline
-  df_scaled[[var]] <- (df_scaled[[var]] - mu) / sd
+  mu <- stats_list[[var]]$mu
+  s  <- stats_list[[var]]$sd
+  if (is.na(s) || s == 0) s <- 1 
+  df_scaled[[var]] <- (df_scaled[[var]] - mu) / s
 }
 
-# Convert to base dataframe (depmixS4 requirement)
-df_scaled <- as.data.frame(df_scaled)
+# Convert to base dataframe to prevent depmixS4 crashes with tibbles
+df_scaled <- as.data.frame(df_scaled) 
 
-# ==============================================================================
-# 4. MODEL INFERENCE
-# ==============================================================================
-
-# Rebuild Model Structure
-n_st <- nstates(hmm_mod)
+# Reconstruct model structure matching the trained object
+n_st <- depmixS4::nstates(hmm_mod)
 frm  <- as.formula(paste("~", paste(cov_vars, collapse = " + ")))
 
-mod_new <- depmix(
-  response = cons_sent ~ 1,
+mod_new <- depmixS4::depmix(
+  response = y ~ 1,
   data = df_scaled,
   nstates = n_st,
   family = gaussian(),
   transition = frm
 )
 
-# Inject Parameters
-mod_applied <- setpars(mod_new, getpars(hmm_mod))
+# Inject trained parameters into the new container
+mod_applied <- depmixS4::setpars(mod_new, depmixS4::getpars(hmm_mod))
 
-# Run Posterior (With Fallback)
+# Run posterior decoding with error catching
 post_probs <- tryCatch({
-  posterior(mod_applied, type = "smoothing")
+  depmixS4::posterior(mod_applied, type = "smoothing")
 }, error = function(e) {
-  message(paste("Inference Failed:", e$message))
-  return(NULL)
+  return(e$message)
 })
 
-# ==============================================================================
-# 5. GENERATE METRICS & REPORT
-# ==============================================================================
+# Check if inference succeeded
+if (!is.data.frame(post_probs)) write_error_report("Inference Crashed", paste("Error:", post_probs))
 
-if (is.data.frame(post_probs)) {
-  
-  # Append Results
-  df_scaled$state_idx <- post_probs$state
-  df_scaled$p_high    <- post_probs[, HI_STATE_IDX + 1]
-  df_scaled$regime    <- ifelse(df_scaled$p_high >= 0.5, "High Sentiment", "Low Sentiment")
-  
-  # Get Latest Data
-  latest      <- tail(df_scaled, 1)
-  curr_regime <- latest$regime
-  curr_prob   <- latest$p_high
-  curr_csi    <- tail(df_prep$cons_sent, 1) # Raw CSI
-  
-  # Calculate Streaks
-  runs        <- rle(df_scaled$regime)
-  curr_streak <- tail(runs$lengths, 1)
-  prev_streak <- if(length(runs$lengths) > 1) tail(runs$lengths, 2)[1] else 0
-  
-  # Calculate Anomalies (Z-Score Deviation)
-  indicators <- cov_vars
-  means_by_regime <- df_scaled %>%
-    group_by(regime) %>%
-    summarise(across(all_of(indicators), \(x) mean(x, na.rm = TRUE)))
-  
-  mean_curr_vec <- means_by_regime %>% 
-    filter(regime == curr_regime) %>% 
-    select(all_of(indicators)) %>% 
-    as.numeric()
-  
-  vals_current  <- as.numeric(latest[indicators])
-  dist_to_curr  <- abs(vals_current - mean_curr_vec)
-  avg_anomaly   <- round(mean(dist_to_curr), 2)
-  
-  # Expansion Status
-  mean_other_vec <- means_by_regime %>% 
-    filter(regime != curr_regime) %>% 
-    select(all_of(indicators)) %>% 
-    as.numeric()
-  dist_to_other <- abs(vals_current - mean_other_vec)
-  n_leaning_other   <- sum(dist_to_other < dist_to_curr)
-  pct_leaning_other <- (n_leaning_other / length(indicators)) * 100
+# Calculate metrics for the prompt
+df_scaled$state_idx <- post_probs$state
+df_scaled$p_high    <- post_probs[, HI_STATE_IDX + 1]
 
-  expansion_status <- if (curr_regime == "Low Sentiment") {
-    if (pct_leaning_other > 50) "Recovery Detected" else "Deep Contraction"
-  } else {
-    if (pct_leaning_other > 50) "Warning Signal" else "Strong Expansion"
-  }
+# Logic Swapped as requested: If p_high > 0.5, label as Low (and vice versa)
+df_scaled$regime    <- ifelse(df_scaled$p_high >= 0.5, "Low Sentiment", "High Sentiment")
 
-  # Construct Prompt
-  prompt <- paste0(
-    "You are an expert macroeconomic analyst. Interpret these HMM results:\n",
-    "- **Regime:** ", curr_regime, " (", round(curr_prob * 100, 1), "% Conf)\n",
-    "- **Streak:** ", curr_streak, " Months\n",
-    "- **Raw Sentiment:** ", curr_csi, "\n",
-    "- **Anomaly Score:** ", avg_anomaly, " std devs\n",
-    "- **Status:** ", expansion_status, "\n\n",
-    "Write a 1-paragraph executive summary of the current economic narrative."
-  )
-  
-  # Call API
-  setAPIKey(Sys.getenv("GEMINI_API_KEY"))
-  
-  tryCatch({
-    analysis <- gemini(prompt)
-    write_lines(analysis, "data/ai_analysis.md")
-    message("SUCCESS: AI Analysis generated.")
-  }, error = function(e) {
-    message(paste("API Error:", e$message))
-    write_lines("AI Analysis unavailable (API Error).", "data/ai_analysis.md")
-  })
+latest      <- utils::tail(df_scaled, 1)
+curr_regime <- latest$regime
+# We track confidence of the ASSIGNED regime
+curr_prob   <- if(curr_regime == "Low Sentiment") latest$p_high else (1 - latest$p_high)
+curr_csi    <- utils::tail(df_prep$y, 1)
 
-} else {
-  message("WARNING: Posterior failed (likely scaling mismatch).")
-  write_lines("### ⚠️ AI Analysis Unavailable\n\nModel inference failed.", "data/ai_analysis.md")
-}
+# Calculate anomaly metrics
+indicators <- cov_vars
+means_by_regime <- df_scaled %>%
+  dplyr::group_by(regime) %>%
+  dplyr::summarise(dplyr::across(dplyr::all_of(indicators), \(x) mean(x, na.rm = TRUE)))
+
+mean_curr_vec <- means_by_regime %>% 
+  dplyr::filter(regime == curr_regime) %>% 
+  dplyr::select(dplyr::all_of(indicators)) %>% 
+  as.numeric()
+
+vals_current  <- as.numeric(latest[indicators])
+# Anomaly is the distance from the expected mean of the current regime
+avg_anomaly   <- round(mean(abs(vals_current - mean_curr_vec)), 2)
+runs          <- rle(df_scaled$regime)
+curr_streak   <- utils::tail(runs$lengths, 1)
+
+# Construct the enhanced prompt
+prompt <- paste0(
+  "You are an expert macroeconomic analyst. Interpret these HMM results:\n",
+  "- **Regime:** ", curr_regime, " (", round(curr_prob * 100, 1), "% Conf)\n",
+  "- **Streak:** ", curr_streak, " Months\n",
+  "- **Raw Sentiment:** ", curr_csi, "\n",
+  "- **Anomaly Score:** ", avg_anomaly, " std devs (Distance from regime baseline)\n\n",
+  "Write a 1-paragraph executive summary of the current economic narrative. ",
+  "IMPORTANT: Reference specific drivers if relevant. ",
+  "For example, mention if GDP, Inflation, or Fiscal Deficit is deviating from the norm."
+)
+
+# Call API using direct httr2 request
+api_key <- Sys.getenv("GEMINI_API_KEY")
+url <- paste0("https://generativelanguage.googleapis.com/v1beta/models/", MODEL_NAME, ":generateContent?key=", api_key)
+
+tryCatch({
+  resp <- httr2::request(url) %>%
+    httr2::req_headers("Content-Type" = "application/json") %>%
+    httr2::req_body_json(list(contents = list(list(parts = list(list(text = prompt)))))) %>%
+    httr2::req_perform()
+  
+  result <- resp %>% httr2::resp_body_json()
+  text_out <- result$candidates[[1]]$content$parts[[1]]$text
+  readr::write_lines(text_out, "data/ai_analysis.md")
+  message("SUCCESS: AI Analysis generated.")
+  
+}, error = function(e) {
+  write_error_report("API Error", e$message)
+})
