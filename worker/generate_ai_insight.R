@@ -4,15 +4,16 @@ library(readr)
 library(dplyr)
 library(tidyr)
 
-# ==============================================================================
-# 1. SETUP & DATA LOADING
-# ==============================================================================
+# Set workspace to repo root to ensure data paths work
+workspace <- Sys.getenv("GITHUB_WORKSPACE")
+if (workspace == "") workspace <- getwd()
+setwd(workspace)
 
-# Load data and the trained model
-df_raw  <- read_csv("data/fred_raw.csv", show_col_types = FALSE)
+# Load wide format data and the trained model
+df_raw  <- read_csv("data/fred_raw_wide.csv", show_col_types = FALSE)
 hmm_mod <- readRDS("data/m4_monthly_fit.rds")
 
-# Identify the "High Sentiment" state index from the model
+# Identify the High Sentiment state index
 get_hi_state <- function(fit) {
   mus <- vapply(seq_len(nstates(fit)), function(i) {
     getpars(fit@response[[i]][[1]])[1] 
@@ -20,7 +21,6 @@ get_hi_state <- function(fit) {
   which.max(mus)
 }
 HI_STATE_IDX <- get_hi_state(hmm_mod)
-
 
 # Ensure date sorting and fill quarterly data down to monthly
 df_prep <- df_raw %>%
@@ -35,7 +35,7 @@ df_prep <- df_raw %>%
   ) %>%
   drop_na()
 
-# Z-Score Scaling 
+# Z-Score Scaling
 df_scaled <- df_prep %>%
   mutate(across(c(real_GDP_L1, FYFSD_L1, PCEPI_L0, cons_sent), ~scale(.)[,1]))
 
@@ -52,34 +52,32 @@ mod_new <- depmix(
   transition = frm
 )
 
-# Inject trained parameters and run posterior (Viterbi decoding)
+# Inject trained parameters and run posterior decoding
 mod_applied <- setpars(mod_new, getpars(hmm_mod))
 post_probs  <- posterior(mod_applied, type = "smoothing")
 
 df_scaled$state_idx <- post_probs$state
-df_scaled$p_high    <- post_probs[, HI_STATE_IDX + 1] # +1 because col 1 is 'state'
+df_scaled$p_high    <- post_probs[, HI_STATE_IDX + 1]
 
-# Assign Regime Labels (High vs Low)
+# Assign Regime Labels
 df_scaled <- df_scaled %>%
   mutate(
     regime = ifelse(p_high >= 0.5, "High Sentiment", "Low Sentiment")
   )
 
-# Current Status 
+# Current Status
 latest <- tail(df_scaled, 1)
 curr_regime <- latest$regime
 curr_prob   <- latest$p_high
-curr_csi    <- tail(df_prep$cons_sent, 1) # Raw CSI (unscaled) for context
+curr_csi    <- tail(df_prep$cons_sent, 1)
 
 # Regime Length and Previous Streak
-# Run Length Encoding on the regime column
 runs <- rle(df_scaled$regime)
 curr_streak <- tail(runs$lengths, 1)
 prev_streak <- if(length(runs$lengths) > 1) tail(runs$lengths, 2)[1] else 0
 
-# Historical Match % and Anomaly Scores
-# 1. Calculate Baseline Means for the Current Regime
-indicators <- cov_vars # The 3 drivers
+# Historical Match and Anomaly Scores
+indicators <- cov_vars
 means_by_regime <- df_scaled %>%
   group_by(regime) %>%
   summarise(across(all_of(indicators), \(x) mean(x, na.rm = TRUE)))
@@ -102,10 +100,10 @@ dist_to_curr  <- abs(vals_current - mean_curr_vec)
 dist_to_other <- abs(vals_current - mean_other_vec)
 
 # Historical Match Percent
-n_aligned   <- sum(dist_to_curr <= 1.0) # Threshold from app
+n_aligned   <- sum(dist_to_curr <= 1.0)
 pct_aligned <- round((n_aligned / length(indicators)) * 100, 0)
 
-# Average Anomaly Score (Average Z-deviation)
+# Average Anomaly Score
 avg_anomaly <- round(mean(dist_to_curr), 2)
 
 # Regime Expansion
@@ -118,8 +116,7 @@ expansion_status <- if (curr_regime == "Low Sentiment") {
   if (pct_leaning_other > 50) "Warning Signal (Drivers shifting to Volatility)" else "Strong Expansion (Reinforcing High State)"
 }
 
-# CONSTRUCT GEMINI PROMPT
-
+# Construct Gemini Prompt
 prompt <- paste0(
   "You are an expert macroeconomic analyst. Interpret the latest results from our proprietary Hidden Markov Model (HMM) for US Consumer Sentiment.\n\n",
   
@@ -148,17 +145,14 @@ prompt <- paste0(
   "Reference the 'Expansion Status' to determine if a pivot is imminent."
 )
 
-# CALL API AND SAVE
-
+# Call API and save result
 setAPIKey(Sys.getenv("GEMINI_API_KEY"))
 
-# Error handling in case API fails
 tryCatch({
   analysis <- gemini(prompt)
   write_lines(analysis, "data/ai_analysis.md")
   print("AI Analysis successfully generated.")
 }, error = function(e) {
   print(paste("Error calling Gemini API:", e$message))
-  # Write a fallback message so the dashboard doesn't crash
   write_lines("AI Analysis unavailable at this time due to API connection issues.", "data/ai_analysis.md")
 })
