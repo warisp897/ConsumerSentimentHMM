@@ -113,7 +113,7 @@ curr_regime <- latest$regime
 curr_prob   <- if(curr_regime == "Low Sentiment") latest$p_high else (1 - latest$p_high)
 curr_csi    <- utils::tail(df_prep$y, 1)
 
-# Anomaly Scores (Calculated PER variable now)
+# Anomaly Scores
 indicators <- cov_vars
 means_by_regime <- df_scaled %>%
   dplyr::group_by(regime) %>%
@@ -125,22 +125,22 @@ mean_curr_vec <- means_by_regime %>%
   as.numeric()
 
 vals_current  <- as.numeric(latest[indicators])
-
-# Calculate specific deviations (Actual - Expected)
 diffs <- vals_current - mean_curr_vec
-# Map names to readable labels
-driver_map <- c("real_GDP_L1" = "GDP Growth", "PCEPI_L0" = "Inflation (PCE)", "FYFSD_L1" = "Fiscal Deficit")
-
-# Create a string detailing exactly which driver is off and by how much
-driver_evidence <- paste(vapply(seq_along(diffs), function(i) {
-  paste0("- ", driver_map[indicators[i]], ": ", round(diffs[i], 2), " SD from baseline")
-}, character(1)), collapse = "\n")
-
 avg_anomaly   <- round(mean(abs(diffs)), 2)
 runs          <- rle(df_scaled$regime)
 curr_streak   <- utils::tail(runs$lengths, 1)
 
-# Prompt
+# Map names to readable labels
+driver_map <- c("real_GDP_L1" = "GDP Growth", "PCEPI_L0" = "Inflation (PCE)", "FYFSD_L1" = "Fiscal Deficit")
+
+# Construct "Evidence Block"
+evidence <- paste(vapply(seq_along(diffs), function(i) {
+  val <- diffs[i]
+  direction <- if(val > 0) "above" else "below"
+  paste0("- ", driver_map[indicators[i]], ": ", abs(round(val, 2)), " SD ", direction, " baseline")
+}, character(1)), collapse = "\n")
+
+# --- FINAL TUNED PROMPT ---
 prompt <- paste0(
   "You are a Senior Portfolio Manager at a macro hedge fund. Provide a strategic assessment of the current US Consumer Sentiment Regime.\n\n",
   
