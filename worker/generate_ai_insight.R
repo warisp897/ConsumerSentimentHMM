@@ -177,6 +177,9 @@ prompt <- paste0(
   "• Describe any contradictions in the data (e.g., strong growth alongside weak sentiment)\n",
   "• Mention anomaly or duration only if it materially affects interpretation\n",
   "• Avoid market predictions, advice, or dramatic language\n\n",
+  "• Explain the 'Why'. If values is growing at +1.6σ above the regime mean, why is the model still 100% confident in a Low Sentiment state? ",
+  "• Diagnose whether variables are anchoring, preventing a regime shift. ",
+  "• Use the Anomaly Score to state whether this specific month is a typical version of ", curr_regime, " or a distorted outlier.\n\n",
   
   "### TONE GUIDELINES\n",
   "• Neutral and explanatory; No speculation beyond what the model implies.\n",
