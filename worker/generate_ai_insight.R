@@ -142,21 +142,22 @@ curr_streak   <- utils::tail(runs$lengths, 1)
 
 # Prompt
 prompt <- paste0(
-  "You are a hedge fund portfolio manager. Write a brutal, data-driven update on the US Consumer Sentiment Regime.\n\n",
+  "You are a Senior Portfolio Manager at a macro hedge fund. Provide a strategic assessment of the current US Consumer Sentiment Regime.\n\n",
   
-  "### DATA SNAPSHOT\n",
-  "- **Regime:** ", curr_regime, " (", round(curr_prob * 100, 1), "% Confidence)\n",
+  "### MARKET DATA\n",
+  "- **Current Regime:** ", curr_regime, " (", round(curr_prob * 100, 1), "% Confidence)\n",
   "- **Duration:** ", curr_streak, " months\n",
-  "- **Sentiment Index:** ", curr_csi, "\n",
-  "- **Aggregate Anomaly:** ", avg_anomaly, " deviations from norm\n\n",
+  "- **Anomaly Score:** ", avg_anomaly, " deviations from norm\n\n",
   
   "### DRIVER DEVIATIONS (vs Regime Baseline)\n",
-  driver_evidence, "\n\n",
+  evidence, "\n\n",
   
-  "### INSTRUCTIONS\n",
-  "1. **Style:** Bloomberg Terminal / Axios. Short sentences. Active voice. No fluff.\n",
-  "2. **Analysis:** Explain *why* the regime is holding or breaking based strictly on the Driver Deviations above. Identify the primary drag/lift.\n",
-  "3. **Constraint:** Max 3 sentences. Do not use words like 'unequivocally', 'profound', or 'mired'."
+  "### TASK\n",
+  "Write a concise 3-4 sentence thesis. Connect the dots between the drivers.\n",
+  "1. Acknowledge the regime status.\n",
+  "2. Analyze the conflict: specifically weigh the impact of GDP vs Inflation/Deficit.\n",
+  "3. Conclude: Is the regime stabilizing or fragile? (e.g. 'Despite strong growth, inflation remains the structural cap on sentiment.')\n",
+  "**Tone:** Professional, analytical, decisive. No flowery adjectives."
 )
 
 # API Call
