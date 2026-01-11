@@ -39,6 +39,9 @@ df_prep <- df_raw %>%
 df_scaled <- df_prep %>%
   mutate(across(c(real_GDP_L1, FYFSD_L1, PCEPI_L0, cons_sent), ~scale(.)[,1]))
 
+# Convert to base dataframe for depmixs4
+df_scaled <- as.data.frame(df_scaled)
+
 # Prepare the model structure
 cov_vars <- c("real_GDP_L1", "PCEPI_L0", "FYFSD_L1")
 n_st     <- nstates(hmm_mod)
