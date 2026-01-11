@@ -182,7 +182,7 @@ prompt <- paste0(
   "• Neutral and explanatory; No speculation beyond what the model implies.\n",
   "• No phrases like 'signals a turning point' unless supported by anomaly or duration.\n",
   "• Write as an automated research summary, not a human opinion.\n",
-  "• Start the answer with the summary itself, do not include any text except the summary itself.\n"
+  "• Start the answer with the summary itself, do not include any text except the summary itself.\n",
   "• DO NOT use section headers."
 )
 
