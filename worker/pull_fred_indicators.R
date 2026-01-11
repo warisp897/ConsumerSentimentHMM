@@ -18,8 +18,6 @@ message("Working directory now: ", getwd())
 out_dir <- file.path(workspace, "data")
 dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
 
-# normalizePath(mustWork=TRUE) fails if directory doesn't exist;
-# we just created it, so it's safe.
 message("Output dir: ", normalizePath(out_dir, winslash = "/", mustWork = TRUE))
 
 message("Listing repo root:")
@@ -32,9 +30,6 @@ if (dir.exists("data")) {
   message("No ./data dir exists (unexpected).")
 }
 
-# ============================================================
-# 1) FRED series list
-# ============================================================
 series <- c(
   # Output
   gdp_nominal         = "GDP",
@@ -77,9 +72,6 @@ series <- c(
   acc_balance         = "NETFI"
 )
 
-# ============================================================
-# 2) FRED fetch helpers
-# ============================================================
 api_key <- Sys.getenv("FRED_API_KEY")
 if (api_key == "") {
   stop("FRED_API_KEY is missing. Add it in GitHub repo Settings -> Secrets -> Actions.")
@@ -94,8 +86,6 @@ fetch_fred_series <- function(series_id, api_key) {
     "&file_type=json"
   )
 
-  # NOTE: jsonlite can read from URL directly.
-  # If you ever see intermittent network issues, you can wrap in tryCatch.
   x <- jsonlite::fromJSON(url)
 
   if (!"observations" %in% names(x)) {
@@ -104,7 +94,6 @@ fetch_fred_series <- function(series_id, api_key) {
 
   obs <- x$observations
 
-  # obs$value is character; "." appears for missing.
   df <- tibble::tibble(
     date  = as.Date(obs$date),
     value = suppressWarnings(as.numeric(obs$value))
@@ -113,9 +102,6 @@ fetch_fred_series <- function(series_id, api_key) {
   df
 }
 
-# ============================================================
-# 3) Pull all series into a long dataset
-# ============================================================
 message("------------------------------------------------------------")
 message("Starting FRED pull for ", length(series), " series...")
 
@@ -146,9 +132,6 @@ fred_long <- bind_rows(pulled) %>%
   select(series_name, series_id, date, value) %>%
   arrange(series_name, date)
 
-# ============================================================
-# 4) Build a wide dataset (one column per series_name)
-# ============================================================
 fred_wide <- fred_long %>%
   select(series_name, date, value) %>%
   tidyr::pivot_wider(
@@ -162,21 +145,15 @@ fred_wide <- fred_wide %>%
     FYFSD = fed_receipts - fed_outlays
   )
 
-
-# ============================================================
-# 5) Write outputs (ABSOLUTE PATHS) + hard verification
-# ============================================================
 long_path <- file.path(out_dir, "fred_raw_long.csv")
 wide_path <- file.path(out_dir, "fred_raw_wide.csv")
 
 message("------------------------------------------------------------")
 message("Writing outputs...")
 
-# Use readr for consistent formatting
 readr::write_csv(fred_long, long_path, na = "")
 readr::write_csv(fred_wide, wide_path, na = "")
 
-# Hard proof (fail fast if something is wrong)
 if (!file.exists(long_path)) stop("Expected output missing: ", long_path)
 if (!file.exists(wide_path)) stop("Expected output missing: ", wide_path)
 
@@ -188,7 +165,6 @@ message("  Size: ", long_size, " bytes | Rows: ", nrow(fred_long))
 message("Wrote: ", normalizePath(wide_path, winslash = "/", mustWork = TRUE))
 message("  Size: ", wide_size, " bytes | Rows: ", nrow(fred_wide))
 
-# Extra: show a quick preview so logs confirm content
 message("------------------------------------------------------------")
 message("Preview (head) of long:")
 print(utils::head(fred_long, 5))
