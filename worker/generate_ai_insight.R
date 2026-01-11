@@ -12,7 +12,7 @@ setwd(workspace)
 
 # Constants
 TRAIN_END  <- as.Date("2024-12-01")
-MODEL_NAME <- "gemini-1.5-flash" 
+MODEL_NAME <- "gemini-2.5-flash" 
 
 # Helper to write errors
 write_error_report <- function(title, details) {
