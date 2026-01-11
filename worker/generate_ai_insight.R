@@ -106,6 +106,13 @@ post_probs <- tryCatch({
 # Check if inference succeeded
 if (!is.data.frame(post_probs)) write_error_report("Inference Crashed", paste("Error:", post_probs))
 
+# Force to DataFrame
+if (!is.data.frame(post_probs)) {
+  if (is.matrix(post_probs) || is.list(post_probs)) {
+    post_probs <- as.data.frame(post_probs)
+  }
+}
+
 # Calculate metrics for the prompt
 df_scaled$state_idx <- post_probs$state
 df_scaled$p_high    <- post_probs[, HI_STATE_IDX + 1]
