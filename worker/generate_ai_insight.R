@@ -12,13 +12,12 @@ setwd(workspace)
 
 # Constants
 TRAIN_END  <- as.Date("2024-12-01")
-MODEL_NAME <- "gemini-2.5-flash" 
+MODEL_NAME <- "gemini-1.5-flash" 
 
 # Helper to write errors
 write_error_report <- function(title, details) {
-  # Take only the first 200 chars of details to prevent spamming the file
   short_details <- substr(as.character(details), 1, 200)
-  msg <- paste0("### AI Analysis Failed\n\n**Reason:** ", title, "\n\n**Details:**\n", short_details)
+  msg <- paste0("### ⚠️ AI Analysis Failed\n\n**Reason:** ", title, "\n\n**Details:**\n", short_details)
   readr::write_lines(msg, "data/ai_analysis.md")
   message(paste("FAILED:", title, "-", short_details))
   quit(save = "no", status = 0) 
@@ -93,31 +92,20 @@ mod_new <- depmixS4::depmix(
 
 mod_applied <- depmixS4::setpars(mod_new, depmixS4::getpars(hmm_mod))
 
-# --- ROBUST INFERENCE ---
+# Inference
 post_probs <- tryCatch({
   depmixS4::posterior(mod_applied, type = "smoothing")
 }, error = function(e) {
-  return(e$message) # Return error string on failure
+  return(e$message) 
 })
 
-# Check if it failed (Returned a character string)
-if (is.character(post_probs)) {
-  write_error_report("Inference Crashed", post_probs)
-}
-
-# If it is NOT a character, it must be data (Matrix or DataFrame). Force it.
+if (is.character(post_probs)) write_error_report("Inference Crashed", post_probs)
 post_probs <- as.data.frame(post_probs)
 
-# 3. Final Sanity Check
-if (nrow(post_probs) != nrow(df_scaled)) {
-  write_error_report("Row Mismatch", paste("Model returned", nrow(post_probs), "rows, expected", nrow(df_scaled)))
-}
-
-# METRICS and REPORTING 
+# --- METRICS & REPORTING ---
 
 df_scaled$state_idx <- post_probs$state
 df_scaled$p_high    <- post_probs[, HI_STATE_IDX + 1]
-
 df_scaled$regime    <- ifelse(df_scaled$p_high >= 0.5, "Low Sentiment", "High Sentiment")
 
 latest      <- utils::tail(df_scaled, 1)
@@ -125,7 +113,7 @@ curr_regime <- latest$regime
 curr_prob   <- if(curr_regime == "Low Sentiment") latest$p_high else (1 - latest$p_high)
 curr_csi    <- utils::tail(df_prep$y, 1)
 
-# Anomaly Scores
+# Anomaly Scores (Calculated PER variable now)
 indicators <- cov_vars
 means_by_regime <- df_scaled %>%
   dplyr::group_by(regime) %>%
@@ -137,10 +125,22 @@ mean_curr_vec <- means_by_regime %>%
   as.numeric()
 
 vals_current  <- as.numeric(latest[indicators])
-avg_anomaly   <- round(mean(abs(vals_current - mean_curr_vec)), 2)
+
+# Calculate specific deviations (Actual - Expected)
+diffs <- vals_current - mean_curr_vec
+# Map names to readable labels
+driver_map <- c("real_GDP_L1" = "GDP Growth", "PCEPI_L0" = "Inflation (PCE)", "FYFSD_L1" = "Fiscal Deficit")
+
+# Create a string detailing exactly which driver is off and by how much
+driver_evidence <- paste(vapply(seq_along(diffs), function(i) {
+  paste0("- ", driver_map[indicators[i]], ": ", round(diffs[i], 2), " SD from baseline")
+}, character(1)), collapse = "\n")
+
+avg_anomaly   <- round(mean(abs(diffs)), 2)
 runs          <- rle(df_scaled$regime)
 curr_streak   <- utils::tail(runs$lengths, 1)
 
+# Prompt
 prompt <- paste0(
   "You are a hedge fund portfolio manager. Write a brutal, data-driven update on the US Consumer Sentiment Regime.\n\n",
   
