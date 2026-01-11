@@ -21,6 +21,7 @@ library(shinyjs)
 library(reactable)
 library(depmixS4)
 library(sparkline)
+library(markdown)
 
 # Setting app port ----
 options(shiny.host = "0.0.0.0", shiny.port = 3838)
@@ -985,6 +986,18 @@ ui <- bs4DashPage(
                                     style = "height: 300px; overflow-y: auto; border: 1px solid #ddd;",
                                     sparklineOutput("spark_placeholder", height = 0), 
                                     DT::dataTableOutput("table_drivers")
+                                ),
+                                
+                                div(style = "height: 30px;"),
+                                
+                                bs4Card(
+                                    title = tagList(icon("microchip"), " AI Summary"),
+                                    status = "teal",
+                                    solidHeader = TRUE,
+                                    collapsible = TRUE,
+                                    width = 12,
+                                    background = "white",
+                                    uiOutput("ai_summary")
                                 )
                             )
                         )
@@ -4158,6 +4171,27 @@ server <- function(input, output, session) {
                 color = m3_color,
                 width = 4
             )
+        )
+    })
+    
+    ### AI Summary ----
+    output$ai_summary <- renderUI({
+        url <- "https://raw.githubusercontent.com/warisp897/ConsumerSentimentHMM/main/data/ai_analysis.md"
+        
+        content <- tryCatch({
+            readLines(url, warn = FALSE)
+        }, error = function(e) {
+            return(c(
+                "### AI Analyst Status",
+                "",
+                "*The AI Analyst has not yet generated a report for this month.*",
+                "*Please check back after the 1st of the month when the automated worker runs.*"
+            ))
+        })
+        
+        div(
+            style = "color: #212529; font-size: 1.1em; line-height: 1.6; text-align: justify; padding: 10px;",
+            HTML(markdown::markdownToHTML(text = paste(content, collapse = "\n"), fragment.only = TRUE))
         )
     })
 }
