@@ -91,11 +91,11 @@ To aid in understanding the underlying algorithm and logic of the HMM, an intera
 Since the production image is hosted on a private AWS ECR registry, the application can be built locally from source:
 
 ```bash
-# 1. Clone the repository
+# Clone repository
 git clone [https://github.com/warispopal897/ConsumerSentimentHMM.git](https://github.com/warispopal897/ConsumerSentimentHMM.git)
 
-# 2. Build the Docker Image
+# Build Docker Image
 docker build -t csi_hmm_dashboard .
 
-# 3. Run the Container
+# Run Container
 docker run -p 3838:3838 csi_hmm_dashboard
