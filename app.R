@@ -992,7 +992,7 @@ ui <- bs4DashPage(
                                 bs4Card(
                                     title = tagList(
                                         span("Monthly Analysis Summary", style = "font-weight: 700;"),
-                                        span(paste0(" | Generated: ", format(file.info("data/ai_analysis.md")$mtime, "%B %Y")), 
+                                        span(paste0("| Generated: ", format(file.info("data/ai_analysis.md")$mtime, "%B %Y")), 
                                              style = "font-weight: 400; font-size: 0.8em; color: #6c757d; margin-left: 10px;")
                                     ),
                                     status = "gray",

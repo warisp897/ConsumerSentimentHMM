@@ -28,7 +28,8 @@ RUN R -e "install.packages(c( \
     'reactable', \
     'depmixS4', \
     'sparkline', \
-    'aws.s3' \
+    'aws.s3', \
+    'markdown' \
     ), repos='https://cran.rstudio.com/')"
 
 # App directory
