@@ -39,18 +39,21 @@ The system follows a **Three-Tier Architecture** for orchestration, processing, 
 ## The Model: Hidden Markov Methodology
 The core model is a 2-State Gaussian HMM trained on 17 macroeconomic indicators (1987–2024).
 
-### 1. Feature Selection
+### Feature Selection
 Through rigorous rolling cross-validation and log-likelihood analysis, the model identified three key drivers of sentiment regimes:
 * **Real GDP (12-mo lag):** Captures income and productivity momentum.
 * **PCE Price Index:** Captures cost-of-living/inflationary pressure.
 * **Federal Surplus/Deficit (12-mo lag):** Proxies the fiscal policy backdrop.
 
-### 2. Regime Identification
+![Best Model Emissions](images/Best_Model_Emissions.png)
+*(Figure 1: Summary of the best model's emissions values and statistics)*
+
+### Regime Identification
 The model successfully decodes two distinct states without supervision:
 * **State 1 (High Sentiment):** Characterized by steady growth, low inflation, and stability.
 * **State 2 (Low Sentiment):** Aligns with every major recession (Dot-com, GFC, COVID-19) and high-stress periods.
 
-![Hidden Markov Model Demo](images/t-SNE_Plot.png)
+![t-SNE Plot](images/t-SNE_Plot.png)
 *(Figure 3: t-SNE projection of economic data showing clear separation between the two inferred regimes)*
 
 ---
