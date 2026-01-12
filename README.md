@@ -31,7 +31,7 @@ The system follows a **Three-Tier Architecture** for orchestration, processing, 
 * **Processing (ETL and Inference):** R scripts fetch raw data (FRED API), update the HMM probabilities, and generate an auxillary narrative synthesis using **Google Gemini 2.5 Flash**.
 * **Presentation (R Shiny):** The results are displayed in a containerized R Shiny app and deployed to AWS EC2 for public access.
 
-![System Architecture Diagram](./images/HMM Implementation.png)
+![System Architecture Diagram](images/HMM_Implementation.png)
 *(Figure 2: The end-to-end data pipeline from GitHub Orchestration to AWS Runtime)*
 
 ---
@@ -50,7 +50,7 @@ The model successfully decodes two distinct states without supervision:
 * **State 1 (High Sentiment):** Characterized by steady growth, low inflation, and stability.
 * **State 2 (Low Sentiment):** Aligns with every major recession (Dot-com, GFC, COVID-19) and high-stress periods.
 
-![Hidden Markov Model Demo](/images/t-SNE Plot.png)
+![Hidden Markov Model Demo](images/t-SNE_Plot.png)
 *(Figure 3: t-SNE projection of economic data showing clear separation between the two inferred regimes)*
 
 ---
@@ -79,7 +79,7 @@ To aid in understanding the underlying algorithm and logic of the HMM, an intera
 * Visualize the **Expectation-Maximization (EM)** algorithm step-by-step.
 * Run live simulations to see how probability shifts affect state decoding.
 
-![Hidden Markov Model Demo](/images/HMM Simulation.png)
+![Hidden Markov Model Demo](images/HMM_Simulation.png)
 *(Figure 4: A demo to demonstrate the Hidden Markov Model and transition/emission probabilities)*
 
 ---
