@@ -18,7 +18,7 @@ This project applies a **Gaussian Hidden Markov Model (HMM)** to 37 years of US 
 
 The project is deployed as an **R/Shiny application**, containerized with **Docker**, and hosted on **AWS EC2**, featuring a fully automated ETL and AI inference pipeline.
 
-![Consumer Sentiment Time Series with Regimes and Forecasting](/images/CSI Regimes and Forecasting.png)
+![Consumer Sentiment Time Series with Regimes and Forecasting](images/CSI_Regimes_and_Forecasting.png)
 *(Figure 1: The dashboard overview showing decoded regimes against historical economic events)*
 
 ---
