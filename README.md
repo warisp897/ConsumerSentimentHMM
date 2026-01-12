@@ -28,7 +28,7 @@ The project is deployed as an **R/Shiny application**, containerized with **Dock
 The system follows a **Three-Tier Architecture** for orchestration, processing, and presentation.
 
 * **Orchestration (GitHub Actions):** A scheduled worker triggers monthly to activate the pipeline.
-* **Processing (ETL and Inference):** R scripts fetch raw data (FRED API), update the HMM probabilities, and generate an auxillary narrative synthesis using **Google Gemini 2.5 Flash**.
+* **Processing (ETL and Inference):** R scripts fetch raw data (FRED API), update the HMM probabilities, and generate an auxiliary narrative synthesis using **Google Gemini 2.5 Flash**.
 * **Presentation (R Shiny):** The results are displayed in a containerized R Shiny app and deployed to AWS EC2 for public access.
 
 ![System Architecture Diagram](images/HMM_Implementation.png)
@@ -58,7 +58,7 @@ The model successfully decodes two distinct states without supervision:
 
 ---
 
-## Automated Regime Analysis (Generative AI)
+## Automated Narrative Synthesis (LLM-Assisted)
 
 To aid interpreting the quantitative metrics for better insight, the dashboard integrates a **Generative AI Analyst**.
 
@@ -83,6 +83,12 @@ To aid in understanding the underlying algorithm and logic of the HMM, an intera
 
 ![Hidden Markov Model Demo](images/HMM_Simulation.png)
 *(Figure 4: A demo to demonstrate the Hidden Markov Model and transition/emission probabilities)*
+
+## Design Tradeoffs
+* Flat-file storage was chosen over a database to simplify deployment and ensure deterministic builds.
+* EC2 was selected over managed PaaS to retain full control over runtime behavior and networking.
+* LLM inference is performed offline to avoid latency, cost variability, and nondeterminism at runtime.
+
 
 ---
 
