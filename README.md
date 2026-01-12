@@ -1,56 +1,99 @@
-## [View Dashboard Here](https://warispopal.shinyapps.io/consumersentimenthmm/)
+# Consumer Sentiment HMM: Live Economic Regime Dashboard
 
-# **Analysis of Consumer Sentiment Using Hidden Markov Model Regimes**
+![R](https://img.shields.io/badge/R-4.4.0-blue)
+![Shiny](https://img.shields.io/badge/Framework-Shiny-blue)
+![Docker](https://img.shields.io/badge/Container-Docker-2496ED)
+![AWS](https://img.shields.io/badge/Cloud-AWS%20EC2-FF9900)
+![AI](https://img.shields.io/badge/AI-Gemini%201.5%20Flash-8E75B2)
+![Status](https://img.shields.io/badge/Status-Live-success)
 
-This project successfully applied a **Gaussian Hidden Markov Model** with indicator-conditioned transitions to the University of Michigan Consumer Sentiment Index. The analysis moved beyond simple time-series diagnostics to identify and characterize two fundamental, latent economic states: a **High Sentiment Regime** and a **Low Sentiment Regime**.
+### [View Live Dashboard](http://3.209.5.209:3838/)
 
-## Economic Indicators
-A set of 17 economic indicators were acquired from the Federal Reserve Economic Data of St. Louis  (**FRED**) from 1986-2024, providing a quality series to train from with many economic booms and falls. Each series is categorized into 5 economic categories:
-- <b> Output </b>
-- <b> Labor Market </b>
-- <b> Price Levels </b>
-- <b> Monetary and Fiscal </b>
-- <b> Housing and Construction </b>
-
-The dashboard goes into depth on each variable and its relationship to consumer sentiment, with economic analysis, correlation, and summary statistics.
-
-## HMM Segment
-
-The Dashboard includes a segment teaching the fundamentals of the **Hidden Markov Model**, and how it excels in certain forecasting use cases. Users can learn about each step of the model's algorithm, and adjust the transition and emissions matrix to observe how it affects the model's probabilities and ability to decode the hidden states.
-
-## Key Findings
-
-### <u> Robust Regime Identification </u>
-The model was able to identify the existence of two statistically distinct sentiment regimes in the Consumer Sentiment.
-
-* The **Emissions Density Plot** demonstrates the regimes were clearly separated by their observed CSI levels, with the High state having a significantly larger mean ($\mu_{High} \approx 95$) than the Low state ($\mu_{Low} \approx 76$).
-*  The **t-SNE visualization** confirmed that data points corresponding to the two decoded HMM states clustered into two separate, non-arbitrary regions, validating the structural integrity of the inferred regimes. 
-
-### <u> Economic Drivers </u>
-The model was able to quantify the drivers of regime transition using a compact set of key economic indicators:
-
-| Indicator | Mechanism | Relationship to Sentiment |
-| :--- | :--- | :--- |
-| Real GDP (12 month lag) | Real productivity/Income momentum | Positive |
-| PCE Price Index | Cost-of-living pressure (Inflation) | Negative |
-| Federal Surplus/Deficit (12 month lag) | Policy/Fiscal stability backdrop | Negative |
-
-These indicators capture the primary economic factors influencing household confidence: **income, prices, and the policy environment.**
-
-### <u> Alignment with Economic Cycles </u>
-The decoded HMM regimes provide an insightful historical narrative:
-
-* The model successfully aligns the Low state (Red bands) with major US economic downturns (e.g., Dot-com, GFC, COVID-19) and their immediate aftermath.
-* Crucially, the HMM captures the **transitions**, often signaling shifts in sentiment before official economic recessions were declared, highlighting its forward-looking utility.
+> **Note:** This application runs on a dedicated AWS EC2 instance. The forecasting pipeline updates monthly via automated GitHub Actions.
 
 ---
 
-## Utility
+## Executive Summary
+This project applies a **Gaussian Hidden Markov Model (HMM)** to 37 years of US economic data to identify latent regimes in the University of Michigan's Consumer Sentiment Index. Unlike traditional time-series forecasting which assumes continuity, this model detects structural breaks in the economy, identifying distinct high and low sentiment environments.
 
-The model can be turned into a powerful **Risk Flagging Tool**, offering a level of depth beyond traditional forecasting:
+The project is deployed as an **R/Shiny application**, containerized with **Docker**, and hosted on **AWS EC2**, featuring a fully automated ETL and AI inference pipeline.
 
-1.  **Conditional Regime Tracking:** The model can be used for conditional nowcasting, projecting the current or near-future regime state given the most recently realized indicator data.
-2.  **Risk Assessment:** By analyzing the transition probability matrix in real-time, the model can quantify and flag elevated flip risk when the current indicator values enter a configuration that historically precedes a shift toward the Low Sentiment regime.
-3.  **Extensibility:** The framework is robust, allowing for future extensions such as incorporating more complex emissions, exploring more states (Neutral/High/Low), and integration into a streaming pipeline for low-latency decision support.
+![Consumer Sentiment Time Series with Regimes and Forecasting](./images/CSI Regimes and Forecasting.png)
+*(Figure 1: The dashboard overview showing decoded regimes against historical economic events)*
 
-The model's value is in it's ability to provide quantifiable evidence of when and why the underlying economic ground is shifting for the average consumer, offering far more than traditional time series regression methods.
+---
+
+## System Architecture
+
+The system follows a **Three-Tier Architecture** for orchestration, processing, and presentation.
+
+* **Orchestration (GitHub Actions):** A scheduled worker triggers monthly to activate the pipeline.
+* **Processing (ETL and Inference):** R scripts fetch raw data (FRED API), update the HMM probabilities, and generate an auxillary narrative synthesis using **Google Gemini 2.5 Flash**.
+* **Presentation (R Shiny):** The results are displayed in a containerized R Shiny app and deployed to AWS EC2 for public access.
+
+![System Architecture Diagram](./images/HMM Implementation.png)
+*(Figure 2: The end-to-end data pipeline from GitHub Orchestration to AWS Runtime)*
+
+---
+
+## The Model: Hidden Markov Methodology
+The core model is a 2-State Gaussian HMM trained on 17 macroeconomic indicators (1987–2024).
+
+### 1. Feature Selection
+Through rigorous rolling cross-validation and log-likelihood analysis, the model identified three key drivers of sentiment regimes:
+* **Real GDP (12-mo lag):** Captures income and productivity momentum.
+* **PCE Price Index:** Captures cost-of-living/inflationary pressure.
+* **Federal Surplus/Deficit (12-mo lag):** Proxies the fiscal policy backdrop.
+
+### 2. Regime Identification
+The model successfully decodes two distinct states without supervision:
+* **State 1 (High Sentiment):** Characterized by steady growth, low inflation, and stability.
+* **State 2 (Low Sentiment):** Aligns with every major recession (Dot-com, GFC, COVID-19) and high-stress periods.
+
+![Hidden Markov Model Demo](./images/t-SNE Plot.png)
+*(Figure 3: t-SNE projection of economic data showing clear separation between the two inferred regimes)*
+
+---
+
+## Automated Regime Analysis (Generative AI)
+
+To aid interpreting the quantitative metrics for better insight, the dashboard integrates a **Generative AI Analyst**.
+
+* **Engine:** Google Gemini 2.5 Flash.
+* **Methodology:** The system feeds the LLM model metrics from the HMM regume and the current **Z-Scores* for every economic indicator relative to the *current regime's baseline*.
+* **Synthesis:** These deviations are fed into a structured prompt that forces the AI to analyze underlying trends in the data.
+* **Result:** A concise narrative explanation of the current economic state, displayed directly on the dashboard.
+
+---
+
+## Key Application Features
+
+### Live Forecasting System
+The Forecasting tab loads fresh data from the repo's automated worker.
+* **Dynamic Z-Scoring:** Incoming data is normalized against training baselines in real-time.
+* **Anomaly Detection:** Specific indicators that are behaving inconsistently with the current regime are flagged.
+
+### Interactive HMM Simulation
+To aid in understanding the underlying algorithm and logic of the HMM, an interactive demo is available for users to:
+* Manually tune Transition and Emission matrices.
+* Visualize the **Expectation-Maximization (EM)** algorithm step-by-step.
+* Run live simulations to see how probability shifts affect state decoding.
+
+![Hidden Markov Model Demo](./images/HMM Simulation.png)
+*(Figure 4: A demo to demonstrate the Hidden Markov Model and transition/emission probabilities)*
+
+---
+
+## Build Locally
+
+Since the production image is hosted on a private AWS ECR registry, the application can be built locally from source:
+
+```bash
+# 1. Clone the repository
+git clone [https://github.com/warispopal897/ConsumerSentimentHMM.git](https://github.com/warispopal897/ConsumerSentimentHMM.git)
+
+# 2. Build the Docker Image
+docker build -t csi_hmm_dashboard .
+
+# 3. Run the Container
+docker run -p 3838:3838 csi_hmm_dashboard
