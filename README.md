@@ -31,7 +31,7 @@ The system follows a **Three-Tier Architecture** for orchestration, processing, 
 * **Processing (ETL and Inference):** R scripts fetch raw data (FRED API), update the HMM probabilities, and generate an auxillary narrative synthesis using **Google Gemini 2.5 Flash**.
 * **Presentation (R Shiny):** The results are displayed in a containerized R Shiny app and deployed to AWS EC2 for public access.
 
-![System Architecture Diagram](/images/HMM Implementation.png)
+![System Architecture Diagram](./images/HMM Implementation.png)
 *(Figure 2: The end-to-end data pipeline from GitHub Orchestration to AWS Runtime)*
 
 ---
