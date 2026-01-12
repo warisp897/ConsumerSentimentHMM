@@ -62,10 +62,9 @@ The model successfully decodes two distinct states without supervision:
 
 To aid interpreting the quantitative metrics for better insight, the dashboard integrates a **Generative AI Analyst**.
 
-* **Engine:** Google Gemini 2.5 Flash.
+* **Model:** Google Gemini 2.5 Flash.
 * **Methodology:** The system feeds the LLM model metrics from the HMM regume and the current **Z-Scores* for every economic indicator relative to the *current regime's baseline*.
-* **Synthesis:** These deviations are fed into a structured prompt that forces the AI to analyze underlying trends in the data.
-* **Result:** A concise narrative explanation of the current economic state, displayed directly on the dashboard.
+* **Synthesis:** These deviations are fed into the AI to analyze underlying trends in the data, where it developes a concise narrative explanation of the current economic state, displayed directly on the dashboard.
 
 ---
 
