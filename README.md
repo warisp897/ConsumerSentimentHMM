@@ -4,7 +4,6 @@
 ![Shiny](https://img.shields.io/badge/Framework-Shiny-blue)
 ![Docker](https://img.shields.io/badge/Container-Docker-2496ED)
 ![AWS](https://img.shields.io/badge/Cloud-AWS%20EC2-FF9900)
-![AI](https://img.shields.io/badge/AI-Gemini%202.5%20Flash-8E75B2)
 ![Status](https://img.shields.io/badge/Status-Live-success)
 
 ### [View Live Dashboard](http://3.209.5.209:3838/)
