@@ -3,7 +3,7 @@
 ![R](https://img.shields.io/badge/R-4.4.0-blue)
 ![Shiny](https://img.shields.io/badge/Framework-Shiny-blue)
 ![Docker](https://img.shields.io/badge/Container-Docker-2496ED)
-![AWS](https://img.shields.io/badge/AWS-FF9900?style=for-the-badge&logo=amazonaws&logoColor=white)
+![AWS](https://img.shields.io/badge/Cloud-AWS-FF9900?style=plastic&logo=amazonaws)
 ![Status](https://img.shields.io/badge/Status-Live-success)
 
 ### [View Live Dashboard](http://3.209.5.209:3838/)
